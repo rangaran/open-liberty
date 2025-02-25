@@ -243,7 +243,6 @@ public class IVChangesTests {
         // Configure the server
         configureServer(server, "true", "10", true);
 
-        // Copy validation key file (validation2.keys) to the server
         copyFileToServerResourcesSecurityDir(server,DEFAULT_KEY_PATH_SERVER1);
 
 
