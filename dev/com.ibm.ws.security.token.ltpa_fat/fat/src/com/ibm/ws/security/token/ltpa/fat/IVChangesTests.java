@@ -99,7 +99,7 @@ public class IVChangesTests {
  private static final String validUser = "user1";
  private static final String validPassword = "user1pwd";
 
- private static final String[] serverShutdownMessages = { "CWWKG0058E", "CWWKG0083W", "CWWKS4106E", "CWWKS4109W", "CWWKS4110E", "CWWKS4111E", "CWWKS4112E", "CWWKS4113W",
+ private static final String[] serverShutdownMessages = { "CWWKS4112E","CWWKG0058E", "CWWKG0083W", "CWWKS4106E", "CWWKS4109W", "CWWKS4110E", "CWWKS4111E", "CWWKS4112E", "CWWKS4113W",
                                                           "CWWKS4114W", "CWWKS4115W", "CWWKS1859E" };
 
  private static String validationKeyPassword = "{xor}Lz4sLCgwLTs=";
@@ -199,11 +199,11 @@ public class IVChangesTests {
 
         assertNotNull("Featurevalid did not report update was complete",
                       server.waitForStringInLog("CWWKF0008I"));
-        // assertNotNull("Security service did not report it was ready",
-        //               server.waitForStringInLog("CWWKS0008I"));
-        // assertNotNull("The application did not report is was started",
-        //               server.waitForStringInLog("CWWKZ0001I"));
-        // Wait for the LTPA configuration to be ready
+        assertNotNull("Security service did not report it was ready",
+                      server.waitForStringInLog("CWWKS0008I"));
+        assertNotNull("The application did not report is was started",
+                      server.waitForStringInLog("CWWKZ0001I"));
+        //Wait for the LTPA configuration to be ready
         assertNotNull("Expected LTPA configuration ready message not found in the log.",
                       server.waitForStringInLog("CWWKS4105I"));
 
@@ -273,6 +273,11 @@ public class IVChangesTests {
 
         copyFileToServerResourcesTmpdir(server, KEY_PATH_SERVER1 );
 
+        // String serverRoot = server.getServerRoot();
+        // String torename = serverRoot + "/resources/security/temp/ltpa.keys";
+        // String newname = serverRoot + "/resources/security/temp/myvalid.keys";
+
+        // renameFileIfExists(server, torename, newname, false);
         //copyFileToServerResourcesSecurityDir(server,KEY_PATH_SERVER1);
 
         // renameFileIfExists(VALIDATION_KEY1_PATH, DEFAULT_KEY_PATH_SERVER1, false);
@@ -333,16 +338,16 @@ public class IVChangesTests {
      *
      * @throws Exception
      */
-    private static void renameFileIfExists(String filePath, String newFilePath, boolean checkFileIsGone) throws Exception {
+    private static void renameFileIfExists(LibertyServer server_conf, String filePath, String newFilePath, boolean checkFileIsGone) throws Exception {
         Log.info(thisClass, "renameFileIfExists", "\nfilepath: " + filePath + "\nnewFilePath: " + newFilePath);
-        server.setMarkToEndOfLog(server.getDefaultLogFile());
+        server_conf.setMarkToEndOfLog(server_conf.getDefaultLogFile());
 
         if (fileExists(filePath, 1)) {
             if (fileExists(newFilePath, 1)) {
-                LibertyFileManager.moveLibertyFile(server.getFileFromLibertyServerRoot(filePath), server.getFileFromLibertyServerRoot(newFilePath));
+                LibertyFileManager.moveLibertyFile(server_conf.getFileFromLibertyServerRoot(filePath), server_conf.getFileFromLibertyServerRoot(newFilePath));
             } else {
                 Log.info(thisClass, "renameFileIfExists", "Calling server.renameLibertyServerRootFile");
-                server.renameLibertyServerRootFile(filePath, newFilePath);
+                server_conf.renameLibertyServerRootFile(filePath, newFilePath);
             }
         }
 
@@ -469,10 +474,15 @@ public void configureServer(LibertyServer server, String monitorValidationKeysDi
      */
     private static void copyFileToServerResourcesTmpdir(LibertyServer server_conf, String sourceFile) throws Exception {
         Log.info(thisClass, "copyFileToServerResourcesSecurityDir", "sourceFile: " + sourceFile);
+        Log.info(thisClass, "RenameFileInServerResourcesSecurityDir", "sourceFile: " + sourceFile);
+        String path = sourceFile.substring(0, sourceFile.lastIndexOf("/"));
+
+        String new_name = path + "/validation1.keys";
+        System.out.println(new_name);
         String serverRoot = server_conf.getServerRoot();
         String securityResources = serverRoot+"/resources/security/temp";
         server_conf.setServerRoot(securityResources);
-        server_conf.copyFileToLibertyServerRoot(sourceFile);
+        server_conf.copyFileToLibertyServerRoot(new_name);
         server_conf.setServerRoot(serverRoot);
     }
 

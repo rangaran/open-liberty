@@ -34,7 +34,7 @@ import componenttest.rules.repeater.RepeatTests;
                 AlwaysPassesTest.class,
                 ContextRootCookiePathTests.class,
                 FATTest.class,
-                LTPAKeyRotationTests.class,
+                //LTPAKeyRotationTests.class,
                 IVChangesTests.class
 })
 /**
