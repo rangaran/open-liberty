@@ -182,10 +182,10 @@ public class IVChangesTests {
  @BeforeClass
     public static void setUp() throws Exception {
         // // Copy validation key file primary key to the server 2
-        // copyFileToServerResourcesSecurityDir(DEFAULT_KEY_PATH_SERVER1);
+        copyFileToServerResourcesSecurityDir(server, "alternate/validation1.keys");
         // copyFileToServerResourcesSecurityDir(DEFAULT_KEY_PATH_SERVER2);
         //copyFileToTempDir("resources/security/key.p12", "key.p12");
-        copyFileToServerResourcesSecurityDir(server, KEY_PATH_SERVER1);
+        //copyFileToServerResourcesSecurityDir(server, KEY_PATH_SERVER1);
 
         server.setupForRestConnectorAccess();
         if (fipsEnabled) {
@@ -243,14 +243,17 @@ public class IVChangesTests {
         // Configure the server
         configureServer(server, "true", "10", true);
 
-        copyFileToServerResourcesSecurityDir(server,DEFAULT_KEY_PATH_SERVER1);
+
+        copyFileToServerResourcesSecurityDir(server, "alternate/validation1.keys");
+
+        copyFileToServerResourcesSecurityDir(server,KEY_PATH_SERVER1);
 
 
         // // Configure the server
         // configureServer(server2, "true", "10", true);
 
         // // Copy validation key file (validation2.keys) to the server
-        // copyFileToServerResourcesSecurityDir(server2, DEFAULT_KEY_PATH_SERVER2);
+        //server.copyFileToLibertyServerRoot(KEY_PATH_SERVER1);
         
         
 
@@ -268,7 +271,9 @@ public class IVChangesTests {
         assertNotNull("Expected SSO Cookie 1 is missing.", cookie1);
 
 
-        copyFileToServerResourcesTmpdir(server, DEFAULT_KEY_PATH_SERVER1 );
+        copyFileToServerResourcesTmpdir(server, KEY_PATH_SERVER1 );
+
+        //copyFileToServerResourcesSecurityDir(server,KEY_PATH_SERVER1);
 
         // renameFileIfExists(VALIDATION_KEY1_PATH, DEFAULT_KEY_PATH_SERVER1, false);
 
@@ -465,7 +470,7 @@ public void configureServer(LibertyServer server, String monitorValidationKeysDi
     private static void copyFileToServerResourcesTmpdir(LibertyServer server_conf, String sourceFile) throws Exception {
         Log.info(thisClass, "copyFileToServerResourcesSecurityDir", "sourceFile: " + sourceFile);
         String serverRoot = server_conf.getServerRoot();
-        String securityResources = "/temp";
+        String securityResources = serverRoot+"/resources/security/temp";
         server_conf.setServerRoot(securityResources);
         server_conf.copyFileToLibertyServerRoot(sourceFile);
         server_conf.setServerRoot(serverRoot);
