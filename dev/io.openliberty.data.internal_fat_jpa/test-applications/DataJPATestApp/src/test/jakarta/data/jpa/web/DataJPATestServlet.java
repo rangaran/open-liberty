@@ -2860,6 +2860,38 @@ public class DataJPATestServlet extends FATServlet {
     }
 
     /**
+     * Verify that LOWER(ID(o)) is valid in a query.
+     */
+    @Test
+    public void testLowerId() {
+        assertEquals(0, counties.deleteByNameIn(List.of("Freeborn", "Steele")));
+
+        int[] freebornZipCodes = new int[] { 55912, 56007, 56009, 56016, 56020, //
+                                             56026, 56029, 56032, 56035, 56036 };
+
+        int[] steeleZipCodes = new int[] { 55049, 55060, 55917, 55924, 55926, //
+                                           55946, 559072 };
+
+        County freeborn = new County("Freeborn", "Minnesota", 30895, freebornZipCodes, //
+                        "Albert Lea", "Alden", "Clarks Grove", "Conger", "Emmons", //
+                        "Freeborn", "Geneva", "Glenville", "Hartland", "Hayward", //
+                        "Hollandale", "Manchester", "Myrtle", "Twin Lakes");
+
+        County steele = new County("Steele", "Minnesota", 37406, steeleZipCodes, //
+                        "Blooming Prairie", "Ellendale", "Medford", "Owatonna");
+
+        counties.save(freeborn, steele);
+
+        assertEquals(Integer.valueOf(30895),
+                     counties.populationOf("freeborn").orElseThrow());
+
+        assertEquals(Integer.valueOf(37406),
+                     counties.populationOf("steele").orElseThrow());
+
+        assertEquals(2, counties.deleteByNameIn(List.of("Freeborn", "Steele")));
+    }
+
+    /**
      * Use a custom join query so that a ManyToMany association can query by attributes of the many side of the relationship.
      */
     @Test
@@ -4299,9 +4331,20 @@ public class DataJPATestServlet extends FATServlet {
          * Without using the Eclipselink Oracle plugin the precision of Timestamp is 1 second
          * Therefore, we need to ensure 1 second has passed between queries where we expect
          * the LocalDateTime/version to be different.
+         *
+         * For Derby the timestamp field can hold a precision of nanoseconds,
+         * but the CURRENT_TIMESTAMP function returns a timestamp with millis
+         * precision and there is no configuration to change that.
+         *
+         * For SQLServer the timestamp field also defaults to millis and Eclipselink
+         * offers no alternative query to get better percision.
+         *
+         * PostgreSQL - default is nanoseconds
+         * DB2 - default is microseconds
          */
         String jdbcJarName = System.getenv().getOrDefault("DB_DRIVER", "UNKNOWN");
-        boolean secondPercision = jdbcJarName.startsWith("ojdbc");
+        boolean secondPrecision = jdbcJarName.startsWith("ojdbc");
+        boolean millisecondPrecision = jdbcJarName.startsWith("derby") || jdbcJarName.startsWith("mssql-jdbc");
 
         assertEquals(0, counties.deleteByNameIn(List.of("Dodge", "Mower")));
 
@@ -4323,8 +4366,10 @@ public class DataJPATestServlet extends FATServlet {
 
         dodge = counties.findByName("Dodge").orElseThrow();
 
-        if (secondPercision)
+        if (secondPrecision)
             Thread.sleep(Duration.ofSeconds(1).toMillis());
+        if (millisecondPrecision)
+            Thread.sleep(Duration.ofMillis(1).toMillis());
 
         dodgeZipCodes = new int[] { 55917, 55924, 55927, 55940, 55944, 55955, 55963, 55985 };
         assertEquals(true, counties.updateByNameSetZipCodes("Dodge", dodgeZipCodes));
@@ -4343,8 +4388,10 @@ public class DataJPATestServlet extends FATServlet {
         lastUpdate = dodge.lastUpdated = counties.findLastUpdatedByName("Dodge");
         dodge.population = 20981;
 
-        if (secondPercision)
+        if (secondPrecision)
             Thread.sleep(Duration.ofSeconds(1).toMillis());
+        if (millisecondPrecision)
+            Thread.sleep(Duration.ofMillis(1).toMillis());
 
         counties.save(dodge);
 
