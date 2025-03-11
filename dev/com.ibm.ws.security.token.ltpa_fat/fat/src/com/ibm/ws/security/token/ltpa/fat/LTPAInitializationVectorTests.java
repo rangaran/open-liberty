@@ -74,7 +74,6 @@ public class LTPAInitializationVectorTests {
                                                              "CWWKS4113W",
                                                              "CWWKS4114W", "CWWKS4115W", "CWWKS1859E" };
 
-    private static String validationKeyPassword = "{xor}Lz4sLCgwLTs=";
     private static String validationKeyFIPSPassword = "{xor}CDo9Hgw=";
 
     // Initialize the FormLogin Clients
@@ -115,7 +114,9 @@ public class LTPAInitializationVectorTests {
     private static String ALT_VALIDATION_KEY7_PATH = "alternate/validation7.keys";
     private static String ALT_VALIDATION_KEY8_PATH = "alternate/validation8.keys";
     private static String ALT_VALIDATION_KEY9_PATH = "alternate/validation9.keys";
-    private static String ALT_CONFIGVALIDATION_KEY1_PATH = "alternate/configuredValidation1.keys";
+    private static String VALIDATION_KEYS_4 = "validation4.keys";
+    private static String VALIDATION_KEYS_1 = "validation1.keys";
+
 
     private static String SERVER_XML_PATH = "server.xml";
 
@@ -168,8 +169,6 @@ public class LTPAInitializationVectorTests {
             ALT_VALIDATION_KEY7_PATH = ALT_FIPS_VALIDATION_KEY7_PATH;
             ALT_VALIDATION_KEY8_PATH = ALT_FIPS_VALIDATION_KEY8_PATH;
             ALT_VALIDATION_KEY9_PATH = ALT_FIPS_VALIDATION_KEY9_PATH;
-            ALT_CONFIGVALIDATION_KEY1_PATH = ALT_FIPS_CONFIGVALIDATION_KEY1_PATH;
-            validationKeyPassword = validationKeyFIPSPassword;
         }
     }
 
@@ -964,9 +963,9 @@ public class LTPAInitializationVectorTests {
      * 3. Replace the `password` property of the validation key with the password from server 1. 
      * 4. Access a simple servlet with form login using valid credentials on server #1
      * 5. Authentication should be successful and retrieve the SSO cookie
-     * 6. Set the validation keys of server 2 to an invalid one
-     * 6. Attempt to access the SimpleServlet with form login on server #2 using the same cookie token from Server #1
-     * 7. Authentication fails as the IVs are different, primary keys files are different and the validation key element of server 2
+     * 6. Set the validation keys of server 2 to an invalid one using the password 'garbage'
+     * 7. Attempt to access the SimpleServlet with form login on server #2 using the same cookie token from Server #1
+     * 8. Authentication fails as the IVs are different, primary keys files are different and the validation key element of server 2
      * was set to an invalid one.
      */
 
@@ -1025,7 +1024,7 @@ public class LTPAInitializationVectorTests {
         server1FlClient1.accessProtectedServletWithAuthorizedCookie(FormLoginClient.PROTECTED_SIMPLE, server1Cookie);
     
         //setting the validation key to a value that is invalid will make the login unsuccessful
-        setLTPAvalidationKeyFileNameElement(ltpa2, "validation4.keys");
+        setLTPAvalidationKeyFileNameElement(ltpa2, VALIDATION_KEYS_4);
         setLTPAvalidationKeyPasswordElement(ltpa2, "garbage");
         setLTPAKeyPasswordElement(ltpa2, "garbage");
 
@@ -1039,11 +1038,11 @@ public class LTPAInitializationVectorTests {
      * 1. Server #1 and Server #2 contain different primary LTPA keys
      * 2. Access a simple servlet with form login using valid credentials on server #1
      * 3. Authentication should be successful and retrieve the SSO cookie
-     * 4. Copy the LTPA Primary key as in Server #1 and place it in Server #2, renamed as validation1.key
+     * 4. Copy the LTPA Primary key as in Server #1 and place it in Server #2 as validation1.key
      * 5. Replace the `password` property to the same as that of server 1.
      * 6. Attempt to access the SimpleServlet with form login on server #2 using the same cookie token from Server #1
      * 7. Authentication fails because IV and keys are invalid as MonitorValidationKeysDir was false so any changes to the validation key
-     * will not be registered. Even though validation1.keys should result in a success on server 2, it does not as the IV was still set to ltpa2.keys.
+     * will not be registered. Even though validation1.keys should result in a success on server 2, it does not as the IV was still set to validation4.keys.
      */
 
     @Mode(TestMode.LITE)
@@ -1052,7 +1051,7 @@ public class LTPAInitializationVectorTests {
     public void testLTPAValidationKeyUsage_set_MonitorValidationKeysDir_to_false_with_failing_validation_key() throws Exception {
         // Copy valid ltpa keys to each server
         copyFileToServerResourcesSecurityDir(ALT_VALIDATION_KEY1_PATH, server1);
-        copyFileToServerResourcesSecurityDir(ALT_VALIDATION_KEY1_PATH, server2);
+        copyFileToServerResourcesSecurityDir(ALT_VALIDATION_KEY4_PATH, server2);
 
         // Configure both servers, and replace the generated LTPA keys with the known valid key for server 1 and invalid one for server 2
         configureServer("true", "10", true, server1);
@@ -1060,6 +1059,7 @@ public class LTPAInitializationVectorTests {
        
 
         configureServer("false", "0", true, server2);
+        renameFileIfExists(BAD_PRIVATE_VALIDATION_KEY2_PATH, DEFAULT_KEY_PATH, true, server2);
 
         // Change the default keysPassword to that of the added ltpa keys file (Liberty)
         ServerConfiguration serverConfig = server1.getServerConfiguration();
@@ -1078,7 +1078,8 @@ public class LTPAInitializationVectorTests {
         LTPA ltpa2 = server2Config.getLTPA();
 
         // Change the default keysPassword to that of the added ltpa keys file (Liberty)
-        setLTPAvalidationKeyFileNameElement(ltpa2, "validation1.keys");
+        copyFileToServerResourcesSecurityDir(ALT_VALIDATION_KEY1_PATH, server2);
+
         setLTPAvalidationKeyPasswordElement(ltpa2, "{xor}EzY9Oi0rJg==");
         setLTPAKeyPasswordElement(ltpa2, "{xor}EzY9Oi0rJg==");
 
@@ -1138,7 +1139,7 @@ public class LTPAInitializationVectorTests {
         // set the key file element as the failing key
         ServerConfiguration server2Config = server2.getServerConfiguration();
         LTPA ltpa2 = server2Config.getLTPA();
-        setLTPAvalidationKeyFileNameElement(ltpa2, "validation4.keys");
+        setLTPAvalidationKeyFileNameElement(ltpa2, VALIDATION_KEYS_4);
         setLTPAvalidationKeyPasswordElement(ltpa2, "{xor}Lz4sLCgwLTs=");
         setLTPAKeyPasswordElement(ltpa2, "{xor}Lz4sLCgwLTs=");
 
