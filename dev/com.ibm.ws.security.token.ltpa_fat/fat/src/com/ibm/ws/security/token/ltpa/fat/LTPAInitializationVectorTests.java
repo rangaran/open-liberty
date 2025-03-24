@@ -403,8 +403,8 @@ public class LTPAInitializationVectorTests {
      *
      * Steps:
      * <OL>
-     * <LI> Configure Server #1 with the correct password of the key to-be added (Server #1 will be configured with a different password than server #2)
      * <LI> Configure Server #1 and Server #2 to contain different primary LTPA Keys with different LTPA keys passwords with monitorValidationKeysDir set to True
+     * <LI> Configure Server #1 with the correct password of the key to-be added (Server #1 will be configured with a different password than server #2)
      * <LI> Access a simple servlet with form login using valid credentials on Server #1 and retrieve the SSO cookie
      * <LI> Copy the LTPA primary key from Server #1 and place it in Server #2
      * <LI> Configure the previously added validation key and password in Server #2 server.xml
@@ -427,7 +427,7 @@ public class LTPAInitializationVectorTests {
         configureServer("true", "10", true, server1);
         configureServer("true", "10", true, server2);
 
-                // Change the default keysPassword configured in server.xml to that of the added ltpa keys file (Liberty)
+        // Change the default keysPassword configured in server.xml to that of the added ltpa keys file (Liberty)
         ServerConfiguration serverConfig = server1.getServerConfiguration();
         LTPA ltpa = serverConfig.getLTPA();
         setLTPAKeyPasswordElement(ltpa, "{xor}EzY9Oi0rJg==");
@@ -480,8 +480,8 @@ public class LTPAInitializationVectorTests {
      *
      * Steps:
      * <OL>
-     * <LI> Configure Server #1 with the correct password of the key to-be added (Server #1 will be configured with a different password than server #2)
      * <LI> Configure Server #1 and Server #2 to contain different primary LTPA Keys with different LTPA keys passwords with monitorValidationKeysDir set to False
+     * <LI> Configure Server #1 with the correct password of the key to-be added (Server #1 will be configured with a different password than server #2)
      * <LI> Access a simple servlet with form login using valid credentials on Server #1 and retrieve the SSO cookie
      * <LI> Copy the LTPA primary key from Server #1 and place it in Server #2
      * <LI> Attempt to access the simple servlet with form login on Server #2 using the SSO cookie from Server #1
@@ -503,15 +503,15 @@ public class LTPAInitializationVectorTests {
     @Test
     public void testLTPAValidationKeyUsage_twoServers_differentPW_monitorValidationKeysDir_false() throws Exception {
 
+        // Configure the servers
+        configureServer("false", "10", false, server1);
+        configureServer("false", "10", false, server2);
+
         // Change the default keysPassword configured in server.xml to that of the added ltpa keys file (Liberty)
         ServerConfiguration serverConfig = server1.getServerConfiguration();
         LTPA ltpa = serverConfig.getLTPA();
         setLTPAKeyPasswordElement(ltpa, "{xor}EzY9Oi0rJg==");
         updateConfigDynamically(server1, serverConfig);
-
-        // Configure the servers
-        configureServer("false", "10", false, server1);
-        configureServer("false", "10", false, server2);
 
         // Copy valid ltpa keys to each server, the ltpa keys are configured using different keysPassword
         copyFileToServerResourcesSecurityDir(ALT_VALIDATION_KEY9_PATH, server1);
@@ -1359,6 +1359,12 @@ public class LTPAInitializationVectorTests {
      */
     private void resetServer(LibertyServer server) throws Exception {
         Log.info(thisClass, "resetServer", "entering");
+
+        ServerConfiguration serverConfig = server.getServerConfiguration();
+        LTPA ltpa = serverConfig.getLTPA();
+        setLTPAKeyPasswordElement(ltpa, "{xor}Lz4sLCgwLTs=");
+        updateConfigDynamically(server, serverConfig);
+
         server.stopServer(serverShutdownMessages);
         Log.info(thisClass, "resetServer", "exiting");
     }
