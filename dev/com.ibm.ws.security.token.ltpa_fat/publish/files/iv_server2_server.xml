@@ -80,8 +80,7 @@
     
     <httpSession securityIntegrationEnabled="false"/>
 
-    <ltpa monitorInterval = "10" monitorValidationKeysDir="true" expiration="10m" updateTrigger="polled" keysFileName="${server.config.dir}/resources/security/ltpa.keys" keysPassword="{xor}Lz4sLCgwLTs=">
-    </ltpa>
+    <ltpa monitorInterval = "10" monitorValidationKeysDir="true" expiration="10m" updateTrigger="polled" keysFileName="${server.config.dir}/resources/security/ltpa.keys" keysPassword="{xor}Lz4sLCgwLTs=" />
 
 	<include location="../fatTestCommon.xml" />
  	<javaPermission className="javax.security.auth.AuthPermission" name="createLoginContext.system.WEB_INBOUND"/>
