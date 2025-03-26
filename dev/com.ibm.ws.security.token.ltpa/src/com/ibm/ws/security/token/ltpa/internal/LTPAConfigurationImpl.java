@@ -321,8 +321,15 @@ public class LTPAConfigurationImpl implements LTPAConfiguration, FileBasedAction
                     return validationKeysInDirectory;
                 }
 
+                /*
+                 * Use the canonical path when comparing primaryKeyImportFile to fullFileName because fullFileName is
+                 * derived primaryKeyImportDir which is a canonical path. If we don't compare with a canonical path then the
+                 * comparison fails on windows when '/' are used in server.xml instead of '\'.
+                 */
+                String canonicalPrimaryKeyImportFile = getCanonicalPathWithDefault(primaryKeyImportFile, primaryKeyImportFile);
+
                 // Skip the primary LTPA keys file or validationKeys file configured in the valicationKeys element
-                if (primaryKeyImportFile.equals(fullFileName) || isConfiguredValidationKeys(fullFileName)) {
+                if (canonicalPrimaryKeyImportFile.equals(fullFileName) || isConfiguredValidationKeys(fullFileName)) {
                     continue;
                 }
 
@@ -339,6 +346,24 @@ public class LTPAConfigurationImpl implements LTPAConfiguration, FileBasedAction
         }
 
         return validationKeysInDirectory;
+    }
+
+    /**
+     * @param defaultValue
+     * @param pathToResolve
+     * @return
+     */
+    private String getCanonicalPathWithDefault(String pathToResolve, String defaultValue) {
+        String canonicalPrimaryKeyImportFile;
+        try {
+            canonicalPrimaryKeyImportFile = new File(pathToResolve).getCanonicalPath();
+
+        } catch (IOException ioe) {
+            Tr.debug(tc, "Could not resolve canonical path to " + pathToResolve +
+                         ", returning default '" + defaultValue + "'. Failure info: " + ioe.getMessage());
+            canonicalPrimaryKeyImportFile = defaultValue;
+        }
+        return canonicalPrimaryKeyImportFile;
     }
 
     /**
@@ -375,13 +400,6 @@ public class LTPAConfigurationImpl implements LTPAConfiguration, FileBasedAction
             } catch (IOException e) {
                 Tr.debug(tc, "An exception occurred in resolveActualPrimaryKeysFileLocation method", e);
             }
-        }
-
-        try {
-            // Get the canonical path for primaryKeyImportFile so that path separators are corrected based on OS.
-            primaryKeyImportFile = new File(primaryKeyImportFile).getCanonicalPath();
-        } catch (IOException ioe) {
-            Tr.debug(tc, "An exception occurred in resolveActualPrimaryKeysFileLocation method", ioe);
         }
 
         if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {

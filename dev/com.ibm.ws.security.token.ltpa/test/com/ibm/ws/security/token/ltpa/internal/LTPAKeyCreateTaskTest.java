@@ -47,9 +47,7 @@ public class LTPAKeyCreateTaskTest {
 
     private static SharedOutputManager outputMgr = SharedOutputManager.getInstance();
     private static final String DEFAULT_OUTPUT_LOCATION = "${server.output.dir}/resources/security/ltpa.keys";
-    private static final String DEFAULT_OUTPUT_LOCATION_DIR = "${server.output.dir}/resources/security/";
     private static final String RESOLVED_DEFAULT_OUTPUT_LOCATION = "testServerName/resources/security/ltpa.keys";
-    private static final String RESOLVED_DEFAULT_OUTPUT_LOCATION_DIR = "testServerName/resources/security/";
     private static String TEST_FILE_NAME = "testFileName";
 
     /**
@@ -75,7 +73,8 @@ public class LTPAKeyCreateTaskTest {
         }
 
         @Override
-        void createRequiredCollaborators() throws Exception {}
+        void createRequiredCollaborators() throws Exception {
+        }
     }
 
     @Before
