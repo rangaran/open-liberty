@@ -48,7 +48,7 @@ import componenttest.vulnerability.LeakedPasswordChecker;
 
 @SuppressWarnings("restriction")
 @RunWith(FATRunner.class)
-@Mode(TestMode.LITE)
+@Mode(TestMode.FULL)
 public class LTPAInitializationVectorTests {
 
     // Initialize needed strings for the tests
@@ -331,7 +331,7 @@ public class LTPAInitializationVectorTests {
      * <LI> Successful authentication to simple servlet application on server #2 using SSO cookie
      * </OL>
      */
-    @Mode(TestMode.LITE)
+    @Mode(TestMode.FULL)
     @Test
     public void testLTPAValidationKeyUsage_twoServers_samePW_monitorValidationKeysDir_false() throws Exception {
 
@@ -486,7 +486,7 @@ public class LTPAInitializationVectorTests {
      * <LI> Successful authentication to simple servlet application on server #2 using SSO cookie
      * </OL>
      */
-    @Mode(TestMode.LITE)
+    @Mode(TestMode.FULL)
     @Test
     public void testLTPAValidationKeyUsage_twoServers_differentPW_monitorValidationKeysDir_false() throws Exception {
 
@@ -560,7 +560,7 @@ public class LTPAInitializationVectorTests {
      * 
      */
 
-    @Mode(TestMode.LITE)
+    @Mode(TestMode.FULL)
     @Test
     public void testLTPAValidationKeyUsage_no_validation_keys() throws Exception {
 
@@ -618,7 +618,7 @@ public class LTPAInitializationVectorTests {
      * </OL>
      */
 
-    @Mode(TestMode.LITE)
+    @Mode(TestMode.FULL)
     @Test
     @AllowedFFDC({ "java.lang.IllegalArgumentException" })
     //Have to allow FFDC as the 3des key length with the word 'garbage' is not divisible by 4 and can not be decrypted properly
@@ -812,7 +812,7 @@ public class LTPAInitializationVectorTests {
      * </OL>
      */
 
-    @Mode(TestMode.LITE)
+    @Mode(TestMode.FULL)
     @Test
     @AllowedFFDC({ "javax.crypto.BadPaddingException" })
     public void testLTPAValidationKeyUsage_invalid_passwords() throws Exception {
@@ -880,7 +880,7 @@ public class LTPAInitializationVectorTests {
      * </OL>
      */
 
-    @Mode(TestMode.LITE)
+    @Mode(TestMode.FULL)
     @Test
     public void testLTPAValidationKeyUsage_set_passing_validation_key_to_failing_validation_key() throws Exception {
         // Copy valid ltpa keys to server1. Copy invalid keys to server 2.
@@ -981,7 +981,7 @@ public class LTPAInitializationVectorTests {
      *
      **/
 
-    @Mode(TestMode.LITE)
+    @Mode(TestMode.FULL)
     @Test
     public void testLTPAValidationKeyUsage_set_MonitorValidationKeysDir_to_false_with_failing_validation_key() throws Exception {
         // Configure the servers
