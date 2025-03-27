@@ -354,7 +354,7 @@ public class LTPAInitializationVectorTests {
         copyFileToServerResourcesSecurityDir(ALT_VALIDATION_KEY1_PATH, server2);
 
         // Attempt to login to the simple servlet on server #2 and assert that the login fails because with monitorValidationKeysDir means the server does not recognize unspecified keys file
-        assertTrue("An invalid cookie should result in authorization challenge",
+        assertTrue("An invalid cookie should result in an authorization challenge",
                    server2FlClient1.accessProtectedServletWithInvalidCookie(FormLoginClient.PROTECTED_SIMPLE, server1Cookie));
 
         // Dynamically add a configured validation key element into the server2 configuration
@@ -513,7 +513,7 @@ public class LTPAInitializationVectorTests {
         copyFileToServerResourcesSecurityDir(ALT_VALIDATION_KEY9_PATH, server2);
 
         // Attempt to login to the simple servlet on server #2 and assert that the login fails because with monitorValidationKeysDir means the server does not recognize unspecified keys file
-        assertTrue("An invalid cookie should result in authorization challenge",
+        assertTrue("An invalid cookie should result in an authorization challenge",
                    server2FlClient1.accessProtectedServletWithInvalidCookie(FormLoginClient.PROTECTED_SIMPLE, server1Cookie));
 
         // Dynamically add the validation key element into the server2 configuration
@@ -567,7 +567,7 @@ public class LTPAInitializationVectorTests {
 
 
         // // Attempt to login to the simple servlet on server #2 and assert that the login fails
-        assertTrue("An invalid cookie should result in authorization challenge",
+        assertTrue("An invalid cookie should result in an authorization challenge",
                    server2FlClient1.accessProtectedServletWithInvalidCookie(FormLoginClient.PROTECTED_SIMPLE, server1Cookie));
     }
 
@@ -608,7 +608,7 @@ public class LTPAInitializationVectorTests {
         assertNotNull("Expected SSO Cookie 1 is missing.", server1Cookie);
 
         // // Attempt to login to the simple servlet on server #2 and assert that the login fails as only bad key is in the IV of server 2
-        assertTrue("An invalid cookie should result in authorization challenge",
+        assertTrue("An invalid cookie should result in an authorization challenge",
                    server2FlClient1.accessProtectedServletWithInvalidCookie(FormLoginClient.PROTECTED_SIMPLE, server1Cookie));
     }
 
@@ -660,7 +660,7 @@ public class LTPAInitializationVectorTests {
         updateConfigDynamically(server2, server2Config);
 
         // // Attempt to login to the simple servlet on server #2 and assert that the login  fails as expected
-        assertTrue("An invalid cookie should result in authorization challenge",
+        assertTrue("An invalid cookie should result in an authorization challenge",
                    server2FlClient1.accessProtectedServletWithInvalidCookie(FormLoginClient.PROTECTED_SIMPLE, server1Cookie));
     }
 
@@ -759,7 +759,7 @@ public class LTPAInitializationVectorTests {
         updateConfigDynamically(server2, server2Config);
 
         // // Attempt to login to the simple servlet on server #2 and assert that the login fails
-        assertTrue("An invalid cookie should result in authorization challenge",
+        assertTrue("An invalid cookie should result in an authorization challenge",
                    server2FlClient1.accessProtectedServletWithInvalidCookie(FormLoginClient.PROTECTED_SIMPLE, server1Cookie));
     }
 
@@ -843,7 +843,7 @@ public class LTPAInitializationVectorTests {
      
 
        // // Attempt to login to the simple servlet on server #2 and assert that the login fails
-       assertTrue("An invalid cookie should result in authorization challenge",
+       assertTrue("An invalid cookie should result in an authorization challenge",
        server2FlClient1.accessProtectedServletWithInvalidCookie(FormLoginClient.PROTECTED_SIMPLE, server1Cookie));
 
     }
@@ -889,20 +889,20 @@ public class LTPAInitializationVectorTests {
         assertNotNull("Expected SSO Cookie 1 is missing.", server1Cookie);
 
         
-        copyFileToServerResourcesSecurityDir(ALT_VALIDATION_KEY3_PATH, server2);
+        copyFileToServerResourcesSecurityDir(ALT_VALIDATION_KEY4_PATH, server2);
 
         // Dynamically add the validation key element into the server2 configuration
         ServerConfiguration server2Config = server2.getServerConfiguration();
         LTPA ltpa2 = server2Config.getLTPA();
 
         // Attempt to login to the simple servlet on server #2 and assert that the login fails because with monitorValidationKeysDir means the server does not recognize unspecified keys file
-        assertTrue("An invalid cookie should result in authorization challenge",
+        assertTrue("An invalid cookie should result in an authorization challenge",
                    server2FlClient1.accessProtectedServletWithInvalidCookie(FormLoginClient.PROTECTED_SIMPLE, server1Cookie));
 
         copyFileToServerResourcesSecurityDir(ALT_VALIDATION_KEY2_PATH, server2);
 
         // Attempt to login to the simple servlet on server #2 and assert that the login fails
-        server2FlClient1.accessProtectedServletWithInvalidCookie(FormLoginClient.PROTECTED_SIMPLE, server1Cookie);
+        assertTrue("An invalid cookie should result in an authorization challenge",server2FlClient1.accessProtectedServletWithInvalidCookie(FormLoginClient.PROTECTED_SIMPLE, server1Cookie));
     }
 
     /**
@@ -950,7 +950,7 @@ public class LTPAInitializationVectorTests {
         }
         updateConfigDynamically(server2, server2Config);
         // // Attempt should fail as the IV is set to an invalid validation key
-        assertTrue("An invalid cookie should result in authorization challenge",
+        assertTrue("An invalid cookie should result in an authorization challenge",
                    server2FlClient1.accessProtectedServletWithInvalidCookie(FormLoginClient.PROTECTED_SIMPLE, server1Cookie));
     }
 
