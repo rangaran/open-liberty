@@ -15,6 +15,7 @@ package com.ibm.ws.security.token.ltpa.fat;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.Arrays;
 import java.util.List;
@@ -95,8 +96,8 @@ public class LTPAInitializationVectorTests {
     private static final String VALIDATION_KEY9 = "validation9.keys";
     private static final String LTPA_LIBERTY_PASSWORD = "{xor}EzY9Oi0rJg==";
     private static String LTPA_DEFAULT_PASSWORD = "{xor}Lz4sLCgwLTs=";
-    private static String LTPA_FIPS_DEFAULT_PASSWORD= "{xor}CDo9Hgw=";
-    
+    private static String LTPA_FIPS_DEFAULT_PASSWORD = "{xor}CDo9Hgw=";
+
     List<String> PREBUILT_KEYS = Arrays.asList(DEFAULT_KEY_PATH, DIFFERENT_PW_VALIDATION_KEY_PATH, BAD_SHARED_VALIDATION_KEY2_PATH,
                                                VALIDATION_KEY3_PATH,
                                                VALIDATION_KEY2_PATH, VALIDATION_KEY1_PATH);
@@ -137,7 +138,7 @@ public class LTPAInitializationVectorTests {
             ALT_VALIDATION_KEY3_PATH = ALT_FIPS_VALIDATION_KEY3_PATH;
             ALT_VALIDATION_KEY4_PATH = ALT_FIPS_VALIDATION_KEY4_PATH;
             ALT_VALIDATION_KEY9_PATH = ALT_FIPS_VALIDATION_KEY9_PATH;
-            LTPA_DEFAULT_PASSWORD= LTPA_FIPS_DEFAULT_PASSWORD;
+            LTPA_DEFAULT_PASSWORD = LTPA_FIPS_DEFAULT_PASSWORD;
         }
     }
 
@@ -204,17 +205,14 @@ public class LTPAInitializationVectorTests {
         }
 
         //Copy over server.xml on set up to restore the server.xml between tests
-
         server1.copyFileToLibertyServerRoot(BACKUP_SERVERXML_IV_SERVER_1);
-        renameFileIfExists(BACKUP_SERVERXML_IV_SERVER_1, DEFAULT_SERVER_XML, true, server1);
+        renameKeyAndWaitForMessage(BACKUP_SERVERXML_IV_SERVER_1, DEFAULT_SERVER_XML, server1, "CWWKG001[7-8]I");
 
         server2.copyFileToLibertyServerRoot(BACKUP_SERVERXML_IV_SERVER_2);
-        renameFileIfExists(BACKUP_SERVERXML_IV_SERVER_2, DEFAULT_SERVER_XML, true, server2);
+        renameKeyAndWaitForMessage(BACKUP_SERVERXML_IV_SERVER_2, DEFAULT_SERVER_XML, server2, "CWWKG001[7-8]I");
 
         for (LibertyServer server : servers) {
-            server.waitForStringInLogUsingMark("CWWKG001[7-8]I");
             moveLogMarkForServer(server);
-
         }
 
     }
@@ -278,8 +276,8 @@ public class LTPAInitializationVectorTests {
                       server2.waitForStringInLogUsingMark("CWWKS4105I"));
 
         // Replace the randomly generated LTPA keys with the known valid ltpa keys and assert the change occurs
-        renameKeyAndWaitForLtpaConfig(VALIDATION_KEY1_PATH, DEFAULT_KEY_PATH, server1);
-        renameKeyAndWaitForLtpaConfig(VALIDATION_KEY2_PATH, DEFAULT_KEY_PATH, server2);
+        renameKeyAndWaitForLtpaConfigReady(VALIDATION_KEY1_PATH, DEFAULT_KEY_PATH, server1);
+        renameKeyAndWaitForLtpaConfigReady(VALIDATION_KEY2_PATH, DEFAULT_KEY_PATH, server2);
 
         // Initial login to simple servlet for form login1
         server1FlClient1.accessProtectedServletWithAuthorizedCredentials(FormLoginClient.PROTECTED_SIMPLE, validUser, validPassword);
@@ -338,9 +336,9 @@ public class LTPAInitializationVectorTests {
         copyFileToServerResourcesSecurityDir(ALT_VALIDATION_KEY2_PATH, server2);
 
         // Replace the randomly generated LTPA keys with the known valid ltpa keys and assert the change occurs
-        renameKeyAndWaitForLtpaConfig(VALIDATION_KEY1_PATH, DEFAULT_KEY_PATH, server1);
+        renameKeyAndWaitForLtpaConfigReady(VALIDATION_KEY1_PATH, DEFAULT_KEY_PATH, server1);
 
-        renameKeyAndWaitForLtpaConfig(VALIDATION_KEY2_PATH, DEFAULT_KEY_PATH, server2);
+        renameKeyAndWaitForLtpaConfigReady(VALIDATION_KEY2_PATH, DEFAULT_KEY_PATH, server2);
 
         // Initial login to simple servlet for form login1
         server1FlClient1.accessProtectedServletWithAuthorizedCredentials(FormLoginClient.PROTECTED_SIMPLE, validUser, validPassword);
@@ -412,14 +410,14 @@ public class LTPAInitializationVectorTests {
         copyFileToServerResourcesSecurityDir(ALT_VALIDATION_KEY9_PATH, server1);
 
         // Replace the randomly generated LTPA keys with the known valid ltpa keys and assert the change occurs
-        renameKeyAndWaitForLtpaConfig(DIFFERENT_PW_VALIDATION_KEY_PATH, DEFAULT_KEY_PATH, server1);
+        renameKeyAndWaitForLtpaConfigReady(DIFFERENT_PW_VALIDATION_KEY_PATH, DEFAULT_KEY_PATH, server1);
 
         server2.setMarkToEndOfLog();
         copyFileToServerResourcesSecurityDir(ALT_VALIDATION_KEY2_PATH, server2);
         assertNotNull("Expected LTPA configuration ready message not found in the log.",
                       server2.waitForStringInLogUsingMark("CWWKS4105I"));
 
-        renameKeyAndWaitForLtpaConfig(VALIDATION_KEY2_PATH, DEFAULT_KEY_PATH, server2);
+        renameKeyAndWaitForLtpaConfigReady(VALIDATION_KEY2_PATH, DEFAULT_KEY_PATH, server2);
 
         // Initial login to simple servlet for form login1
         server1FlClient1.accessProtectedServletWithAuthorizedCredentials(FormLoginClient.PROTECTED_SIMPLE, validUser, validPassword);
@@ -485,10 +483,10 @@ public class LTPAInitializationVectorTests {
 
         // Copy valid ltpa keys to each server, the ltpa keys are configured using different keysPassword
         copyFileToServerResourcesSecurityDir(ALT_VALIDATION_KEY9_PATH, server1);
-        renameKeyAndWaitForLtpaConfig(DIFFERENT_PW_VALIDATION_KEY_PATH, DEFAULT_KEY_PATH, server1);
+        renameKeyAndWaitForLtpaConfigReady(DIFFERENT_PW_VALIDATION_KEY_PATH, DEFAULT_KEY_PATH, server1);
 
         copyFileToServerResourcesSecurityDir(ALT_VALIDATION_KEY2_PATH, server2);
-        renameKeyAndWaitForLtpaConfig(VALIDATION_KEY2_PATH, DEFAULT_KEY_PATH, server2);
+        renameKeyAndWaitForLtpaConfigReady(VALIDATION_KEY2_PATH, DEFAULT_KEY_PATH, server2);
 
         // Initial login to simple servlet for form login1
         server1FlClient1.accessProtectedServletWithAuthorizedCredentials(FormLoginClient.PROTECTED_SIMPLE, validUser, validPassword);
@@ -550,10 +548,10 @@ public class LTPAInitializationVectorTests {
         configureServer("true", "10", true, server1);
         configureServer("true", "10", true, server2);
 
-        renameKeyAndWaitForLtpaConfig(VALIDATION_KEY1_PATH, DEFAULT_KEY_PATH, server1);
+        renameKeyAndWaitForLtpaConfigReady(VALIDATION_KEY1_PATH, DEFAULT_KEY_PATH, server1);
 
         // Configure the server, and replace the generated LTPA keys with the known valid ltpa key in server 2
-        renameKeyAndWaitForLtpaConfig(VALIDATION_KEY2_PATH, DEFAULT_KEY_PATH, server2);
+        renameKeyAndWaitForLtpaConfigReady(VALIDATION_KEY2_PATH, DEFAULT_KEY_PATH, server2);
 
         // Initial login to simple servlet for form login1
         server1FlClient1.accessProtectedServletWithAuthorizedCredentials(FormLoginClient.PROTECTED_SIMPLE, validUser, validPassword);
@@ -605,13 +603,9 @@ public class LTPAInitializationVectorTests {
         configureServer("true", "10", true, server1);
         configureServer("true", "10", true, server2);
 
-        renameKeyAndWaitForLtpaConfig(VALIDATION_KEY1_PATH, DEFAULT_KEY_PATH, server1);
+        renameKeyAndWaitForLtpaConfigReady(VALIDATION_KEY1_PATH, DEFAULT_KEY_PATH, server1);
 
-        server2.setMarkToEndOfLog();
-        renameFileIfExists(VALIDATION_KEY3_PATH, DEFAULT_KEY_PATH, true, server2);
-        // Wait for the LTPA configuration error message (ltpa contains garbage value)
-        assertNotNull("Expected LTPA configuration error message not found in the log.",
-                      server2.waitForStringInLogUsingMark("CWWKS4106E"));
+        renameKeyAndWaitForMessage(VALIDATION_KEY3_PATH, DEFAULT_KEY_PATH, server2, "CWWKS4106E");
 
         // Initial login to simple servlet for form login1
         server1FlClient1.accessProtectedServletWithAuthorizedCredentials(FormLoginClient.PROTECTED_SIMPLE, validUser, validPassword);
@@ -665,15 +659,10 @@ public class LTPAInitializationVectorTests {
 
         //replace the randomly generated LTPA key with a known valid ltpa key
         configureServer("true", "10", true, server1);
-        renameKeyAndWaitForLtpaConfig(VALIDATION_KEY1_PATH, DEFAULT_KEY_PATH, server1);
+        renameKeyAndWaitForLtpaConfigReady(VALIDATION_KEY1_PATH, DEFAULT_KEY_PATH, server1);
 
         configureServer("true", "10", true, server2);
-        //replace the randomly generated LTPA key with a known invalid ltpa key
-        server2.setMarkToEndOfLog();
-        renameFileIfExists(VALIDATION_KEY3_PATH, DEFAULT_KEY_PATH, true, server2);
-        // Wait for the LTPA configuration to be an error after the change
-        assertNotNull("Expected LTPA configuration error message not found in the log.",
-                      server2.waitForStringInLogUsingMark("CWWKS4106E"));
+        renameKeyAndWaitForMessage(VALIDATION_KEY3_PATH, DEFAULT_KEY_PATH, server2, "CWWKS4106E");
 
         // Initial login to simple servlet for form login1
         server1FlClient1.accessProtectedServletWithAuthorizedCredentials(FormLoginClient.PROTECTED_SIMPLE, validUser, validPassword);
@@ -686,7 +675,7 @@ public class LTPAInitializationVectorTests {
         ServerConfiguration server2Config = server2.getServerConfiguration();
         LTPA ltpa2 = server2Config.getLTPA();
         setLTPAValidationKey(ltpa2, VALIDATION_KEY4, LTPA_DEFAULT_PASSWORD);
-       
+
         updateConfigDynamically(server2, server2Config);
 
         // Attempt to login to the simple servlet on server #2 and assert that the login  fails as expected
@@ -726,13 +715,7 @@ public class LTPAInitializationVectorTests {
 
             // Configure the server, and replace the generated LTPA key with the fips key
             configureServer("true", "10", true, server1);
-            server1.setMarkToEndOfLog();
-            renameFileIfExists(VALIDATION_KEY1_PATH, DEFAULT_KEY_PATH, true, server1);
-
-            //assert ltpa token creation fails
-            assertNotNull("The system cannot create the LTPA token because the required com.ibm.websphere.ltpa.3DESKey property is missing",
-                          server1.waitForStringInLogUsingMark("CWWKS4102E"));
-
+            renameKeyAndWaitForMessage(VALIDATION_KEY1_PATH, DEFAULT_KEY_PATH, server1, "CWWKS4102E");
         }
 
         else {
@@ -743,13 +726,8 @@ public class LTPAInitializationVectorTests {
 
             // Configure the server, and replace the generated LTPA key with the non fips key
             configureServer("true", "10", true, server1);
-            server1.setMarkToEndOfLog();
+            renameKeyAndWaitForMessage(VALIDATION_KEY1_PATH, DEFAULT_KEY_PATH, server1, "CWWKS4102E");
 
-            renameFileIfExists(VALIDATION_KEY1_PATH, DEFAULT_KEY_PATH, true, server1);
-
-            //assert ltpa token creation fails
-            assertNotNull("The system cannot create the LTPA token because the required com.ibm.websphere.ltpa.sharedKey property is missing",
-                          server1.waitForStringInLogUsingMark("CWWKS4102E"));
         }
 
     }
@@ -787,7 +765,7 @@ public class LTPAInitializationVectorTests {
 
         // Configure both servers, and replace the randomly generated LTPA keys with the known valid ltpa keys
         configureServer("true", "10", true, server1);
-        renameKeyAndWaitForLtpaConfig(VALIDATION_KEY1_PATH, DEFAULT_KEY_PATH, server1);
+        renameKeyAndWaitForLtpaConfigReady(VALIDATION_KEY1_PATH, DEFAULT_KEY_PATH, server1);
 
         configureServer("true", "10", true, server2);
 
@@ -849,14 +827,14 @@ public class LTPAInitializationVectorTests {
 
         // Configure both servers, and replace the randomly generated LTPA keys with the known validation keys
         configureServer("true", "10", true, server1);
-        renameKeyAndWaitForLtpaConfig(VALIDATION_KEY1_PATH, DEFAULT_KEY_PATH, server1);
+        renameKeyAndWaitForLtpaConfigReady(VALIDATION_KEY1_PATH, DEFAULT_KEY_PATH, server1);
 
         // Wait for the LTPA configuration to be ready after the change
         assertNotNull("Expected LTPA configuration ready message not found in the log.",
                       server2.waitForStringInLogUsingMark("CWWKS4105I"));
 
         configureServer("true", "10", true, server2);
-        renameKeyAndWaitForLtpaConfig(BAD_SHARED_VALIDATION_KEY2_PATH, DEFAULT_KEY_PATH, server2);
+        renameKeyAndWaitForLtpaConfigReady(BAD_SHARED_VALIDATION_KEY2_PATH, DEFAULT_KEY_PATH, server2);
 
         // Change the default keysPassword to that of the added ltpa keys file
         ServerConfiguration serverConfig = server1.getServerConfiguration();
@@ -877,9 +855,9 @@ public class LTPAInitializationVectorTests {
         //Copy over validation1.keys
         copyFileToServerResourcesSecurityDir(ALT_VALIDATION_KEY1_PATH, server2);
 
-        // Change the default keysPassword to that of the added ltpa keys file 
+        // Change the default keysPassword to that of the added ltpa keys file
         setLTPAValidationKey(ltpa2, VALIDATION_KEY1, LTPA_DEFAULT_PASSWORD);
-        
+
         updateConfigDynamically(server2, server2Config);
 
         // Attempt to login to the simple servlet on server #2 and assert that the login is successful (uses validation key)
@@ -891,10 +869,8 @@ public class LTPAInitializationVectorTests {
         //Copy over validation4.keys
         copyFileToServerResourcesSecurityDir(ALT_VALIDATION_KEY4_PATH, server2);
         setLTPAValidationKey(ltpa2, VALIDATION_KEY4, LTPA_DEFAULT_PASSWORD);
-        
+
         updateConfigDynamically(server2, server2Config);
-       
-     
 
         updateConfigDynamically(server2, server2Config);
 
@@ -944,10 +920,10 @@ public class LTPAInitializationVectorTests {
 
         // // Copy valid ltpa keys to each server, the ltpa keys are configured using different keysPassword
         copyFileToServerResourcesSecurityDir(ALT_VALIDATION_KEY1_PATH, server1);
-        renameKeyAndWaitForLtpaConfig(VALIDATION_KEY1_PATH, DEFAULT_KEY_PATH, server1);
+        renameKeyAndWaitForLtpaConfigReady(VALIDATION_KEY1_PATH, DEFAULT_KEY_PATH, server1);
 
         copyFileToServerResourcesSecurityDir(ALT_VALIDATION_KEY2_PATH, server2);
-        renameKeyAndWaitForLtpaConfig(VALIDATION_KEY2_PATH, DEFAULT_KEY_PATH, server2);
+        renameKeyAndWaitForLtpaConfigReady(VALIDATION_KEY2_PATH, DEFAULT_KEY_PATH, server2);
 
         // Initial login to simple servlet for form login1
         server1FlClient1.accessProtectedServletWithAuthorizedCredentials(FormLoginClient.PROTECTED_SIMPLE, validUser, validPassword);
@@ -1007,11 +983,11 @@ public class LTPAInitializationVectorTests {
 
         // Configure both servers, and replace the randomly generated LTPA keys  with valid keys
         configureServer("true", "10", true, server1);
-        renameKeyAndWaitForLtpaConfig(VALIDATION_KEY1_PATH, DEFAULT_KEY_PATH, server1);
+        renameKeyAndWaitForLtpaConfigReady(VALIDATION_KEY1_PATH, DEFAULT_KEY_PATH, server1);
 
         configureServer("true", "10", true, server2);
 
-        renameKeyAndWaitForLtpaConfig(VALIDATION_KEY2_PATH, DEFAULT_KEY_PATH, server2);
+        renameKeyAndWaitForLtpaConfigReady(VALIDATION_KEY2_PATH, DEFAULT_KEY_PATH, server2);
 
         // Initial login to simple servlet for form login1
         server1FlClient1.accessProtectedServletWithAuthorizedCredentials(FormLoginClient.PROTECTED_SIMPLE, validUser, validPassword);
@@ -1025,7 +1001,7 @@ public class LTPAInitializationVectorTests {
         ServerConfiguration server2Config = server2.getServerConfiguration();
         LTPA ltpa2 = server2Config.getLTPA();
         setLTPAValidationKey(ltpa2, VALIDATION_KEY4, LTPA_DEFAULT_PASSWORD);
-        
+
         updateConfigDynamically(server2, server2Config);
 
         // Attempt should fail as the IV is set to an invalid validation key
@@ -1326,17 +1302,13 @@ public class LTPAInitializationVectorTests {
      *
      * @throws Exception
      */
-    private static void renameFileIfExists(String filePath, String newFilePath, boolean checkFileIsGone, LibertyServer server) throws Exception {
+    private static void renameServerFileInLibertyRoot(String filePath, String newFilePath, boolean checkFileIsGone, LibertyServer server) throws Exception {
         Log.info(thisClass, "renameFileIfExists", "\nfilepath: " + filePath + "\nnewFilePath: " + newFilePath);
-        server.setMarkToEndOfLog(server.getDefaultLogFile());
 
-        if (fileExists(filePath, 1, server)) {
-            if (fileExists(newFilePath, 1, server)) {
-                LibertyFileManager.moveLibertyFile(server.getFileFromLibertyServerRoot(filePath), server.getFileFromLibertyServerRoot(newFilePath));
-            } else {
-                Log.info(thisClass, "renameFileIfExists", "Calling server.renameLibertyServerRootFile");
-                server.renameLibertyServerRootFile(filePath, newFilePath);
-            }
+        if (fileExists(newFilePath, 1, server)) {
+            LibertyFileManager.moveLibertyFile(server.getFileFromLibertyServerRoot(filePath), server.getFileFromLibertyServerRoot(newFilePath));
+        } else {
+            server.renameLibertyServerRootFile(filePath, newFilePath);
         }
 
         // Double check to make sure the file is gone
@@ -1365,16 +1337,18 @@ public class LTPAInitializationVectorTests {
         Log.info(thisClass, "resetServer", "exiting");
     }
 
-    /**
-     * @param oldName
-     * @param newName
-     * @param serv
-     * @throws Exception
-     */
-    private void renameKeyAndWaitForLtpaConfig(String oldName, String newName, LibertyServer serv) throws Exception {
-        serv.setMarkToEndOfLog();
-        renameFileIfExists(oldName, newName, true, serv);
-        assertNotNull("Expected LTPA configuration modified message not found in the log.",
-                      serv.waitForStringInLogUsingMark("CWWKS4105I"));
+    private void renameKeyAndWaitForLtpaConfigReady(String oldName, String newName, LibertyServer serv) throws Exception {
+        renameKeyAndWaitForMessage(oldName, newName, serv, "CWWKS4105I");
+    }
+
+    private void renameKeyAndWaitForMessage(String oldName, String newName, LibertyServer serv, String messageRegex) throws Exception {
+        if (fileExists(oldName, 1, serv)) {
+            serv.setMarkToEndOfLog();
+            renameServerFileInLibertyRoot(oldName, newName, true, serv);
+            assertNotNull("Expected message '" + messageRegex + "' was not found in log.",
+                          serv.waitForStringInLogUsingMark(messageRegex));
+        } else {
+            fail("File '" + oldName + "' cannot be renamed because it does not exist");
+        }
     }
 }
