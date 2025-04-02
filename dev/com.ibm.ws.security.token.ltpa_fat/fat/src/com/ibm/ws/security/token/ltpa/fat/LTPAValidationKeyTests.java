@@ -17,6 +17,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.List;
 
@@ -166,11 +169,28 @@ public class LTPAValidationKeyTests {
         // Copy validation key file (validation1.keys) to the server
         server2.useSecondaryHTTPPort();
 
+        // Copy an ltpa.keys file into each server to prevent generation of keys at server start
+        copyFileToServerResourcesSecurityDir(ALT_VALIDATION_KEY1_PATH, server1);
+        copyFileToServerResourcesSecurityDir(ALT_VALIDATION_KEY2_PATH, server2);
+        renameServerFileInLibertyRoot(VALIDATION_KEY1_PATH, DEFAULT_KEY_PATH, false, server1);
+        renameServerFileInLibertyRoot(VALIDATION_KEY2_PATH, DEFAULT_KEY_PATH, false, server2);
+
         LibertyServer[] servers = { server1, server2 };
 
         for (LibertyServer server : servers) {
 
             server.setupForRestConnectorAccess();
+            if (fipsEnabled) {
+                File fipsServerXml;
+                if (server == server1) {
+                    fipsServerXml = new File(server.pathToAutoFVTTestFiles + DEFAULT_FIPS_SERVER1_XML);
+                } else {
+                    fipsServerXml = new File(server.pathToAutoFVTTestFiles + DEFAULT_FIPS_SERVER2_XML);
+                }
+                File serverXml = new File(server.pathToAutoFVTTestFiles + DEFAULT_SERVER_XML);
+                Files.copy(fipsServerXml.toPath(), serverXml.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                server.copyFileToLibertyServerRoot(DEFAULT_SERVER_XML);
+            }
             server.startServer(true);
 
             assertNotNull("Featurevalid did not report update was complete",
@@ -193,7 +213,7 @@ public class LTPAValidationKeyTests {
     @Before
     public void setUp() throws Exception {
 
-        // Reset the ltpa.keys file to default to not allow key generation
+        // Reset the ltpa.keys file to allow for clean start of subsequent tests
         copyFileToServerResourcesSecurityDir(ALT_VALIDATION_KEY1_PATH, server1);
         copyFileToServerResourcesSecurityDir(ALT_VALIDATION_KEY2_PATH, server2);
         renameServerFileInLibertyRoot(VALIDATION_KEY1_PATH, DEFAULT_KEY_PATH, false, server1);
@@ -822,8 +842,6 @@ public class LTPAValidationKeyTests {
         //Copy over validation4.keys
         copyFileToServerResourcesSecurityDir(ALT_VALIDATION_KEY4_PATH, server2);
         setLTPAValidationKey(ltpa2, VALIDATION_KEY4, LTPA_DEFAULT_PASSWORD);
-
-        updateConfigDynamically(server2, server2Config);
 
         updateConfigDynamically(server2, server2Config);
 
