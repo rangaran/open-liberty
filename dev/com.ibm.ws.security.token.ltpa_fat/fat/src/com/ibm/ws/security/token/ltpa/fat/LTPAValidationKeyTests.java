@@ -84,8 +84,8 @@ public class LTPAValidationKeyTests {
     private static final String DEFAULT_SERVER_XML = "server.xml";
     private static String DEFAULT_FIPS_SERVER1_XML = "server1FIPS.xml";
     private static String DEFAULT_FIPS_SERVER2_XML = "server2FIPS.xml";
-    private static String BACKUP_SERVERXML_IV_SERVER_1 = "iv_server1_server.xml";
-    private static String BACKUP_SERVERXML_IV_SERVER_2 = "iv_server2_server.xml";
+    private static String BACKUP_SERVER1XML = "server1nonFIPS.xml";
+    private static String BACKUP_SERVER2XML = "server2nonFIPS.xml";
 
     // Define the paths to the key files
     private static final String DEFAULT_KEY_PATH = "resources/security/ltpa.keys";
@@ -134,8 +134,8 @@ public class LTPAValidationKeyTests {
         fipsEnabled = isFipsEnabled;
 
         if (fipsEnabled) {
-            BACKUP_SERVERXML_IV_SERVER_1 = DEFAULT_FIPS_SERVER1_XML;
-            BACKUP_SERVERXML_IV_SERVER_2 = DEFAULT_FIPS_SERVER2_XML;
+            BACKUP_SERVER1XML = DEFAULT_FIPS_SERVER1_XML;
+            BACKUP_SERVER2XML = DEFAULT_FIPS_SERVER2_XML;
             ALT_VALIDATION_KEY1_PATH = ALT_FIPS_VALIDATION_KEY1_PATH;
             ALT_VALIDATION_KEY2_PATH = ALT_FIPS_VALIDATION_KEY2_PATH;
             ALT_VALIDATION_KEY3_PATH = ALT_FIPS_VALIDATION_KEY3_PATH;
@@ -232,11 +232,11 @@ public class LTPAValidationKeyTests {
         }
 
         //Copy over server.xml on set up to restore the server.xml between tests
-        server1.copyFileToLibertyServerRoot(BACKUP_SERVERXML_IV_SERVER_1);
-        renameKeyAndWaitForMessage(BACKUP_SERVERXML_IV_SERVER_1, DEFAULT_SERVER_XML, server1, "CWWKG001[7-8]I");
+        server1.copyFileToLibertyServerRoot(BACKUP_SERVER1XML);
+        renameKeyAndWaitForMessage(BACKUP_SERVER1XML, DEFAULT_SERVER_XML, server1, "CWWKG001[7-8]I");
 
-        server2.copyFileToLibertyServerRoot(BACKUP_SERVERXML_IV_SERVER_2);
-        renameKeyAndWaitForMessage(BACKUP_SERVERXML_IV_SERVER_2, DEFAULT_SERVER_XML, server2, "CWWKG001[7-8]I");
+        server2.copyFileToLibertyServerRoot(BACKUP_SERVER2XML);
+        renameKeyAndWaitForMessage(BACKUP_SERVER2XML, DEFAULT_SERVER_XML, server2, "CWWKG001[7-8]I");
 
         for (LibertyServer server : servers) {
             moveLogMarkForServer(server);
@@ -536,60 +536,6 @@ public class LTPAValidationKeyTests {
 
         // Attempt to login to the simple servlet on server #2 and assert that the login is successful
         server2FlClient1.accessProtectedServletWithAuthorizedCookie(FormLoginClient.PROTECTED_SIMPLE, server1Cookie);
-    }
-
-    /**
-     * Negative Test Case:
-     * Verify that the cookie obtained from server 1 fails on server 2 if the primary key values with are different (keypassword is the same) on both servers and validate that the
-     * IV for server2
-     * is different from server 1.
-     *
-     *
-     * Steps:
-     * <OL>
-     * <LI> Server #1 and Server #2 contain different primary LTPA keys
-     * <LI> Replace LTPA keys with validation keys from respective servers to ensure no validation keys exist in either server.
-     * <LI> Access a simple servlet with form login using valid credentials on Server #1
-     * <LI> Attempt to access the simple servlet with form login on Server #2 using the SSO cookie from Server #1
-     * </OL>
-     *
-     * Expected Results:
-     * <OL>
-     * <LI> Succesful rename to respective ltpa.keys per server of validation keys copied over
-     * <LI> Authentication should be successful on server 1 and succesful retrieval the SSO cookie
-     * <LI> Authentication fails because the SSO token cannot be decrypted by the primary key of server 2
-     * </OL>
-     *
-     */
-
-    @Mode(TestMode.FULL)
-    @Test
-    public void testValidationKeys_no_validationKeys() throws Exception {
-
-        // Copy valid ltpa keys to each server, the ltpa keys are configured using different keysPassword
-        copyFileToServerResourcesSecurityDir(ALT_VALIDATION_KEY1_PATH, server1);
-        copyFileToServerResourcesSecurityDir(ALT_VALIDATION_KEY2_PATH, server2);
-
-        // Configure the server, and replace the generated LTPA keys with the known valid ltpa key in server 1
-        configureServer("true", "10", true, server1);
-        configureServer("true", "10", true, server2);
-
-        renameKeyAndWaitForLtpaConfigReady(VALIDATION_KEY1_PATH, DEFAULT_KEY_PATH, server1);
-
-        // Configure the server, and replace the generated LTPA keys with the known valid ltpa key in server 2
-        renameKeyAndWaitForLtpaConfigReady(VALIDATION_KEY2_PATH, DEFAULT_KEY_PATH, server2);
-
-        // Initial login to simple servlet for form login1
-        server1FlClient1.accessProtectedServletWithAuthorizedCredentials(FormLoginClient.PROTECTED_SIMPLE, validUser, validPassword);
-
-        // Get the SSO cookie from the login
-        String server1Cookie = server1FlClient1.getCookieFromLastLogin();
-        assertNotNull("Expected SSO Cookie 1 is missing.", server1Cookie);
-
-        // Attempt to login to the simple servlet on server #2 and assert that the login fails
-        // IV for server 1 is validation1.keys but IV for server 2 is validation2.keys
-        assertTrue("An invalid cookie should result in an authorization challenge",
-                   server2FlClient1.accessProtectedServletWithInvalidCookie(FormLoginClient.PROTECTED_SIMPLE, server1Cookie));
     }
 
     /**
