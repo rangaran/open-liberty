@@ -45,7 +45,7 @@ public class ArtifactoryRegistryTest {
         // Avoid writing to the developers docker config
         File testdir = new File(System.getProperty("java.io.tmpdir"), ".docker");
 
-        Field configDir = ArtifactoryRegistry.class.getDeclaredField("configDir");
+        Field configDir = ArtifactoryRegistry.class.getDeclaredField("CONFIG_DIR");
         configDir.setAccessible(true);
         configDir.set(null, testdir);
     }

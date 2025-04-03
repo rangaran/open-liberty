@@ -43,7 +43,7 @@ public class InternalRegistryTest {
         // Avoid writing to the developers docker config
         File testdir = new File(System.getProperty("java.io.tmpdir"), ".docker");
 
-        Field configDir = InternalRegistry.class.getDeclaredField("configDir");
+        Field configDir = InternalRegistry.class.getDeclaredField("CONFIG_DIR");
         configDir.setAccessible(true);
         configDir.set(null, testdir);
     }

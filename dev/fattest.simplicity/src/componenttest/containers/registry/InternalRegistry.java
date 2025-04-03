@@ -49,7 +49,7 @@ public class InternalRegistry extends Registry {
         REGISTRY_MIRRORS.put("localhost", "wasliberty-internal-docker-local"); // images we build
     }
 
-    private static File configDir = new File(System.getProperty("user.home"), ".docker");
+    private static File CONFIG_DIR = DEFAULT_CONFIG_DIR;
 
     private String registry;
     private Optional<File> configFile;
@@ -126,7 +126,7 @@ public class InternalRegistry extends Registry {
         // -- Create it by persisting the generated auth token
         if (Objects.isNull(foundAuthToken)) {
             try {
-                configFile = persistAuthToken(registry, generatedAuthToken, configDir);
+                configFile = persistAuthToken(registry, generatedAuthToken, CONFIG_DIR);
                 isRegistryAvailable = true;
                 return;
             } catch (Throwable t) {
@@ -142,7 +142,7 @@ public class InternalRegistry extends Registry {
 
         // -- Attempt to persist auth token.
         try {
-            configFile = persistAuthToken(registry, generatedAuthToken, configDir);
+            configFile = persistAuthToken(registry, generatedAuthToken, CONFIG_DIR);
             isRegistryAvailable = true;
             return;
         } catch (Throwable t) {
