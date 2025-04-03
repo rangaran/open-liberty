@@ -213,6 +213,11 @@ public final class AttachmentUtil {
     public static void setStreamedAttachmentProperties(Message message, CachedOutputStream bos)
         throws IOException {
         Object directory = message.getContextualProperty(AttachmentDeserializer.ATTACHMENT_DIRECTORY);
+        // Liberty change begin
+        if (directory == null)  { 
+            directory = System.getProperty(AttachmentDeserializer.ATTACHMENT_DIRECTORY);
+        }
+        // Liberty change end
 	if (LOG.isLoggable(Level.FINEST)) {  //Liberty Change Start
 	   LOG.finest("setStreamedAttachmentProperties: Attachment directory: " + directory);
 	} //Liberty Change End
@@ -225,6 +230,11 @@ public final class AttachmentUtil {
         }
 
         Object threshold = message.getContextualProperty(AttachmentDeserializer.ATTACHMENT_MEMORY_THRESHOLD);
+        // Liberty change begin
+        if (threshold == null)  { 
+            threshold = System.getProperty(AttachmentDeserializer.ATTACHMENT_MEMORY_THRESHOLD);
+        }
+        // Liberty change end
 	if (LOG.isLoggable(Level.FINE)) {  //Liberty Change Start
 	   LOG.fine("setStreamedAttachmentProperties: Attachment memory threshold: " + threshold);
 	} //Liberty Change End
@@ -239,6 +249,11 @@ public final class AttachmentUtil {
         }
 
         Object maxSize = message.getContextualProperty(AttachmentDeserializer.ATTACHMENT_MAX_SIZE);
+        // Liberty change begin
+        if (maxSize == null)  { 
+            maxSize = System.getProperty(AttachmentDeserializer.ATTACHMENT_MAX_SIZE);
+        }
+        // Liberty change end
 	if (LOG.isLoggable(Level.FINEST)) { //Liberty Change Start
 	   LOG.finest("setStreamedAttachmentProperties: Attachment maxSize: " + maxSize);
 	} //Liberty Change End
