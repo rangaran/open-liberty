@@ -654,7 +654,7 @@ public class LTPAValidationKeyTests {
 
     @Mode(TestMode.LITE)
     @Test
-    public void testValidationKeys_set_validationKeys_dynamically() throws Exception {
+    public void testValidationKeys_switch_validationKeys() throws Exception {
 
         // Configure both servers
         configureServer("true", "10", true, server1);
