@@ -79,6 +79,7 @@
     <authentication id="Basic" cacheEnabled="true" />
     
     <httpSession securityIntegrationEnabled="false"/>
+    <tcpOptions id="defaultTCPOptions" portOpenRetries="60"/>
 
     <ltpa monitorInterval = "10" monitorValidationKeysDir="true" expiration="10m" updateTrigger="polled" keysFileName="${server.config.dir}/resources/security/ltpa.keys" keysPassword="{xor}Lz4sLCgwLTs=" />
 

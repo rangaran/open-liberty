@@ -654,7 +654,7 @@ public class LTPAValidationKeyTests {
     /**
      * Negative Test Case:
      *
-     * Verify that the SSO cookie from a server with valid keys fails in a server with the same key but with a different password (bad password).
+     * Verify that the SSO cookie from a server with valid keys fails in a server with the same key but with a different password.
      * The IV for server 2 will be different from server 1 as the keyPassword for server 2 is not the same as server 1.
      *
      * Steps:
@@ -677,7 +677,7 @@ public class LTPAValidationKeyTests {
     @Mode(TestMode.FULL)
     @Test
     @AllowedFFDC({ "javax.crypto.BadPaddingException" })
-    public void testValidationKeys_invalid_keysPW() throws Exception {
+    public void testValidationKeys_different_keysPW() throws Exception {
         // Copy valid ltpa keys to each server, the ltpa keys are configured using different keysPassword
         copyFileToServerResourcesSecurityDir(ALT_VALIDATION_KEY1_PATH, server1);
         copyFileToServerResourcesSecurityDir(ALT_VALIDATION_KEY1_PATH, server2);
@@ -695,7 +695,7 @@ public class LTPAValidationKeyTests {
         String server1Cookie = server1FlClient1.getCookieFromLastLogin();
         assertNotNull("Expected SSO Cookie 1 is missing.", server1Cookie);
 
-        // Change the default password  to an invalid value
+        // Change the default password  to another value
         ServerConfiguration server2Config = server2.getServerConfiguration();
         LTPA ltpa2 = server2Config.getLTPA();
         setLTPAValidationKey(ltpa2, "validation1.keys", "garbage");
