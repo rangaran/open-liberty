@@ -41,8 +41,10 @@ import javax.crypto.spec.DESedeKeySpec;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
+import com.ibm.websphere.ras.Tr;
 import com.ibm.websphere.ras.annotation.Trivial;
 import com.ibm.ws.common.crypto.CryptoUtils;
+import com.ibm.websphere.ras.TraceComponent;
 
 final class LTPACrypto {
 
@@ -52,7 +54,9 @@ final class LTPACrypto {
 
     private static final String signatureAlgorithm = CryptoUtils.getSignatureAlgorithm();
 
-    private static int MAX_CACHE = 500; // has to be greater than 0 and a multiple of 5
+    private static final TraceComponent tc = Tr.register(LTPACrypto.class, "Authentication");
+
+    private static int MAX_CACHE = 5;
     private static IvParameterSpec ivs8 = null;
     private static IvParameterSpec ivs16 = null;
 
@@ -208,6 +212,10 @@ final class LTPACrypto {
                     CachingKey[] keys = cryptoKeysMap.keySet().toArray(new CachingKey[cryptoKeysMapSize]);
                     Arrays.sort(keys, cachingKeyComparator);
                     if (cachingKeyComparator.compare(keys[0], keys[keys.length - 1]) < 0) {
+                        if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+            
+                            Tr.debug(tc, "The cache size before cleaning up is " + cryptoKeysMap.size() );
+                        }
                         for (int i = 0; i < cryptoKeysMapSize / 5; i++) {
                             cryptoKeysMap.remove(keys[i]);
                             keys[i + 1 * cryptoKeysMapSize / 5].successfulUses--;
@@ -215,13 +223,27 @@ final class LTPACrypto {
                             keys[i + 3 * cryptoKeysMapSize / 5].successfulUses--;
                             keys[i + 4 * cryptoKeysMapSize / 5].successfulUses--;
                         }
+
+                        if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+            
+                            Tr.debug(tc, "The cache size after cleaning up is " + cryptoKeysMap.size() );
+                        }
                     } else { // TODO: consider removing bc this likely isn't used since we sort the keys above (except when all keys have the same num of uses)
+                        if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+            
+                            Tr.debug(tc, "The cache size before cleaning up is " + cryptoKeysMap.size() );
+                        }
                         for (int i = 0; i < cryptoKeysMapSize / 5; i++) {
                             cryptoKeysMap.remove(keys[keys.length - 1 - i]);
                             keys[keys.length - 1 - i - 1 * cryptoKeysMapSize / 5].successfulUses--;
                             keys[keys.length - 1 - i - 2 * cryptoKeysMapSize / 5].successfulUses--;
                             keys[keys.length - 1 - i - 3 * cryptoKeysMapSize / 5].successfulUses--;
                             keys[keys.length - 1 - i - 4 * cryptoKeysMapSize / 5].successfulUses--;
+                        }
+
+                        if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+            
+                            Tr.debug(tc, "The cache size after cleaning up is " + cryptoKeysMap.size() );
                         }
                     }
                 } catch (Exception e) {
@@ -255,11 +277,21 @@ final class LTPACrypto {
         rsaSig = (provider == null) ? Signature.getInstance(signatureAlgorithm)
                 : Signature.getInstance(signatureAlgorithm, provider);
 
+        if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+            
+            Tr.debug(tc, "The cache size before signing is " + cryptoKeysMap.size() );
+        }
         rsaSig.initSign(privKey);
         rsaSig.update(data, off, len);
         byte[] sig = rsaSig.sign();
 
         cryptoKeysMap.put(ck, ck);
+
+        if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+            
+            Tr.debug(tc, "The cache size after signing is " + cryptoKeysMap.size() );
+        }
+
         ck.result = sig;
         ck.successfulUses = 0;
 
@@ -490,6 +522,10 @@ final class LTPACrypto {
                 CachingVerifyKey[] keys = verifyKeysMap.keySet().toArray(new CachingVerifyKey[verifyKeysMapSize]);
                 Arrays.sort(keys, cachingVerifyKeyComparator);
                 if (cachingVerifyKeyComparator.compare(keys[0], keys[keys.length - 1]) < 0) {
+                    if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+            
+                            Tr.debug(tc, "The cache size before cleaning up is " + cryptoKeysMap.size() );
+                        }
                     for (int i = 0; i < verifyKeysMapSize / 5; i++) {
                         verifyKeysMap.remove(keys[i]);
                         keys[i + 1 * verifyKeysMapSize / 5].successfulUses--;
@@ -497,7 +533,15 @@ final class LTPACrypto {
                         keys[i + 3 * verifyKeysMapSize / 5].successfulUses--;
                         keys[i + 4 * verifyKeysMapSize / 5].successfulUses--;
                     }
+                    if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+            
+                            Tr.debug(tc, "The cache size after cleaning up is " + cryptoKeysMap.size() );
+                        }
                 } else { // TODO: consider removing bc this likely isn't used since we sort the keys above (except when all keys have the same num of uses)
+                    if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+            
+                            Tr.debug(tc, "The cache size before cleaning up is " + cryptoKeysMap.size() );
+                        }
                     for (int i = 0; i < verifyKeysMapSize / 5; i++) {
                         verifyKeysMap.remove(keys[keys.length - 1 - i]);
                         keys[keys.length - 1 - i - 1 * verifyKeysMapSize / 5].successfulUses--;
@@ -505,6 +549,10 @@ final class LTPACrypto {
                         keys[keys.length - 1 - i - 3 * verifyKeysMapSize / 5].successfulUses--;
                         keys[keys.length - 1 - i - 4 * verifyKeysMapSize / 5].successfulUses--;
                     }
+                    if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+            
+                            Tr.debug(tc, "The cache size after cleaning up is " + cryptoKeysMap.size() );
+                        }
                 }
             }
         }
@@ -526,11 +574,21 @@ final class LTPACrypto {
         rsaSig = (provider == null) ? Signature.getInstance(signatureAlgorithm)
                 : Signature.getInstance(signatureAlgorithm, provider);
 
+
+        if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+            
+            Tr.debug(tc, "The cache size before verifying is " + cryptoKeysMap.size() );
+        }
         rsaSig.initVerify(pubKey);
         rsaSig.update(data, off, len);
         verified = rsaSig.verify(sig);
 
         verifyKeysMap.put(ck, ck);
+
+        if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+            
+            Tr.debug(tc, "The cache size after verifying is " + cryptoKeysMap.size() );
+        }
         ck.result = verified;
         ck.successfulUses = 0;
 
