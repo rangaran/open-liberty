@@ -1094,3 +1094,21 @@ CWWKD1107.init.timed.out.checkpoint.explanation=Applications cannot use \
  repositories before completion of a checkpoint.
 CWWKD1107.init.timed.out.checkpoint.useraction=Avoid using the repository \
  until after the checkpoint completes.
+
+CWWKD1108.missing.entity.anno=CWWKD1108E: The {0} entity class requires the \
+ {1} annotation because the {2} annotation is applied to the {3} member of \
+ the entity class.
+CWWKD1108.missing.entity.anno.explanation=Entity classes that use annotations
+ from the jakarta.persistence package must also be annotated with the Entity
+ annotation from the Jakarta Persistence specification.
+CWWKD1108.missing.entity.anno.useraction=Apply the Entity annotation to the
+ entity class or remove the Jakarta Persistence annotations from its members.
+
+CWWKD1109.jpa.anno.on.record=CWWKD1109E: The {0} annotation is not allowed \
+ on the {1} method of the {2} entity class because the {2} entity class is \
+ a Java record.
+CWWKD1109.jpa.anno.on.record.explanation=Jakarta Persistence annotations \
+ are not allowed on Java records.
+CWWKD1109.jpa.anno.on.record.useraction=Switch to a Jakarta Persistence \
+ entity class or remove the Jakarta Persistence annotation from the \
+ Java record.

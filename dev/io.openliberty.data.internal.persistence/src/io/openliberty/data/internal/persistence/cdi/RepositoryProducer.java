@@ -16,6 +16,7 @@ import static io.openliberty.data.internal.persistence.cdi.DataExtension.exc;
 
 import java.io.PrintWriter;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -24,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -308,8 +308,7 @@ public class RepositoryProducer<R> implements Producer<R>, ProducerFactory<R>, B
                 Tr.exit(this, tc, "produce", instance.toString());
             return instance;
         } catch (Throwable x) {
-            Throwable cause = x.getCause();
-            if (x instanceof DataException || cause instanceof DataException)
+            if (x instanceof DataException || x.getCause() instanceof DataException)
                 ; // already logged the error
             else
                 Tr.error(tc, "CWWKD1095.repo.err",
@@ -331,10 +330,47 @@ public class RepositoryProducer<R> implements Producer<R>, ProducerFactory<R>, B
                 else if (x instanceof Error)
                     throw (Error) x;
                 else if (x instanceof ExecutionException)
-                    throw new CompletionException(cause.getMessage(), cause);
+                    throw toRuntimeException((ExecutionException) x);
                 else // InterruptedException
                     throw new DataException(x);
             }
         }
+    }
+
+    /**
+     * Converts an ExecutionException and its cause into a RuntimeException of the
+     * same type as the cause exception, or DataException if the cause is not a
+     * subtype of RuntimeException that has a constructor with arguments
+     * (String, Throwable).
+     *
+     * @param xx ExecutionException with a cause indicating a failure that occurred
+     *               during asynchronous initialization.
+     * @return DataException with the same cause.
+     */
+    @FFDCIgnore(Throwable.class)
+    @Trivial
+    private RuntimeException toRuntimeException(ExecutionException xx) {
+        RuntimeException x = null;
+        Throwable cause = xx.getCause();
+        if (cause instanceof RuntimeException)
+            try {
+                @SuppressWarnings("unchecked")
+                Class<RuntimeException> cl = (Class<RuntimeException>) cause.getClass();
+                // All known DataException subtypes and many other runtime exceptions
+                // such as UnsupportedOperationException have a constructor of the form,
+                Constructor<RuntimeException> cons = cl.getConstructor(String.class,
+                                                                       Throwable.class);
+                x = cons.newInstance(cause.getMessage(), cause);
+            } catch (Throwable t) {
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
+                    Tr.debug(this, tc, "no matching constructor for " +
+                                       cause.getClass());
+            }
+
+        if (x == null)
+            x = new DataException(cause.getMessage(), cause);
+
+        x.setStackTrace(xx.getStackTrace());
+        return x;
     }
 }
