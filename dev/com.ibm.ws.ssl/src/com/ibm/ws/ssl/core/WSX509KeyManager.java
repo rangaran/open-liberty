@@ -19,6 +19,8 @@ import java.security.Principal;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
@@ -32,6 +34,7 @@ import com.ibm.websphere.ssl.Constants;
 import com.ibm.websphere.ssl.JSSEHelper;
 import com.ibm.websphere.ssl.SSLConfig;
 import com.ibm.ws.ffdc.FFDCFilter;
+import com.ibm.ws.ssl.JSSEProviderFactory;
 import com.ibm.ws.ssl.config.KeyStoreManager;
 import com.ibm.ws.ssl.config.SSLConfigManager;
 import com.ibm.ws.ssl.config.WSKeyStore;
@@ -392,12 +395,27 @@ public final class WSX509KeyManager extends X509ExtendedKeyManager implements X5
         if (mappedAlias == null) {
             if (serverAlias != null && !serverAlias.equals("")) {
                 String[] list = km.getServerAliases(keyType, issuers);
-
+                String algorithm =JSSEProviderFactory.getKeyManagerFactoryAlgorithm();
+                boolean isPKIX = algorithm.equalsIgnoreCase("PKIX") ?true:false;
                 if (list != null) {
                     boolean found = false;
                     for (int i = 0; i < list.length && !found; i++) {
+                        if (isPKIX){
+                            if (list[i].contains(serverAlias)){
+                                Pattern r = Pattern.compile("\\d+\\.\\d+\\."+serverAlias+"$");
+                                Matcher m = r.matcher(list[i]); 
+                                if (m.find()){
+                                    if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
+                                    Tr.debug(tc, "chooseServerAlias", "Setting "+ list[i]+ " since PKIX is the KeyManagerFactory algorithm");
+                                    serverAlias = list[i];
+                                    found = true;
+                                }
+                            }
+
+                        }else{
                         if (serverAlias.equalsIgnoreCase(list[i]))
                             found = true;
+                        }
 
                     }
 
@@ -414,6 +432,7 @@ public final class WSX509KeyManager extends X509ExtendedKeyManager implements X5
                         }
                         return serverAlias.toLowerCase();
                     }
+
                 }
 
                 if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled())
