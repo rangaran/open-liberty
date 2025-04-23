@@ -138,7 +138,7 @@ public class ClientCertificateTest extends AbstractJaxWsTransportSecurityTest {
 
     // 1 Override alias configured in ssl element with customize one
     @Test
-    @Mode(Mode.TestMode.FULL)
+    @Mode(Mode.TestMode.LITE)
     public void testOverrideAliasWithCustomizeOnePOJO() throws Exception {
         prepareForTest("serverConfigs/" + WITH_CLIENT_ALIAS_CONFIG, "clientCert_provider_web.xml",
                        "bindings/overrideCertAlias.xml");
