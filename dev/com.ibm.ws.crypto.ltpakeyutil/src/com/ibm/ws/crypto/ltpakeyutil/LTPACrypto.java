@@ -271,6 +271,11 @@ final class LTPACrypto {
         return cryptoKeysMap.size();
     }
 
+    @Trivial
+    protected static void emptySignCache() {
+        cryptoKeysMap.clear();
+    }
+
 
     private static final ConcurrentHashMap<CachingVerifyKey, CachingVerifyKey> verifyKeysMap = new ConcurrentHashMap<CachingVerifyKey, CachingVerifyKey>();
 
@@ -547,6 +552,11 @@ final class LTPACrypto {
     @Trivial
     protected static int getVerifyCacheSize() {
         return verifyKeysMap.size();
+    }
+
+    @Trivial
+    protected static void emptyVerifyCache() {
+        verifyKeysMap.clear();
     }
 
     /**
