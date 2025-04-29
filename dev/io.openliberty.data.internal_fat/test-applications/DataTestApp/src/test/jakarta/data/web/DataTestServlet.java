@@ -3835,6 +3835,52 @@ public class DataTestServlet extends FATServlet {
     }
 
     /**
+     * Test implementation of methods that a repository inherits from
+     * java.lang.Object, some of which go through the proxy handler.
+     */
+    @SuppressWarnings("unlikely-arg-type")
+    @Test
+    public void testObjectMethods() throws InterruptedException {
+        // .equals is true for same instance and false for other instance
+        assertEquals(true, people.equals(people));
+        assertEquals(false, people.equals(personnel));
+
+        // .getClass returns the repository interface
+        assertEquals(true, People.class.isAssignableFrom(people.getClass()));
+
+        // .hashCode returns same value each time invoked
+        int hash = people.hashCode();
+        assertEquals(hash, people.hashCode());
+
+        // .notify and .notifyAll
+        synchronized (people) {
+            people.notify();
+            people.notifyAll();
+        }
+
+        // .toString
+        String str = people.toString();
+        assertEquals(str,
+                     true,
+                     str.contains(People.class.getName()));
+
+        // .wait
+        synchronized (people) {
+            people.wait(20); // 20 ms
+            people.wait(10, 500000); // 10.5 ms
+            Thread.currentThread().interrupt();
+            try {
+                // wait until interrupted, which should be immediately per above
+                people.wait();
+            } catch (InterruptedException x) {
+                // expected
+            } finally {
+                Thread.interrupted();
+            }
+        }
+    }
+
+    /**
      * Verify a repository method that supplies id(this) as the sort criteria
      * hard coded within a JDQL query.
      */

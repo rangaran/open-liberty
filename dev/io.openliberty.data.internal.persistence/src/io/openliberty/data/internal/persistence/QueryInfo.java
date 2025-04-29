@@ -12,6 +12,8 @@
  *******************************************************************************/
 package io.openliberty.data.internal.persistence;
 
+import static io.openliberty.data.internal.persistence.Condition.IgnoreCase;
+import static io.openliberty.data.internal.persistence.Condition.Not;
 import static io.openliberty.data.internal.persistence.Util.SORT_PARAM_TYPES;
 import static io.openliberty.data.internal.persistence.Util.lifeCycleReturnTypes;
 import static io.openliberty.data.internal.persistence.cdi.DataExtension.exc;
@@ -2299,23 +2301,27 @@ public class QueryInfo {
     /**
      * Generates JPQL for a *By condition such as MyColumn[IgnoreCase][Not]Like
      */
-    private void generateCondition(String methodName, int start, int endBefore, StringBuilder q) {
+    private void generateCondition(String methodName,
+                                   int start,
+                                   int endBefore,
+                                   StringBuilder q) {
         int length = endBefore - start;
 
-        Condition condition = Condition.EQUALS;
+        Condition condition = Condition.Equal;
         switch (methodName.charAt(endBefore - 1)) {
             case 'n': // GreaterThan | LessThan | In | Between
                 if (length > 2) {
                     char ch = methodName.charAt(endBefore - 2);
                     if (ch == 'a') { // GreaterThan | LessThan
                         if (endsWith("GreaterTh", methodName, start, endBefore - 2))
-                            condition = Condition.GREATER_THAN;
+                            condition = Condition.GreaterThan;
                         else if (endsWith("LessTh", methodName, start, endBefore - 2))
-                            condition = Condition.LESS_THAN;
+                            condition = Condition.LessThan;
                     } else if (ch == 'I') { // In
-                        condition = Condition.IN;
-                    } else if (ch == 'e' && endsWith("Betwe", methodName, start, endBefore - 2)) {
-                        condition = Condition.BETWEEN;
+                        condition = Condition.In;
+                    } else if (ch == 'e' &&
+                               endsWith("Betwe", methodName, start, endBefore - 2)) {
+                        condition = Condition.Between;
                     }
                 }
                 break;
@@ -2324,11 +2330,13 @@ public class QueryInfo {
                     char ch = methodName.charAt(endBefore - 2);
                     if (ch == 'a') { // GreaterThanEqual | LessThanEqual
                         if (endsWith("GreaterThanEqu", methodName, start, endBefore - 2))
-                            condition = Condition.GREATER_THAN_EQUAL;
+                            condition = Condition.GreaterThanEqual;
                         else if (endsWith("LessThanEqu", methodName, start, endBefore - 2))
-                            condition = Condition.LESS_THAN_EQUAL;
-                    } else if (ch == 'l' & methodName.charAt(endBefore - 3) == 'u' && methodName.charAt(endBefore - 4) == 'N') {
-                        condition = Condition.NULL;
+                            condition = Condition.LessThanEqual;
+                    } else if (ch == 'l' &&
+                               methodName.charAt(endBefore - 3) == 'u' &&
+                               methodName.charAt(endBefore - 4) == 'N') {
+                        condition = Condition.Null;
                     }
                 }
                 break;
@@ -2336,13 +2344,15 @@ public class QueryInfo {
                 if (length > 4) {
                     char ch = methodName.charAt(endBefore - 4);
                     if (ch == 'L') {
-                        if (methodName.charAt(endBefore - 3) == 'i' && methodName.charAt(endBefore - 2) == 'k')
-                            condition = Condition.LIKE;
+                        if (methodName.charAt(endBefore - 3) == 'i' &&
+                            methodName.charAt(endBefore - 2) == 'k')
+                            condition = Condition.Like;
                     } else if (ch == 'T') {
-                        if (methodName.charAt(endBefore - 3) == 'r' && methodName.charAt(endBefore - 2) == 'u')
-                            condition = Condition.TRUE;
+                        if (methodName.charAt(endBefore - 3) == 'r' &&
+                            methodName.charAt(endBefore - 2) == 'u')
+                            condition = Condition.True;
                     } else if (endsWith("Fals", methodName, start, endBefore - 1)) {
-                        condition = Condition.FALSE;
+                        condition = Condition.False;
                     }
                 }
                 break;
@@ -2351,27 +2361,28 @@ public class QueryInfo {
                     char ch = methodName.charAt(endBefore - 8);
                     if (ch == 'E') {
                         if (endsWith("ndsWit", methodName, start, endBefore - 1))
-                            condition = Condition.ENDS_WITH;
-                    } else if (endBefore > 10 && ch == 'a' && endsWith("StartsWit", methodName, start, endBefore - 1)) {
-                        condition = Condition.STARTS_WITH;
+                            condition = Condition.EndsWith;
+                    } else if (endBefore > 10 && ch == 'a' &&
+                               endsWith("StartsWit", methodName, start, endBefore - 1)) {
+                        condition = Condition.StartsWith;
                     }
                 }
                 break;
             case 's': // Contains
                 if (endsWith("Contain", methodName, start, endBefore - 1))
-                    condition = Condition.CONTAINS;
+                    condition = Condition.Contains;
                 break;
             case 'y': // Empty
                 if (endsWith("Empt", methodName, start, endBefore - 1))
-                    condition = Condition.EMPTY;
+                    condition = Condition.Empty;
         }
 
         endBefore -= condition.length;
 
-        boolean negated = endsWith("Not", methodName, start, endBefore);
+        boolean negated = endsWith(Not.name(), methodName, start, endBefore);
         endBefore -= (negated ? 3 : 0);
 
-        boolean ignoreCase = endsWith("IgnoreCase", methodName, start, endBefore);
+        boolean ignoreCase = endsWith(IgnoreCase.name(), methodName, start, endBefore);
         endBefore -= (ignoreCase ? 10 : 0);
 
         String attribute = methodName.substring(start, endBefore);
@@ -2399,57 +2410,82 @@ public class QueryInfo {
         }
 
         boolean isCollection = entityInfo.collectionElementTypes.containsKey(name);
-        if (isCollection)
-            condition.verifyCollectionsSupported(name, ignoreCase);
+        if (isCollection && (ignoreCase || !condition.supportsCollections))
+            throw exc(MappingException.class,
+                      "CWWKD1110.incompat.with.collection",
+                      method.getName(),
+                      repositoryInterface.getName(),
+                      ignoreCase ? IgnoreCase.name() : condition.name(),
+                      name,
+                      entityInfo.getType().getName(),
+                      Condition.supportedForCollections());
 
         switch (condition) {
-            case STARTS_WITH:
-                q.append(attributeExpr).append(negated ? " NOT " : " ").append("LIKE CONCAT(");
+            case StartsWith:
+                q.append(attributeExpr) //
+                                .append(negated ? " NOT " : " ") //
+                                .append("LIKE CONCAT(");
                 generateParam(q, ignoreCase, ++jpqlParamCount).append(", '%')");
                 break;
-            case ENDS_WITH:
-                q.append(attributeExpr).append(negated ? " NOT " : " ").append("LIKE CONCAT('%', ");
+            case EndsWith:
+                q.append(attributeExpr) //
+                                .append(negated ? " NOT " : " ") //
+                                .append("LIKE CONCAT('%', ");
                 generateParam(q, ignoreCase, ++jpqlParamCount).append(")");
                 break;
-            case LIKE:
-                q.append(attributeExpr).append(negated ? " NOT " : " ").append("LIKE ");
+            case Like:
+                q.append(attributeExpr) //
+                                .append(negated ? " NOT " : " ") //
+                                .append("LIKE ");
                 generateParam(q, ignoreCase, ++jpqlParamCount);
                 break;
-            case BETWEEN:
-                q.append(attributeExpr).append(negated ? " NOT " : " ").append("BETWEEN ");
+            case Between:
+                q.append(attributeExpr) //
+                                .append(negated ? " NOT " : " ") //
+                                .append("BETWEEN ");
                 generateParam(q, ignoreCase, ++jpqlParamCount).append(" AND ");
                 generateParam(q, ignoreCase, ++jpqlParamCount);
                 break;
-            case CONTAINS:
+            case Contains:
                 if (isCollection) {
-                    q.append(" ?").append(++jpqlParamCount).append(negated ? " NOT " : " ").append("MEMBER OF ").append(attributeExpr);
+                    q.append(" ?").append(++jpqlParamCount) //
+                                    .append(negated ? " NOT " : " ") //
+                                    .append("MEMBER OF ").append(attributeExpr);
                 } else {
-                    q.append(attributeExpr).append(negated ? " NOT " : " ").append("LIKE CONCAT('%', ");
+                    q.append(attributeExpr) //
+                                    .append(negated ? " NOT " : " ") //
+                                    .append("LIKE CONCAT('%', ");
                     generateParam(q, ignoreCase, ++jpqlParamCount).append(", '%')");
                 }
                 break;
-            case NULL:
-            case NOT_NULL:
-            case TRUE:
-            case FALSE:
+            case Null:
+            case NotNull:
+            case True:
+            case False:
                 q.append(attributeExpr).append(condition.operator);
                 break;
-            case EMPTY:
-                q.append(attributeExpr).append(isCollection ? Condition.EMPTY.operator : Condition.NULL.operator);
+            case Empty:
+                q.append(attributeExpr).append(isCollection //
+                                ? Condition.Empty.operator //
+                                : Condition.Null.operator);
                 break;
-            case NOT_EMPTY:
-                q.append(attributeExpr).append(isCollection ? Condition.NOT_EMPTY.operator : Condition.NOT_NULL.operator);
+            case NotEmpty:
+                q.append(attributeExpr).append(isCollection //
+                                ? Condition.NotEmpty.operator //
+                                : Condition.NotNull.operator);
                 break;
-            case IN:
+            case In:
                 if (ignoreCase)
                     throw exc(UnsupportedOperationException.class,
                               "CWWKD1074.qbmn.incompat.keywords",
                               method.getName(),
                               repositoryInterface.getName(),
-                              "IgnoreCase",
-                              "In");
+                              IgnoreCase.name(),
+                              condition.name());
             default:
-                q.append(attributeExpr).append(negated ? " NOT " : "").append(condition.operator);
+                q.append(attributeExpr) //
+                                .append(negated ? " NOT " : "") //
+                                .append(condition.operator);
                 generateParam(q, ignoreCase, ++jpqlParamCount);
         }
     }
@@ -4901,7 +4937,7 @@ public class QueryInfo {
             boolean ignoreCase;
             boolean descending = iNext > 0 && iNext == desc;
             int endBefore = iNext < 0 ? methodName.length() : iNext;
-            if (ignoreCase = endsWith("IgnoreCase", methodName, i, endBefore))
+            if (ignoreCase = endsWith(IgnoreCase.name(), methodName, i, endBefore))
                 endBefore -= 10;
 
             String attribute = methodName.substring(i, endBefore);
@@ -5363,13 +5399,16 @@ public class QueryInfo {
      */
     private void setType(Class<? extends Annotation> annoClass, Type operationType) {
         type = operationType;
-        if (entityParamType == null)
+        if (entityParamType == null) {
+            int paramCount = method.getParameterCount();
             throw exc(UnsupportedOperationException.class,
                       "CWWKD1009.lifecycle.param.err",
                       method.getName(),
                       repositoryInterface.getName(),
-                      method.getParameterCount(),
+                      paramCount == 1 ? method.getGenericParameterTypes()[0] //
+                                      : paramCount,
                       annoClass.getSimpleName());
+        }
     }
 
     /**

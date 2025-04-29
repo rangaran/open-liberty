@@ -33,6 +33,7 @@ import componenttest.topology.impl.LibertyServer;
  * Test to ensure that the tcpOptions portOpenRetries works.
  */
 @RunWith(FATRunner.class)
+@Mode(TestMode.FULL)
 public class PortOpenRetriesTests {
 
     private static final String CLASS_NAME = PortOpenRetriesTests.class.getName();
@@ -54,7 +55,7 @@ public class PortOpenRetriesTests {
     public static void tearDown() throws Exception {
         // Stop server1.
         if (server1 != null && server1.isStarted()) {
-            //CWWKG0011W: The configuration validation did not succeed. Value "-1" is out of range.
+            // CWWKG0011W: The configuration validation did not succeed. Value "-1" is out of range.
             // CWWKG0083W: A validation failure occurred while processing the [portOpenRetries] property, value = [-1]. Default value in use: [0].
             server1.stopServer("CWWKG0011W", "CWWKG0083W");
         }
@@ -89,22 +90,11 @@ public class PortOpenRetriesTests {
      */
     @After
     public void afterTest() throws Exception {
-        // Restore the servers to their default state.
+        // Restore the server to the default state.
         server1.setMarkToEndOfLog();
         server1.setTraceMarkToEndOfDefaultTrace();
         server1.restoreServerConfiguration();
         server1.waitForConfigUpdateInLogUsingMark(null);
-    }
-
-    /**
-     * The test will check the default value of portOpenRetries by searching the trace file.
-     *
-     * The default value is 0.
-     */
-    @Test
-    public void testPortOpenRetries_default() throws Exception {
-        // Validate that portOpenRetries default is 0.
-        assertNotNull("The default value of portOpenRetries was not: 0!", server1.waitForStringInTrace("portOpenRetries: 0"));
     }
 
     /**
@@ -117,7 +107,6 @@ public class PortOpenRetriesTests {
      * @throws Exception
      */
     @Test
-    @Mode(TestMode.FULL)
     public void testPortOpenRetries_nonDefault() throws Exception {
         ServerConfiguration configuration = server1.getServerConfiguration();
         LOG.info("Server configuration that the test started with: " + configuration);
@@ -143,7 +132,6 @@ public class PortOpenRetriesTests {
      * @throws Exception
      */
     @Test
-    @Mode(TestMode.FULL)
     public void testPortOpenRetries_invalid() throws Exception {
         ServerConfiguration configuration = server1.getServerConfiguration();
         LOG.info("Server configuration that the test started with: " + configuration);
@@ -156,7 +144,7 @@ public class PortOpenRetriesTests {
         server1.updateServerConfiguration(configuration);
         server1.waitForConfigUpdateInLogUsingMark(null);
 
-        //CWWKG0011W: The configuration validation did not succeed. Value "-1" is out of range.
+        // CWWKG0011W: The configuration validation did not succeed. Value "-1" is out of range.
         assertNotNull("The CWWKG0011W was not found in the logs!", server1.waitForStringInLogUsingMark("CWWKG0011W"));
 
         // CWWKG0083W: A validation failure occurred while processing the [portOpenRetries] property, value = [-1]. Default value in use: [0].
@@ -179,7 +167,6 @@ public class PortOpenRetriesTests {
      * @throws Exception
      */
     @Test
-    @Mode(TestMode.FULL)
     public void testPortOpenRetries() throws Exception {
         // Start server2 and use the class name so we can find logs easily.
         server2.startServer(PortOpenRetriesTests.class.getSimpleName() + ".log");
@@ -195,7 +182,7 @@ public class PortOpenRetriesTests {
         assertNotNull("Attempt 5 to bind did not fail and should have!", server2.waitForStringInTrace("attempt 5 of 6 failed to open the port"));
 
         // Validate that CWWKO0221E was logged.
-        assertNotNull("The PortOpenRetries2 server was able to bind successfully should not have been able to!!", server2.waitForStringInLog("CWWKO0221E"));
+        assertNotNull("The PortOpenRetries2 server was able to bind successfully but should not have been able to!", server2.waitForStringInLog("CWWKO0221E"));
 
         if (server2 != null && server2.isStarted()) {
             server2.stopServer("CWWKO0221E");
