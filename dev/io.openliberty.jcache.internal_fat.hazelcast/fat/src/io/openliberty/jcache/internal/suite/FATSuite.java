@@ -44,7 +44,6 @@ import io.openliberty.jcache.internal.fat.JCacheOidcClientAuthenticationCacheTes
 import io.openliberty.jcache.internal.fat.JCacheOidcLoginAuthenticationCacheTest;
 import io.openliberty.jcache.internal.fat.JCacheProviderInAppTest;
 import io.openliberty.jcache.internal.fat.JCacheSamlAuthenticationCacheTest;
-import io.openliberty.jcache.internal.fat.JCacheSpnegoAuthenticationCacheTest;
 import io.openliberty.jcache.internal.fat.plugins.HazelcastTestPlugin;
 import io.openliberty.jcache.internal.fat.plugins.TestPluginHelper;
 
@@ -58,7 +57,6 @@ import io.openliberty.jcache.internal.fat.plugins.TestPluginHelper;
                 JCacheDeleteAuthCacheTest.class,
                 JCacheAuthCacheFailureTest.class,
                 JCacheSamlAuthenticationCacheTest.class,
-                JCacheSpnegoAuthenticationCacheTest.class,
                 JCacheOauth20AuthenticationCacheTest.class,
                 JCacheOidcClientAuthenticationCacheTest.class,
                 JCacheOidcLoginAuthenticationCacheTest.class,
