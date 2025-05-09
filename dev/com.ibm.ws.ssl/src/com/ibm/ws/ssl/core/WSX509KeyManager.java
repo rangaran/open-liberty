@@ -253,9 +253,9 @@ public final class WSX509KeyManager extends X509ExtendedKeyManager implements X5
     public String chooseClientAlias(String keyType, Principal[] issuers) {
         if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled())
             Tr.entry(tc, "chooseClientAlias", new Object[] { keyType, issuers });
-
+        System.out.println("WRG+++ I am here :) clientAlias is: "+ clientAlias);
         Map<String, Object> connectionInfo = JSSEHelper.getInstance().getOutboundConnectionInfo();
-
+        
         // if SSL client auth is disabled do not return a client alias
         if (connectionInfo != null && Constants.ENDPOINT_IIOP.equals(connectionInfo.get(Constants.CONNECTION_INFO_ENDPOINT_NAME))
             && !SSLConfigManager.getInstance().isClientAuthenticationEnabled()) {
@@ -263,16 +263,37 @@ public final class WSX509KeyManager extends X509ExtendedKeyManager implements X5
                 Tr.exit(tc, "chooseClientAlias: null");
             return null;
         } else if (clientAlias != null && !clientAlias.equals("")) {
+            System.out.println("WRG+++ I am in the else");
+            String algorithm =JSSEProviderFactory.getKeyManagerFactoryAlgorithm();
+            System.out.println("WRG+++ algorithm: "+ algorithm);
+            boolean isPKIX = algorithm.equalsIgnoreCase("PKIX") ?true:false;
+            System.out.println("WRG+++ isPKIX: "+ isPKIX);
             String[] list = km.getClientAliases(keyType, issuers);
-
+             System.out.println("WRG+++ I am in the else");
             if (list != null) {
+                System.out.println("WRG+++ List is not null");
                 boolean found = false;
                 for (int i = 0; i < list.length && !found; i++) {
+                    if (isPKIX){
+                        if (list[i].contains(clientAlias)){
+                            Pattern r = Pattern.compile("\\d+\\.\\d+\\."+clientAlias+"$");
+                            Matcher m = r.matcher(list[i]); 
+                            if (m.find()){
+                                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
+                                Tr.debug(tc, "clientAlias", "Setting "+ list[i]+ " since PKIX is the KeyManagerFactory algorithm");
+                                clientAlias = list[i];
+                                found = true;
+                            }
+                        }
+
+                    }else{
                     if (clientAlias.equalsIgnoreCase(list[i]))
                         found = true;
+                    }
                 }
 
                 if (found) {
+                    System.out.println("WRG+++ We found it!");
                     if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled())
                         Tr.exit(tc, "chooseClientAlias", new Object[] { clientAlias });
 
@@ -292,6 +313,7 @@ public final class WSX509KeyManager extends X509ExtendedKeyManager implements X5
             // error case, alias not found in the list.
             return clientAlias;
         } else {
+            System.out.println("WRG+++ we are in the second else");
             String[] keyArray = new String[] { keyType };
             String alias = km.chooseClientAlias(keyArray, issuers, null);
 
