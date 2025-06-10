@@ -349,11 +349,13 @@ public class CommonTest extends com.ibm.ws.security.fat.common.CommonTest {
                 Log.info(thisClass, thisMethod, "calling LDAPUtil.addLDAPVariables", null);
                 LDAPUtils.addLDAPVariables(aTestServer.getServer());
                 Log.info(thisClass, thisMethod, "called LDAPUtil.addLDAPVariables", null);
+                 aTestServer.getServer().setServerLevelFips(false);
             }
             if (!useDerby && useMongo && !(serverXML.contains("Bell") || serverXML.contains("bell"))) {
                 Log.info(thisClass, "commonSetUp", "Add CustomStore user feature");
                 aTestServer.getServer().installUserBundle("security.custom.store_1.0");
                 aTestServer.getServer().installUserFeature("customStoreSample-1.0");
+                 aTestServer.getServer().setServerLevelFips(true);
             }
 
             addToServerRefList(aTestServer);
