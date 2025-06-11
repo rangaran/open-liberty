@@ -10,12 +10,13 @@
  *******************************************************************************/
 package com.ibm.ws.springboot.support.version20.test.data.app;
 
-import javax.sql.DataSource;
+import java.util.Collections;
 
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.jdbc.datasource.lookup.JndiDataSourceLookup;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
@@ -28,21 +29,20 @@ import com.ibm.ws.springboot.support.version20.test.data.app.customer.Customer;
 @ConditionalOnProperty(name = "test.persistence", havingValue = "hibernate")
 public class HibernatePersistenceCustomerConfiguration {
 
-	@Bean()
-	DataSource customerDataSource() {
-		return new JndiDataSourceLookup().getDataSource("jdbc/CUSTOMER_UNIT");
-	}
-
 	@Bean
-	public LocalContainerEntityManagerFactoryBean customerEntityManagerFactory(
-			@Qualifier("customerDataSource") DataSource customerDataSource) {
-		LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();
-		em.setJtaDataSource(customerDataSource);
-		em.setPackagesToScan(Customer.class.getPackage().getName());
-
+	@Primary
+	public LocalContainerEntityManagerFactoryBean customerEntityManagerFactory() {
 		HibernateJpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
 		vendorAdapter.setGenerateDdl(true);
-		em.setJpaVendorAdapter(vendorAdapter);
-		return em;
+
+		LocalContainerEntityManagerFactoryBean emf = new EntityManagerFactoryBuilder(vendorAdapter,
+				Collections.emptyMap(), null)
+					.dataSource(new JndiDataSourceLookup().getDataSource("jdbc/CUSTOMER_UNIT"))
+					.packages(Customer.class.getPackage().getName())
+					.jta(true)
+					.build();
+
+		emf.setPersistenceUnitName("customer-unit");
+		return emf;
 	}
 }

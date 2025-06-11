@@ -1137,3 +1137,16 @@ CWWKD1111.unsupported.convert.explanation=The AttributeConverter implementation 
  values to an unsupported type.
 CWWKD1111.unsupported.convert.useraction=Update the AttributeConverter \
  implementation to convert values to one of the supported types.
+
+CWWKD1112.record.entity.verify.err=CWWKD1112W: An entity class for the {0} record \
+ is defined but might not work. The verification of the bytes of the Jakarta \
+ Persistence entity class, which was generated for the entity class, failed. \
+ The defined entity class is used by one or more repository interfaces ({1}) \
+ in the {2} application artifact. The error is: {3}.
+CWWKD1112.record.entity.verify.err.explanation=When a repository uses a record \
+ entity, a Jakarta Persistence entity is generated to represent the record entity. \
+ The verification of the bytes of the generated Jakarta Persistence entity class \
+ failed.
+CWWKD1112.record.entity.verify.err.useraction=Verify that the implementation of \
+ the record entity adheres to the requirements and conventions for a record \
+ entity.

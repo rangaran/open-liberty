@@ -15,7 +15,13 @@ import jakarta.persistence.Id;
 @Entity
 public class Organization {
     @Id
-    private Long id;
-    private String name;
-    // Getters and setters
+    public Long id;
+    public String name;
+
+    public static Organization of(Long id, String name) {
+        Organization inst = new Organization();
+        inst.name = name;
+        inst.id = id;
+        return inst;
+    }
 }

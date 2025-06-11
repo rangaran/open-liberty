@@ -10,15 +10,16 @@
  *******************************************************************************/
 package com.ibm.ws.springboot.support.version30.test.data.app;
 
-import javax.sql.DataSource;
+import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.jdbc.datasource.lookup.JndiDataSourceLookup;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
+import org.springframework.orm.jpa.persistenceunit.PersistenceManagedTypes;
 import org.springframework.orm.jpa.vendor.EclipseLinkJpaVendorAdapter;
 
 import com.ibm.ws.springboot.support.version30.test.data.app.employee.Employee;
@@ -28,23 +29,19 @@ import com.ibm.ws.springboot.support.version30.test.data.app.employee.Employee;
 @ConditionalOnProperty(name = "test.persistence", havingValue = "eclipselink")
 public class EclipseLinkPersistenceEmployeeConfiguration {
 
-	@Bean()
-	DataSource employeeDataSource() {
-		return new JndiDataSourceLookup().getDataSource("jdbc/EMPLOYEE_UNIT");
-	}
-
 	@Bean
-	public LocalContainerEntityManagerFactoryBean employeeEntityManagerFactory(
-			@Qualifier("employeeDataSource") DataSource employeeDataSource) {
-		LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();
-		em.setJtaDataSource(employeeDataSource);
-		em.setPackagesToScan(Employee.class.getPackage().getName());
-		em.setPersistenceXmlLocation("classpath:META-INF/persistence-eclipselink.xml");
-		em.setPersistenceUnitName("employee-unit");
-
+	public LocalContainerEntityManagerFactoryBean employeeEntityManagerFactory() {
 		EclipseLinkJpaVendorAdapter vendorAdapter = new EclipseLinkJpaVendorAdapter();
 		vendorAdapter.setGenerateDdl(true);
-		em.setJpaVendorAdapter(vendorAdapter);
-		return em;
+
+		LocalContainerEntityManagerFactoryBean emf = new EntityManagerFactoryBuilder(vendorAdapter,
+				Map.of("eclipselink.weaving", "false"), null)
+					.dataSource(new JndiDataSourceLookup().getDataSource("jdbc/EMPLOYEE_UNIT"))
+					.managedTypes(PersistenceManagedTypes.of(Employee.class.getName()))
+					.jta(true)
+					.build();
+
+		emf.setPersistenceUnitName("employee-unit");
+		return emf;
 	}
 }

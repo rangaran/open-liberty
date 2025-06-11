@@ -22,8 +22,6 @@ import org.junit.AfterClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import com.ibm.websphere.simplicity.config.WebApplication;
-
 import componenttest.annotation.MinimumJavaLevel;
 import componenttest.custom.junit.runner.FATRunner;
 import componenttest.topology.utils.HttpUtils;
@@ -31,14 +29,6 @@ import componenttest.topology.utils.HttpUtils;
 @RunWith(FATRunner.class)
 @MinimumJavaLevel(javaLevel = 17)
 public class JPALibertyAppTests30War extends JPAAppAbstractTests {
-
-    @Override
-    public void modifyAppConfiguration(WebApplication appConfig) {
-//        // If using LocalContainerEntityManagerFactoryBean then third-party API must be enabled
-//        ClassloaderElement classloader = new ClassloaderElement();
-//        classloader.setApiTypeVisibility("+third-party");
-//        appConfig.getClassloaders().add(classloader);
-    }
 
     @Test
     public void testLibertyJPAAppRunnerWar() throws Exception {

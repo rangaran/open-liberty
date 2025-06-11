@@ -26,7 +26,7 @@ import io.openliberty.transport.http_fat.accesslists.AccessListsTests;
                 MaxOpenConnectionsTests.class,
                 PortOpenRetriesTests.class,
                 SoLingerTests.class,
-                SoReuseAddrTests.class,
+                SoReuseAddrTest.class,
                 TcpOptionsDefaultTests.class
 })
 

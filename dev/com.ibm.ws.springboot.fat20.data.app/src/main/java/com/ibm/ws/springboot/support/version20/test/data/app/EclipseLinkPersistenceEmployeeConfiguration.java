@@ -10,10 +10,10 @@
  *******************************************************************************/
 package com.ibm.ws.springboot.support.version20.test.data.app;
 
-import javax.sql.DataSource;
+import java.util.Collections;
 
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
@@ -28,23 +28,19 @@ import com.ibm.ws.springboot.support.version20.test.data.app.employee.Employee;
 @ConditionalOnProperty(name = "test.persistence", havingValue = "eclipselink")
 public class EclipseLinkPersistenceEmployeeConfiguration {
 
-	@Bean()
-	DataSource employeeDataSource() {
-		return new JndiDataSourceLookup().getDataSource("jdbc/EMPLOYEE_UNIT");
-	}
-
 	@Bean
-	public LocalContainerEntityManagerFactoryBean employeeEntityManagerFactory(
-			@Qualifier("employeeDataSource") DataSource employeeDataSource) {
-		LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();
-		em.setJtaDataSource(employeeDataSource);
-		em.setPackagesToScan(Employee.class.getPackage().getName());
-		em.setPersistenceXmlLocation("classpath:META-INF/persistence-eclipselink.xml");
-		em.setPersistenceUnitName("employee-unit");
-
+	public LocalContainerEntityManagerFactoryBean employeeEntityManagerFactory() {
 		EclipseLinkJpaVendorAdapter vendorAdapter = new EclipseLinkJpaVendorAdapter();
 		vendorAdapter.setGenerateDdl(true);
-		em.setJpaVendorAdapter(vendorAdapter);
-		return em;
+
+		LocalContainerEntityManagerFactoryBean emf = new EntityManagerFactoryBuilder(vendorAdapter,
+				Collections.singletonMap("eclipselink.weaving", "false"), null)
+					.dataSource(new JndiDataSourceLookup().getDataSource("jdbc/EMPLOYEE_UNIT"))
+					.packages(Employee.class.getPackage().getName())
+					.jta(true)
+					.build();
+
+		emf.setPersistenceUnitName("employee-unit");
+		return emf;
 	}
 }

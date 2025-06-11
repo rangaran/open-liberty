@@ -10,11 +10,13 @@
  *******************************************************************************/
 package com.ibm.ws.springboot.support.version30.test.data.app;
 
+import javax.naming.NamingException;
+
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
-import org.springframework.jndi.JndiObjectFactoryBean;
+import org.springframework.jndi.JndiTemplate;
 
 import com.ibm.ws.springboot.support.version30.test.data.app.employee.Employee;
 
@@ -25,27 +27,9 @@ import jakarta.persistence.EntityManagerFactory;
 @ConditionalOnProperty(name = "test.persistence", havingValue = "liberty")
 public class LibertyPersistenceEmployeeConfiguration {
 	@Bean
-	JndiObjectFactoryBean employeeEntityManagerFactory() {
-		JndiObjectFactoryBean factoryBean = new JndiObjectFactoryBean();
-		factoryBean.setJndiName("java:comp/env/persistence/employeeEMF");
-		// must force proxy of EMF to avoid class visibility issues
-		factoryBean.setProxyInterface(EntityManagerFactory.class);
-		return factoryBean;
+	EntityManagerFactory employeeEntityManagerFactory() throws NamingException {
+		return ((EntityManagerFactory) new JndiTemplate().lookup("java:comp/env/persistence/employeeEMF"))
+				// must unwrap the JPAEMFactory wrapper to avoid class visibility issues with Spring proxies
+				.unwrap(EntityManagerFactory.class);
 	}
-
-//	@Bean
-//	LocalContainerEntityManagerFactoryBean employeeEntityManagerFactory() {
-//		LocalContainerEntityManagerFactoryBean factoryBean = new LocalContainerEntityManagerFactoryBean() {
-//			@Override
-//			protected EntityManagerFactory createNativeEntityManagerFactory() throws PersistenceException {
-//				try {
-//					return (EntityManagerFactory) new JndiTemplate().lookup("java:comp/env/persistence/employeeEMF");
-//				} catch (NamingException e) {
-//					throw new PersistenceException(e);
-//				}
-//			}
-//		};
-//		factoryBean.setPersistenceUnitName("employee-unit");
-//		return factoryBean;
-//	}
 }

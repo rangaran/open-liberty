@@ -10,11 +10,13 @@
  *******************************************************************************/
 package com.ibm.ws.springboot.support.version30.test.data.app;
 
+import javax.naming.NamingException;
+
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
-import org.springframework.jndi.JndiObjectFactoryBean;
+import org.springframework.jndi.JndiTemplate;
 
 import com.ibm.ws.springboot.support.version30.test.data.app.customer.Customer;
 
@@ -25,28 +27,9 @@ import jakarta.persistence.EntityManagerFactory;
 @ConditionalOnProperty(name = "test.persistence", havingValue = "liberty")
 public class LibertyPersistenceCustomerConfiguration {
 	@Bean
-	JndiObjectFactoryBean customerEntityManagerFactory() {
-		JndiObjectFactoryBean factoryBean = new JndiObjectFactoryBean();
-		factoryBean.setJndiName("java:comp/env/persistence/customerEMF");
-		// must force proxy of EMF to avoid class visibility issues
-		factoryBean.setProxyInterface(EntityManagerFactory.class);
-		return factoryBean;
+	EntityManagerFactory customerEntityManagerFactory() throws NamingException {
+		return ((EntityManagerFactory) new JndiTemplate().lookup("java:comp/env/persistence/customerEMF"))
+				// must unwrap the JPAEMFactory wrapper to avoid class visibility issues with Spring proxies
+				.unwrap(EntityManagerFactory.class);
 	}
-
-//	@Bean
-//	LocalContainerEntityManagerFactoryBean customerEntityManagerFactory() {
-//		LocalContainerEntityManagerFactoryBean factoryBean = new LocalContainerEntityManagerFactoryBean() {
-//			@Override
-//			protected EntityManagerFactory createNativeEntityManagerFactory() throws PersistenceException {
-//				try {
-//					return (EntityManagerFactory) new JndiTemplate().lookup("java:comp/env/persistence/customerEMF");
-//				} catch (NamingException e) {
-//					throw new PersistenceException(e);
-//				}
-//			}
-//		};
-//		factoryBean.setPersistenceUnitName("customer-unit");
-//		return factoryBean;
-//	}
-
 }

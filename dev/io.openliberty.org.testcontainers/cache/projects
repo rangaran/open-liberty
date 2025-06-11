@@ -134,6 +134,7 @@ com.ibm.ws.security.acme_fat
 com.ibm.ws.security.spnego_fat
 com.ibm.ws.security.wim.adapter.ldap_fat.krb5.1
 com.ibm.ws.session.cache_fat_infinispan_container
+com.ibm.ws.springboot.fat20_fat
 com.ibm.ws.transaction.cloud_fat.base
 com.ibm.ws.transaction.cloud_fat.db2.0
 com.ibm.ws.transaction.cloud_fat.db2.0.ee10
@@ -203,3 +204,4 @@ io.openliberty.microprofile.telemetry.2.0.logging.internal.container_fat
 io.openliberty.microprofile.telemetry.internal.monitor_fat
 io.openliberty.org.apache.myfaces.4.0_fat
 io.openliberty.org.apache.myfaces.4.1_fat
+io.openliberty.springboot.fat30_fat

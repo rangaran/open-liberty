@@ -14,18 +14,14 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-
-import io.openliberty.jpa.persistence.tests.models.User;
-
-import java.util.List;
-
 import org.junit.Test;
 
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 import componenttest.app.FATServlet;
-import io.openliberty.jpa.persistence.tests.models.Priority;
-import io.openliberty.jpa.persistence.tests.models.Product;
-import io.openliberty.jpa.persistence.tests.models.Ticket;
-import io.openliberty.jpa.persistence.tests.models.TicketStatus;
 import jakarta.annotation.Resource;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -35,6 +31,15 @@ import jakarta.persistence.criteria.Nulls;
 import jakarta.persistence.criteria.Root;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.transaction.UserTransaction;
+
+import io.openliberty.jpa.persistence.tests.models.Organization;
+import io.openliberty.jpa.persistence.tests.models.Participant;
+import io.openliberty.jpa.persistence.tests.models.Person;
+import io.openliberty.jpa.persistence.tests.models.Priority;
+import io.openliberty.jpa.persistence.tests.models.Product;
+import io.openliberty.jpa.persistence.tests.models.Ticket;
+import io.openliberty.jpa.persistence.tests.models.TicketStatus;
+import io.openliberty.jpa.persistence.tests.models.User;
 
 @SuppressWarnings("serial")
 @WebServlet(urlPatterns = "/JakartaPersistence32")
@@ -46,30 +51,55 @@ public class JakartaPersistenceServlet extends FATServlet {
     private UserTransaction tx;
 
     @Test
-    public void testSetOperationsJPQL() {
-        // UNION
-        List<String> unionResult = em.createQuery(
-                                                  "SELECT p.name FROM Person p " +
-                                                  "UNION " +
-                                                  "SELECT o.name FROM Organization o", String.class)
-                        .getResultList();
-        assertNotNull(unionResult);
+    public void testSetOperationsJPQL() throws Exception{
+        deleteAllEntities(Person.class);
+        deleteAllEntities(Organization.class);
 
-        // INTERSECT
-        List<String> intersectResult = em.createQuery(
-                                                      "SELECT p.name FROM Person p " +
-                                                      "INTERSECT " +
-                                                      "SELECT o.name FROM Organization o", String.class)
-                        .getResultList();
-        assertNotNull(intersectResult);
+        Person person1 = Person.of(1L, "AAA");
+        Person person2 = Person.of(2L, "BBB");
+        tx.begin();
+        em.persist(person1);
+        em.persist(person2);
+        tx.commit();
 
-        // EXCEPT
-        List<String> exceptResult = em.createQuery(
-                                                   "SELECT p.name FROM Person p " +
-                                                   "EXCEPT " +
-                                                   "SELECT o.name FROM Organization o", String.class)
-                        .getResultList();
-        assertNotNull(exceptResult);
+        Organization org1 = Organization.of(3L, "BBB");
+        Organization org2 = Organization.of(4L, "CCC");
+        tx.begin();
+        em.persist(org1);
+        em.persist(org2);
+        tx.commit();
+
+        List<String> unionResult, intersectResult, exceptResult;
+        try {
+            // UNION
+            unionResult = em.createQuery(
+                                            "SELECT p.name FROM Person p " +
+                                            "UNION " +
+                                            "SELECT o.name FROM Organization o", String.class)
+                            .getResultList();
+
+            // INTERSECT
+            intersectResult = em.createQuery(
+                                            "SELECT p.name FROM Person p " +
+                                            "INTERSECT " +
+                                            "SELECT o.name FROM Organization o", String.class)
+                            .getResultList();
+            
+            // EXCEPT
+            exceptResult = em.createQuery(
+                                            "SELECT p.name FROM Person p " +
+                                            "EXCEPT " +
+                                            "SELECT o.name FROM Organization o", String.class)
+                            .getResultList();
+        }
+        
+        catch(Exception e) {
+            throw e;
+        }
+        Collections.sort(unionResult);
+        assertEquals(Arrays.asList("AAA", "BBB", "CCC"), unionResult);
+        assertEquals(Arrays.asList("BBB"), intersectResult);
+        assertEquals(Arrays.asList("AAA"), exceptResult);
     }
 
      /**
@@ -287,6 +317,224 @@ public class JakartaPersistenceServlet extends FATServlet {
         }
         assertEquals(3, productsNullLast.size());
         assertEquals("Sorted based on 'description' in desc order with NULLS LAST, Expecting last element to be 'product2'", "product2", productsNullLast.get(2).name);
+    }
+
+    /**
+     * Usage of notEqualTo() expression in queries built using criteria api
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testNotEqualToInCriteriaQuery() throws Exception {
+        deleteAllEntities(User.class);
+
+        User user1 = User.of(1, "John", "Doe");
+        User user2 = User.of(2, "Harry", "Potter");
+        User user3 = User.of(3, "Hermione", "Granger");
+        User user4 = User.of(4, "John", "Samuel");
+        User user5 = User.of(5, "John", "Philip");
+        User user6 = User.of(6, "Ron", "Weasley");
+        User user7 = User.of(7, "Nervile", "Longbottom");
+        
+        tx.begin();
+        em.persist(user1);
+        em.persist(user2);
+        em.persist(user3);
+        em.persist(user4);
+        em.persist(user5);
+        em.persist(user6);
+        em.persist(user7);
+        tx.commit();
+       
+        List<User> result;
+        List<User> resultNew;
+        try {
+            tx.begin();
+            /** Using old method - While using Criteria API to build queries, comparison for not equal to was done using
+                method -  CriteriaBuilder.notEqual()
+            */
+            CriteriaBuilder criteriaBuilder = em.getCriteriaBuilder();
+            CriteriaQuery<User> criteriaQueryOld = criteriaBuilder.createQuery(User.class);
+            Root<User> userOld = criteriaQueryOld.from(User.class);
+            criteriaQueryOld.select(userOld).where(criteriaBuilder.notEqual(userOld.get("firstName"), "John"));
+	        result = em.createQuery(criteriaQueryOld).getResultList();
+            assertEquals(4, result.size());
+
+             /** In JPA 3.2, new default method was added to the jakarta.persistence.criteria.Expression 
+                interface:Predicate notEqualTo(Expression<?> other);
+            */
+            CriteriaQuery<User> criteriaQueryNew= criteriaBuilder.createQuery(User.class);
+            Root<User> userNew = criteriaQueryNew.from(User.class);
+            criteriaQueryNew.where(userNew.get("firstName").notEqualTo("John"));
+	        resultNew = em.createQuery(criteriaQueryNew).getResultList();
+            
+            assertEquals(4, resultNew.size());
+            assertEquals(result, resultNew);
+            tx.commit();
+        } catch (Exception e) {
+            tx.rollback();
+            throw e;
+        }
+    }
+
+     /**
+     * Usage of equalTo() expression in queries built using criteria api
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testEqualToInCriteriaQuery() throws Exception {
+        deleteAllEntities(User.class);
+
+        User user1 = User.of(1, "John", "Doe");
+        User user2 = User.of(2, "Harry", "Potter");
+        User user3 = User.of(3, "Hermione", "Granger");
+        User user4 = User.of(4, "John", "Samuel");
+        User user5 = User.of(5, "John", "Philip");
+        User user6 = User.of(6, "Ron", "Weasley");
+        User user7 = User.of(7, "Nervile", "Longbottom");
+        
+        tx.begin();
+        em.persist(user1);
+        em.persist(user2);
+        em.persist(user3);
+        em.persist(user4);
+        em.persist(user5);
+        em.persist(user6);
+        em.persist(user7);
+        tx.commit();
+       
+        List<User> result;
+        List<User> resultNew;
+        try {
+            tx.begin();
+            /** Using old method - While using Criteria API to build queries, comparison for equal to was done using
+                method  - CriteriaBuilder.equal()
+            */
+            CriteriaBuilder criteriaBuilder = em.getCriteriaBuilder();
+            CriteriaQuery<User> criteriaQueryOld= criteriaBuilder.createQuery(User.class);
+            Root<User> user = criteriaQueryOld.from(User.class);
+            criteriaQueryOld.select(user).where(criteriaBuilder.equal(user.get("firstName"), "John"));
+	        result = em.createQuery(criteriaQueryOld).getResultList();
+
+            /** In JPA 3.2, new default method was added to the jakarta.persistence.criteria.Expression 
+                interface:Predicate equalTo(Expression<?> other);
+            */
+            CriteriaQuery<User> criteriaQueryNew= criteriaBuilder.createQuery(User.class);
+            Root<User> userNew = criteriaQueryNew.from(User.class);
+            criteriaQueryNew.where(userNew.get("firstName").equalTo("John"));
+	        resultNew = em.createQuery(criteriaQueryNew).getResultList();
+            
+            assertEquals(3, resultNew.size());
+            assertEquals(result, resultNew);
+            tx.commit();
+        } catch (Exception e) {
+            tx.rollback();
+            throw e;
+        }
+       
+    }
+  
+    @Test
+    public void testRecordAsEmbeddable_NoMatchAndOrdering() throws Exception {
+        // Clean up any existing data
+        tx.begin();
+        em.createQuery("DELETE FROM Participant").executeUpdate();
+        tx.commit();
+
+        // Setup test data
+        Participant p1 = Participant.of("Anna", "Brown", 4);
+        Participant p2 = Participant.of("Zach", "Taylor", 5);
+        Participant p3 = Participant.of("Mark", "Lee", 6);
+
+        tx.begin();
+        em.persist(p1);
+        em.persist(p2);
+        em.persist(p3);
+        tx.commit();
+
+        List<Participant> results = Collections.emptyList(); // Ensure it's never null
+
+        // Query with a last name that doesn't exist
+        tx.begin();
+        try {
+            results = em.createQuery(
+                                     "SELECT o FROM Participant o WHERE o.name.last = ?1 ORDER BY o.name.first, o.id",
+                                     Participant.class)
+                            .setParameter(1, "Doe")
+                            .getResultList();
+            tx.commit();
+        } catch (Exception e) {
+            tx.rollback();
+            throw new RuntimeException("Query failed unexpectedly", e);
+        }
+
+        // Assertions
+        assertNotNull("Results list should not be null", results);
+        assertTrue("Expected empty results for non-matching last name", results.isEmpty());
+    }
+
+    @Test
+    public void testRecordAsEmbeddable_NullEdgeCaseAndOrdering() throws Exception {
+        // Setup test data with null, empty, and edge case values
+        Participant p1 = Participant.of("Anna", null, 13); // Null last name (should be excluded)
+        Participant p2 = Participant.of("Mike", "Green", 14); // Valid
+        Participant p3 = Participant.of("Laura", "Blue", 15); // Different last name (excluded)
+        Participant p4 = Participant.of("Zoe", "Green", 16); // Valid
+        Participant p5 = Participant.of(null, "Green", 17); // Null first name
+        Participant p6 = Participant.of("John", "Green", 18); // Valid
+        Participant p7 = Participant.of("", "Green", 19); // Empty first name
+
+        // Persist participants
+        tx.begin();
+        try {
+            em.persist(p1);
+            em.persist(p2);
+            em.persist(p3);
+            em.persist(p4);
+            em.persist(p5);
+            em.persist(p6);
+            em.persist(p7);
+            tx.commit();
+        } catch (Exception e) {
+            tx.rollback();
+            throw e;
+        }
+
+        // Query for participants with the last name 'Green'
+        List<Participant> results;
+        tx.begin();
+        try {
+            results = em.createQuery(
+                                     "SELECT o FROM Participant o WHERE o.name.last = :lastName " +
+                                     "ORDER BY " +
+                                     "CASE WHEN o.name.first IS NULL THEN 1 ELSE 0 END, " +
+                                     "CASE WHEN o.name.first = '' THEN 1 ELSE 0 END, " +
+                                     "o.name.first, o.id",
+                                     Participant.class)
+                            .setParameter("lastName", "Green")
+                            .getResultList();
+            tx.commit();
+        } catch (Exception e) {
+            tx.rollback();
+            throw e;
+        }
+
+        // Validate results
+        assertNotNull(results);
+        assertEquals(5, results.size()); // 5 participants with last name "Green"
+
+        // Expected order: John (18), Mike (14), Zoe (16), "" (19), null (17)
+        assertEquals("John", results.get(0).getName().getFirst());
+        assertEquals("Mike", results.get(1).getName().getFirst());
+        assertEquals("Zoe", results.get(2).getName().getFirst());
+        assertEquals("", results.get(3).getName().getFirst());
+        assertNull(results.get(4).getName().getFirst());
+
+        // Additional validation for excluded/edge cases
+        assertNull(p1.getName().getLast()); // Null last name should be excluded from query
+        assertEquals("", p7.getName().getFirst()); // Empty first name correctly stored
+        assertNull(p5.getName().getFirst()); // Null first name correctly stored
     }
 
     /**

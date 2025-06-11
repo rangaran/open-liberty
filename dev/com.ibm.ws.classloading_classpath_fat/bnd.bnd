@@ -39,6 +39,7 @@ src: \
 	test-applications/testLib15.jar/src, \
 	test-applications/testLib16.jar/src, \
 	test-applications/testLib17.jar/src, \
+	test-applications/testLib18.jar/src, \
 	test-applications/testRar1.rar/src, \
 	test-applications/testResourceAdaptor.jar/src, \
 	test-applications/testLibFileSet/src

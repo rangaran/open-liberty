@@ -73,6 +73,10 @@ public class JPAHibernateAppTests20War extends JPAAppAbstractTests {
                     // Remove the default persistence.xml processed by Liberty
                     continue;
                 }
+                if (entryName.equals("WEB-INF/web.xml")) {
+                    // Remove the web.xml
+                    continue;
+                }
                 jarOutputStream.putNextEntry(newEntry);
                 byte[] buffer = new byte[1024];
                 int bytesRead;

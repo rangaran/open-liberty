@@ -10,10 +10,10 @@
  *******************************************************************************/
 package com.ibm.ws.springboot.support.version20.test.data.app;
 
-import javax.sql.DataSource;
+import java.util.Collections;
 
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.EnableLoadTimeWeaving;
@@ -30,23 +30,19 @@ import com.ibm.ws.springboot.support.version20.test.data.app.customer.Customer;
 @EnableLoadTimeWeaving
 public class EclipseLinkPersistenceCustomerWeavingConfiguration {
 
-	@Bean()
-	DataSource customerDataSource() {
-		return new JndiDataSourceLookup().getDataSource("jdbc/CUSTOMER_UNIT");
-	}
-
 	@Bean
-	public LocalContainerEntityManagerFactoryBean customerEntityManagerFactory(
-			@Qualifier("customerDataSource") DataSource customerDataSource) {
-		LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();
-		em.setJtaDataSource(customerDataSource);
-		em.setPackagesToScan(Customer.class.getPackage().getName());
-		em.setPersistenceXmlLocation("classpath:META-INF/persistence-eclipselink-weaving.xml");
-		em.setPersistenceUnitName("customer-unit");
-
+	public LocalContainerEntityManagerFactoryBean customerEntityManagerFactory() {
 		EclipseLinkJpaVendorAdapter vendorAdapter = new EclipseLinkJpaVendorAdapter();
 		vendorAdapter.setGenerateDdl(true);
-		em.setJpaVendorAdapter(vendorAdapter);
-		return em;
+
+		LocalContainerEntityManagerFactoryBean emf = new EntityManagerFactoryBuilder(vendorAdapter,
+				Collections.singletonMap("eclipselink.weaving", "true"), null)
+					.dataSource(new JndiDataSourceLookup().getDataSource("jdbc/CUSTOMER_UNIT"))
+					.packages(Customer.class.getPackage().getName())
+					.jta(true)
+					.build();
+
+		emf.setPersistenceUnitName("customer-unit");
+		return emf;
 	}
 }

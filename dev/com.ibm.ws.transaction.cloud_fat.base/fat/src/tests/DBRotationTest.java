@@ -511,7 +511,7 @@ public class DBRotationTest extends CloudFATServletClient {
             serversToCleanup = Arrays.asList(server2, noRecoveryGroupServer1);
             server2.useSecondaryHTTPPort();
 
-            try (AutoCloseable x = withExtraTranAttribute(server2, "peerTimeBeforeStale", "600")) {
+            try (AutoCloseable x = withExtraTranAttribute(server2, "peerTimeBeforeStale", "600", "timeBetweenHeartbeats", "600")) {
                 FATUtils.startServers(_runner, server2, noRecoveryGroupServer1);
                 assertNotNull(server2.getServerName() + " recovery should have completed",
                               server2.waitForStringInTrace("WTRN0133I: Transaction recovery processing for this server is complete", FATUtils.LOG_SEARCH_TIMEOUT));
@@ -607,11 +607,18 @@ public class DBRotationTest extends CloudFATServletClient {
     /**
      * Temporarily set an extra transaction attribute
      */
-    private static AutoCloseable withExtraTranAttribute(LibertyServer server, String attribute, String value) throws Exception {
+    private static AutoCloseable withExtraTranAttribute(LibertyServer server, String... attrs) throws Exception {
         final ServerConfiguration config = server.getServerConfiguration();
         final ServerConfiguration originalConfig = config.clone();
         final Transaction transaction = config.getTransaction();
-        transaction.setExtraAttribute(attribute, value);
+
+        if (attrs == null || attrs.length % 2 != 0) {
+            throw new IllegalArgumentException();
+        }
+
+        for (int i = 0; (i + 1) < attrs.length; i += 2) {
+            transaction.setExtraAttribute(attrs[i], attrs[i + 1]);
+        }
 
         try {
             server.updateServerConfiguration(config);

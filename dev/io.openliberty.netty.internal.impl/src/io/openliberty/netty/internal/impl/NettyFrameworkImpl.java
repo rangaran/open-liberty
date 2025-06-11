@@ -38,6 +38,7 @@ import com.ibm.websphere.ras.TraceComponent;
 import com.ibm.ws.channelfw.internal.chains.EndPointMgrImpl;
 import com.ibm.ws.ffdc.annotation.FFDCIgnore;
 import com.ibm.ws.kernel.feature.ServerStarted;
+import com.ibm.ws.kernel.productinfo.ProductInfo;
 import com.ibm.wsspi.kernel.service.utils.ServerQuiesceListener;
 
 import io.netty.channel.Channel;
@@ -101,6 +102,10 @@ public class NettyFrameworkImpl implements ServerQuiesceListener, NettyFramework
 
 	@Activate
 	protected void activate(ComponentContext context, Map<String, Object> config) {
+		if(!ProductInfo.getBetaEdition()) {
+			// Do nothing if beta isn't enabled
+			return;
+		}
 		// Ideally use the executor service provided by Liberty
 		// Compared to channelfw, quiesce is hit every time because
 		// connections are lazy cleaned on deactivate
@@ -112,6 +117,10 @@ public class NettyFrameworkImpl implements ServerQuiesceListener, NettyFramework
 
 	@Deactivate
 	protected void deactivate(ComponentContext context, Map<String, Object> properties) {
+		if(!ProductInfo.getBetaEdition()) {
+			// Do nothing if beta isn't enabled
+			return;
+		}
 		if (TraceComponent.isAnyTracingEnabled() && tc.isEventEnabled()) {
 			Tr.event(this, tc, "Deactivate called", new Object[] {context, properties});
 		}
@@ -214,6 +223,10 @@ public class NettyFrameworkImpl implements ServerQuiesceListener, NettyFramework
      */
     @Override
     public void serverStopping() {
+	if(!ProductInfo.getBetaEdition()) {
+		// Do nothing if beta isn't enabled
+		return;
+	}
     	if (isActive) {
     		if (TraceComponent.isAnyTracingEnabled() && tc.isEventEnabled()) {
     			Tr.event(this, tc, "Destroying all endpoints (closing all channels): " + activeChannelMap.keySet());
@@ -307,13 +320,16 @@ public class NettyFrameworkImpl implements ServerQuiesceListener, NettyFramework
      */
     @Reference(service = ServerStarted.class, policy = ReferencePolicy.DYNAMIC, cardinality = ReferenceCardinality.OPTIONAL, policyOption = ReferencePolicyOption.GREEDY)
     protected void setServerStarted(ServiceReference<ServerStarted> ref) {
+	if(!ProductInfo.getBetaEdition()) {
+		// Do nothing if beta isn't enabled
+		return;
+	}
         // set will be called when the ServerStarted service has been registered (by the
         // FeatureManager as of 9/2015). This is a signal that
         // the server is fully started, but before the "smarter planet" message has been
         // output. Use this signal to run tasks, mostly likely tasks that will
         // finish the port listening logic, that need to run at the end of server
         // startup
-
         FutureTask<?> task;
         if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
             Tr.debug(this, tc, "Netty Framework signaled- Server Completely Started signal received");
@@ -347,6 +363,12 @@ public class NettyFrameworkImpl implements ServerQuiesceListener, NettyFramework
      * @throws Exception
      */
     public <T> FutureTask<T> runWhenServerStarted(Callable<T> callable) throws Exception {
+	if(!ProductInfo.getBetaEdition()) {
+		// Do nothing if beta isn't enabled
+		FutureTask<T> future = new FutureTask<T>(callable);
+		future.cancel(false);
+		return future;
+	}
         synchronized (syncStarted) {
         	FutureTask<T> future = new FutureTask<T>(callable);
             if (!serverCompletelyStarted.get()) {

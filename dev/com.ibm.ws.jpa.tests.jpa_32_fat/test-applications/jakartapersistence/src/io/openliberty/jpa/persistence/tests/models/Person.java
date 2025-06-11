@@ -12,11 +12,19 @@ package io.openliberty.jpa.persistence.tests.models;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 @Entity
+@Table(name = "PersistencePerson")
 public class Person {
     @Id
-    private Long id;
-    private String name;
+    public Long id;
+    public String name;
 
+    public static Person of(Long id, String name) {
+        Person inst = new Person();
+        inst.id = id;
+        inst.name = name;
+        return inst;
+    }
 }
