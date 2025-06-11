@@ -258,15 +258,15 @@ public class LibertyServer implements LogMonitorClient {
     protected static final int SERVER_STOP_TIMEOUT = SERVER_START_TIMEOUT;
 
     // How long to wait for an app to start before failing out
-    protected int APP_START_TIMEOUT = (FAT_TEST_LOCALRUN ? 12 : 120) * 1000;
+    protected int APP_START_TIMEOUT = (FAT_TEST_LOCALRUN ? 120 : 120) * 1000;
 
     // Increasing this from 50 seconds to 120 seconds to account for poorly performing code;
     // this timeout should only pop in the event of an unexpected failure of apps to start.
-    protected static final int LOG_SEARCH_TIMEOUT = (FAT_TEST_LOCALRUN ? 12 : 120) * 1000;
+    protected static final int LOG_SEARCH_TIMEOUT = (FAT_TEST_LOCALRUN ? 120 : 120) * 1000;
 
     // Allow configuration updates to wait for messages in the log longer than other log
     // searches. Configuration updates may take some time on slow test systems.
-    protected static int LOG_SEARCH_TIMEOUT_CONFIG_UPDATE = (FAT_TEST_LOCALRUN ? 12 : 180) * 1000;
+    protected static int LOG_SEARCH_TIMEOUT_CONFIG_UPDATE = (FAT_TEST_LOCALRUN ? 180 : 180) * 1000;
 
     protected Set<String> installedApplications;
 
@@ -334,6 +334,8 @@ public class LibertyServer implements LogMonitorClient {
     private String openLibertyVersion;
 
     private String archiveMarker = null;
+
+    private boolean serverLevelFipsEnabled = GLOBAL_FIPS_140_3;
 
     /**
      * This returns whether or not debugging is "programatically" allowed
@@ -7819,6 +7821,8 @@ public class LibertyServer implements LogMonitorClient {
         if (logOutput && GLOBAL_FIPS_140_3) {
             Log.info(c, methodName, "Liberty server is running JDK version: " + serverJavaInfo.majorVersion()
                                     + " and vendor: " + serverJavaInfo.VENDOR);
+            Log.info(c, methodName, "Server level fips property is : " + serverLevelFipsEnabled);
+            
             if (isIBMJVM8) {
                 Log.info(c, methodName, "global build properties FIPS_140_3 is set for server " + getServerName() +
                                         " and IBM java 8 is available to run with FIPS 140-3 enabled.");
@@ -7830,7 +7834,7 @@ public class LibertyServer implements LogMonitorClient {
                                            ",  but no IBM java on liberty server to run with FIPS 140-3 enabled.");
             }
         }
-        return GLOBAL_FIPS_140_3 && (isIBMJVM8 || isIBMJVMGreaterOrEqualTo11);
+        return GLOBAL_FIPS_140_3 && (isIBMJVM8 || isIBMJVMGreaterOrEqualTo11) && serverLevelFipsEnabled;
     }
 
     public boolean isFIPS140_3EnabledAndSupported() throws IOException {
@@ -7839,6 +7843,10 @@ public class LibertyServer implements LogMonitorClient {
 
     public boolean isFIPS140_3EnabledAndSupported(JavaInfo info) throws IOException {
         return isFIPS140_3EnabledAndSupported(info, true);
+    }
+
+    public void setServerLevelFips(boolean enabled) {
+        serverLevelFipsEnabled = enabled;
     }
 
     public boolean isFIPS140_2EnabledAndSupported(JavaInfo serverJavaInfo, boolean logOutput) throws IOException {

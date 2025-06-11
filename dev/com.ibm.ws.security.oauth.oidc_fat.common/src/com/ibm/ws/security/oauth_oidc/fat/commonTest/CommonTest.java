@@ -305,13 +305,17 @@ public class CommonTest extends com.ibm.ws.security.fat.common.CommonTest {
                 aTestServer.addMiscBootstrapParms(miscBootstrapParms);
             }
 
+            aTestServer.getServer().setServerLevelFips(true);
             if (testType.equals(Constants.IDP_SERVER_TYPE)) {
                 // we're having an issue with the in memory LDAP server on z/OS, added a method to see if it can accept requests,
                 // if NOT, we'll use a "external" LDAP server (Shibboleth allows for failover to additional LDAP servers, but,
                 // it doesn't allow different bindDN, bindPassword, ...)
                 // this method will add properties to bootstrap.properties that will point to a hopefully working LDAP server
+
+                aTestServer.getServer().setServerLevelFips(false);
                 usingExternalLDAPServer = shibbolethHelpers.updateToUseExternalLDaPIfInMemoryIsBad(aTestServer);
                 shibbolethHelpers.setShibbolethPropertiesForTestMachine(aTestServer);
+                
                 //                CommonLocalLDAPServerSuite one = new CommonLocalLDAPServerSuite();
                 //                CommonLocalLDAPServerSuite two = new CommonLocalLDAPServerSuite();
                 //                one.ldapSetUp();
