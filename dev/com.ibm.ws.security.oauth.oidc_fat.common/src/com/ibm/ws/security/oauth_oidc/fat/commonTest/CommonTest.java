@@ -312,9 +312,9 @@ public class CommonTest extends com.ibm.ws.security.fat.common.CommonTest {
                 // it doesn't allow different bindDN, bindPassword, ...)
                 // this method will add properties to bootstrap.properties that will point to a hopefully working LDAP server
 
-                aTestServer.getServer().setServerLevelFips(false);
                 usingExternalLDAPServer = shibbolethHelpers.updateToUseExternalLDaPIfInMemoryIsBad(aTestServer);
                 shibbolethHelpers.setShibbolethPropertiesForTestMachine(aTestServer);
+                aTestServer.getServer().setServerLevelFips(false);
                 
                 //                CommonLocalLDAPServerSuite one = new CommonLocalLDAPServerSuite();
                 //                CommonLocalLDAPServerSuite two = new CommonLocalLDAPServerSuite();
