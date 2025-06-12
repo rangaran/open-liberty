@@ -53,6 +53,9 @@ public class MessageDigestUtil {
         try {
             byte[] digestBytes = null;
             synchronized (locker) {
+                if (md == null) {
+                    md = CryptoUtils.isFips140_3EnabledWithBetaGuard() ? MessageDigest.getInstance("SHA-256") : MessageDigest.getInstance("SHA-1");
+                }
                 md.reset();
                 digestBytes = md.digest(Base64Coder.getBytes(value));
             }
