@@ -27,7 +27,7 @@
 <%
     boolean submit = false;
     //String clientId = "key";
-    //String clientSecret = "secret1234";
+    //String clientSecret = "secret";
     //String jwtBearerToken = "ENTER HERE";
     String testName = null ;
     String clientId = null ;

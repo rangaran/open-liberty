@@ -69,7 +69,7 @@ public class OIDCWebClientCredentialTest extends genericWebClientCredentialTest 
         testSettings.setAdminUser(null);
         testSettings.setAdminPswd(null);
         testSettings.setClientID("client01");
-        testSettings.setClientSecret("secret1234");
+        testSettings.setClientSecret("secret");
         testSettings.setScope("openid");
         testSettings.setFirstClientURL(testOPServer.getHttpString() + "/" + Constants.OAUTHCLIENT_APP + "/clientcred.jsp");
         testSettings.setFirstClientUrlSSL(testOPServer.getHttpsString() + "/" + Constants.OAUTHCLIENT_APP + "/clientcred.jsp");
