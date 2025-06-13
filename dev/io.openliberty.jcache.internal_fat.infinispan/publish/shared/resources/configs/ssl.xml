@@ -18,9 +18,9 @@
 
 	<keyStore id="defaultKeyStore"
 		location="${shared.resource.dir}/security/keystore.p12"
-		password="password" />
+		password="Liberty" />
 	<keyStore id="defaultTrustStore"
 		location="${shared.resource.dir}/security/truststore.p12"
-		password="password" />
+		password="Liberty" />
 
 </server>
