@@ -4,7 +4,7 @@
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-2.0/
- *
+ * 
  * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package com.ibm.oauth.core.internal.oauth20;
@@ -14,7 +14,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 import com.ibm.oauth.core.internal.OAuthConstants;
-import com.ibm.ws.common.crypto.CryptoUtils;
 
 public interface OAuth20Constants extends OAuthConstants {
 
@@ -190,9 +189,7 @@ public interface OAuth20Constants extends OAuthConstants {
 
     public static final String REFRESH_TOKEN_ORIGINAL_GT = "originalGrantType";
     public static final String HASH = "hash"; // matches result from PasswordUtil.getCryptoAlgorithm
-
-    // With FIPS enabled we want a 128 byte salt length minimum.
-    public static final String APP_PASSWORD_HASH_SALT = CryptoUtils.isFips140_3EnabledWithBetaGuard() ? "notrandomnotrandomnotrandomnotrandomnotrandomnotrandomnotrandomnotrandomnotrandomnotrandomnotrandomnotrandomnotrandomnotrandomnotrandom" : "notrandom";
+    public static final String APP_PASSWORD_HASH_SALT = "notrandom";
     public static final String PLAIN_ENCODING = "plain";
     public static final String APP_PASSWORD_TOKEN_STATE_ID = "iamapppasswordorapptokenstateid";
     public final static String XOR = "xor"; // matches result from PasswordUtil.getCryptoAlgorithm

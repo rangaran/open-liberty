@@ -118,7 +118,7 @@ public class OAuth2ClientCredentialFlowTest extends BaseTestCase {
      */
     public void testClientCredFlowParams() throws Exception {
 
-        Map<String, Object> results = baseClientCredFlowTest("key", "secret1234",
+        Map<String, Object> results = baseClientCredFlowTest("key", "secret",
                                                              "scope1 scope2");
         validateSuccessResults(results);
     }
@@ -130,7 +130,7 @@ public class OAuth2ClientCredentialFlowTest extends BaseTestCase {
      */
     public void testNumericScopeString() throws Exception {
 
-        Map<String, Object> results = baseClientCredFlowTest("key", "secret1234",
+        Map<String, Object> results = baseClientCredFlowTest("key", "secret",
                                                              "123");
         validateSuccessResults(results);
         String responseString = (String) results.get(MAPKEY_REPONSETEXT);
@@ -155,7 +155,7 @@ public class OAuth2ClientCredentialFlowTest extends BaseTestCase {
      */
     public void testMultipleScopeString() throws Exception {
 
-        Map<String, Object> results = baseClientCredFlowTest("key", "secret1234",
+        Map<String, Object> results = baseClientCredFlowTest("key", "secret",
                                                              "scope1 scope2 scope1");
         String[] expectedScopes = new String[] { "scope1", "scope2" };
         Set<String> expectedScopeSet = new HashSet<String>(Arrays.asList(expectedScopes));
@@ -181,7 +181,7 @@ public class OAuth2ClientCredentialFlowTest extends BaseTestCase {
      */
     public void testNoScope() throws Exception {
 
-        Map<String, Object> results = baseClientCredFlowTest("key", "secret1234",
+        Map<String, Object> results = baseClientCredFlowTest("key", "secret",
                                                              null);
         validateSuccessResults(results);
         String responseString = (String) results.get(MAPKEY_REPONSETEXT);

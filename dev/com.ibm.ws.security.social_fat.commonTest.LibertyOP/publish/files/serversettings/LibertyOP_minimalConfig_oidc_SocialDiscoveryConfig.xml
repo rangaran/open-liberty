@@ -17,7 +17,7 @@
 	<oidcLogin
 		id="oidcLogin1"
 		clientId="client01"
-		clientSecret="secret1234"
+		clientSecret="secret"
 		discoveryEndpoint="https://localhost:${bvt.prop.security_1_HTTP_default.secure}/oidc/endpoint/OidcConfigSample/.well-known/openid-configuration"
 		hostNameVerificationEnabled="false"
 	>

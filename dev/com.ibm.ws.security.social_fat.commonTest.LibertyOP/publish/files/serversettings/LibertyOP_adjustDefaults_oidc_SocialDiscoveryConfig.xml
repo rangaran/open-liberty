@@ -21,7 +21,7 @@
          scope="profile email openid"
          userNameAttribute="sub"
          clientId="client03"
-         clientSecret="secret1234"
+         clientSecret="secret"
          discoveryEndpoint="https://localhost:${bvt.prop.security_1_HTTP_default.secure}/oidc/endpoint/OidcConfigSample_autoAdjust/.well-known/openid-configuration"
          authFilterRef="authFilter_autoAdjust"
          hostNameVerificationEnabled="false" 
