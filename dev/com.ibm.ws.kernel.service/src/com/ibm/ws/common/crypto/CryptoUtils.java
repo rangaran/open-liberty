@@ -9,6 +9,8 @@
 *******************************************************************************/
 package com.ibm.ws.common.crypto;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.security.AccessController;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -93,6 +95,19 @@ public class CryptoUtils {
     public static final int AES_256_KEY_LENGTH_BYTES = 32;
 
     public static final int DESEDE_KEY_LENGTH_BYTES = 24;
+
+    // FIPS minimum allowable salt length in bytes
+    public static final int FIPS1403_PBKDF2_MINIMUM_SALT_LENGTH_BYTES = 16;
+    // FIPS recommended salt length in bytes
+    public static final int FIPS1403_PBKDF2_SALT_LENGTH_BYTES = 128;
+    // FIPS minimum allowable key length in bits
+    public static final int FIPS1403_PBKDF2_MINIMUM_KEY_LENGTH_BITS = 112;
+    // FIPS recommended key length in bits
+    public static final int FIPS1403_PBKDF2_KEY_LENGTH_BITS = 256;
+    // FIPS minimum allowable iteration count
+    public static final int FIPS1403_PBKDF2_MINIMUM_ITERATIONS = 1000;
+    // FIPS recommended iteration count
+    public static final int FIPS1403_PBKDF2_ITERATIONS = 210000;
 
     private static boolean fips140_3Enabled = isFips140_3Enabled();
     private static boolean fipsEnabled = fips140_3Enabled;
@@ -380,6 +395,37 @@ public class CryptoUtils {
     }
 
     /**
+     *
+     * @param saltString                  a salt value that is intended to be used to generate a hash via the property PasswordUtil.PROPERTY_HASH_SALT.
+     *                                        null or empty strings are valid here because PasswordUtil will generate salt if that is the case.
+     * @param throwExceptionIfSaltInvalid if true, an exception is thrown if saltString is not compatible with FIPS140-3.
+     * @return true if compatible, false otherwise, exception if false and throwExceptionIfSaltInvalid is true.
+     */
+    public static boolean checkFipsCompatibleSalt(String saltString, boolean logIfIncompatible) {
+        boolean isCompatible = true;
+        if (CryptoUtils.isFips140_3EnabledWithBetaGuard() && saltString != null && !saltString.isEmpty() && saltString.length() < FIPS1403_PBKDF2_MINIMUM_SALT_LENGTH_BYTES) {
+            isCompatible = false;
+        }
+        // TODO delete this logging
+        if (!isCompatible && logIfIncompatible) {
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                try {
+                    throw new Exception("checkFipsCompatibleSalt failed!");
+                } catch (Exception e) {
+                    StringWriter sw = new StringWriter();
+                    PrintWriter pw = new PrintWriter(sw);
+                    e.printStackTrace(pw);
+                    Tr.debug(tc, "isCompatible: false, saltString: " + saltString + "\n" + sw.toString());
+                }
+
+            }
+        }
+        // TODO delete this logging
+
+        return isCompatible;
+    }
+
+    /**
      * Check the provider name exist instead of the provider class for securityUtility command.
      *
      */
@@ -435,4 +481,17 @@ public class CryptoUtils {
 
         return seed;
     }
+
+    public static int getPbkdf2Salt(int dflt) {
+        return isFips140_3EnabledWithBetaGuard() ? FIPS1403_PBKDF2_SALT_LENGTH_BYTES : dflt;
+    }
+
+    public static int getPbkdf2Iterations(int dflt) {
+        return isFips140_3EnabledWithBetaGuard() ? FIPS1403_PBKDF2_ITERATIONS : dflt;
+    }
+
+    public static int getPbkdf2KeyLength(int dflt) {
+        return isFips140_3EnabledWithBetaGuard() ? FIPS1403_PBKDF2_KEY_LENGTH_BITS : dflt;
+    }
+
 }

@@ -4,7 +4,7 @@
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-2.0/
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0
  *
  * Contributors:
@@ -89,13 +89,15 @@ public class oAuth20DerbySetup extends HttpServlet {
             String checkAccessToken_plain = request.getParameter(ACCESS_TOKEN + "_plain");
             String checkAccessToken_hashed = request.getParameter(ACCESS_TOKEN + "_hashed");
             String checkAccessToken = setCheckAccessToken(checkAccessToken_plain, checkAccessToken_hashed);
+            String hashLen = request.getParameter(HASH_LENGTH);
+            String iterations = request.getParameter(HASH_ITERATIONS);
 
             if (Boolean.TRUE.toString().equals(addClient)) { // add a new client to the database
                 String clientID = request.getParameter(CLIENT_ID_WEB);
                 System.out.println("Request to add a new client " + clientID);
                 String secret = request.getParameter(SECRET_WEB);
                 String compID = request.getParameter(COMP_ID);
-                addCustomEntry(OAuthFvtDataSource, clientID, secret, port, compID, getSalt, getAlgorithm);
+                addCustomEntry(OAuthFvtDataSource, clientID, secret, port, compID, getSalt, getAlgorithm, hashLen, iterations);
             } else if (getAlgorithm != null) {
                 String clientID = request.getParameter(CLIENT_ID_WEB);
                 String compID = request.getParameter(COMP_ID);
@@ -158,27 +160,27 @@ public class oAuth20DerbySetup extends HttpServlet {
                 createClientConfigTable(OAuthFvtDataSource);
                 createCacheTable(OAuthFvtDataSource);
                 addEntry(OAuthFvtDataSource, DEFAULT_COMPID, "dclient01",
-                         "secret", "dclient01", redirectUri, 1,
+                         "secret1234", "dclient01", redirectUri, 1,
                          buildClientMetaData("dclient01", redirectUri, "true"));
                 addEntry(OAuthFvtDataSource, DEFAULT_COMPID, "dclient02",
-                         "secret", "dclient02", redirectUri, 1,
+                         "secret1234", "dclient02", redirectUri, 1,
                          buildClientMetaData("dclient02", redirectUri, "false"));
                 addEntry(OAuthFvtDataSource, "OAuthConfigDerby2", "dclient01",
-                         "secret", "dclient01", redirectUri, 1,
+                         "secret1234", "dclient01", redirectUri, 1,
                          buildClientMetaData("dclient01", redirectUri, "true"));
                 addEntry(OAuthFvtDataSource, "OAuthConfigDerby2", "dclient02",
-                         "secret", "dclient02", redirectUri, 1,
+                         "secret1234", "dclient02", redirectUri, 1,
                          buildClientMetaData("dclient02", redirectUri, "false"));
 
                 addEntry(OAuthFvtDataSource, DEFAULT_COMPID, "dclient03",
-                         "secret", "dclient03", redirectUri, 1,
+                         "secret1234", "dclient03", redirectUri, 1,
                          buildClientMetaData("dclient03", redirectUri, "true"));
                 addEntry(OAuthFvtDataSource, DEFAULT_COMPID, "dclient04",
-                         "secret", "dclient04", redirectUri, 1,
+                         "secret1234", "dclient04", redirectUri, 1,
                          buildClientMetaData("dclient03", redirectUri, "true"));
 
                 // client for OAuthGrantTypesDerbyTest
-                addEntry(OAuthFvtDataSource, "OAuthConfigSampleGrantTypes", "client03", "{xor}LDo8LTor", "client03", redirectUri2, 1,
+                addEntry(OAuthFvtDataSource, "OAuthConfigSampleGrantTypes", "client03", "{xor}LDo8LTorbm1saw==", "client03", redirectUri2, 1,
                          buildClientMetaData("client03", redirectUri2, "true"));
 
                 queryTable(OAuthFvtDataSource);
@@ -392,7 +394,7 @@ public class oAuth20DerbySetup extends HttpServlet {
 
         metaD.put("token_endpoint_auth_method", "client_secret_basic");
         metaD.put("client_id", clientId);
-        metaD.put("client_secret", "secret");
+        metaD.put("client_secret", "secret1234");
         metaD.put("client_name", clientId);
         metaD.put("introspect_tokens", introspectTokens);
         return metaD;
@@ -465,11 +467,13 @@ public class oAuth20DerbySetup extends HttpServlet {
      * Create the default table used by the tests.
      *
      * @param ds
-     *               the data source
+     *                    the data source
+     * @param hashLen
      * @throws SQLException
      *                          if it fails
      */
-    private void addCustomEntry(DataSource ds, String clientID, String secret, String port, String compID, String salt, String algorithm) throws SQLException {
+    private void addCustomEntry(DataSource ds, String clientID, String secret, String port, String compID, String salt, String algorithm, String hashLen,
+                                String iterations) throws SQLException {
         String redirectUri = "http://localhost:" + port + "/oauthclient/redirect.jsp";
         Connection con = ds.getConnection(DB_USER, DB_PWD);
         try {
@@ -502,8 +506,8 @@ public class oAuth20DerbySetup extends HttpServlet {
                 metaD.put(HASH_ALGORITHM, algorithm);
             }
 
-            metaD.put(HASH_ITERATIONS, "2048");
-            metaD.put(HASH_LENGTH, "32");
+            metaD.put(HASH_ITERATIONS, iterations);
+            metaD.put(HASH_LENGTH, hashLen);
 
             PreparedStatement pstmt = con.prepareStatement("insert into " + schemaName + ".OAUTH20CLIENTCONFIG values (?, ?, ?,?, ?, ?,?)");
 

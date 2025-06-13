@@ -4,7 +4,7 @@
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-2.0/
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0
  *
  * Contributors:
@@ -39,9 +39,9 @@ public class HashSecretUtils {
     public final static String PBKDF2WithHmacSHA512 = "PBKDF2WithHmacSHA512";
     public final static String DEFAULT_HASH = PBKDF2WithHmacSHA512;
 
-    public static final int DEFAULT_SALTSIZE = fips140_3Enabled ? 128 : 32;
-    public static final int DEFAULT_ITERATIONS = fips140_3Enabled ? 210000 : 2048;
-    public static final int DEFAULT_KEYSIZE = fips140_3Enabled ? 256 : 32;
+    public static final int DEFAULT_SALTSIZE = CryptoUtils.getPbkdf2Salt(32);
+    public static final int DEFAULT_ITERATIONS = CryptoUtils.getPbkdf2Iterations(2048);
+    public static final int DEFAULT_KEYSIZE = CryptoUtils.getPbkdf2KeyLength(32);
 
     private static final int generateSaltSize = DEFAULT_SALTSIZE;
 
@@ -101,6 +101,7 @@ public class HashSecretUtils {
             if (secretType == null || !secretType.equals(OAuth20Constants.HASH)) {
                 Map<String, String> hashProps = new HashMap<String, String>();
                 hashProps.put(PasswordUtil.PROPERTY_HASH_ALGORITHM, algorithm == null ? DEFAULT_HASH : algorithm);
+                CryptoUtils.checkFipsCompatibleSalt(salt, true);
                 hashProps.put(PasswordUtil.PROPERTY_HASH_SALT, salt);
                 hashProps.put(PasswordUtil.PROPERTY_HASH_ITERATION, iteration == 0 ? String.valueOf(DEFAULT_ITERATIONS) : String.valueOf(iteration));
                 hashProps.put(PasswordUtil.PROPERTY_HASH_LENGTH, length == 0 ? String.valueOf(DEFAULT_KEYSIZE) : String.valueOf(length));
