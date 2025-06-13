@@ -33,7 +33,7 @@ public class MessageDigestUtil {
 
     static {
         try {
-            md = CryptoUtils.isFips140_3EnabledWithBetaGuard() ? MessageDigest.getInstance("SHA-256") : MessageDigest.getInstance("SHA-1");
+            md = CryptoUtils.isFips140_3Enabled() ? MessageDigest.getInstance("SHA-256") : MessageDigest.getInstance("SHA-1");
         } catch (NoSuchAlgorithmException e) {
             if (tc.isDebugEnabled()) {
                 Tr.debug(tc, "Internal error initializing message digest", e);
@@ -53,9 +53,6 @@ public class MessageDigestUtil {
         try {
             byte[] digestBytes = null;
             synchronized (locker) {
-                if (md == null) {
-                    md = CryptoUtils.isFips140_3EnabledWithBetaGuard() ? MessageDigest.getInstance("SHA-256") : MessageDigest.getInstance("SHA-1");
-                }
                 md.reset();
                 digestBytes = md.digest(Base64Coder.getBytes(value));
             }
