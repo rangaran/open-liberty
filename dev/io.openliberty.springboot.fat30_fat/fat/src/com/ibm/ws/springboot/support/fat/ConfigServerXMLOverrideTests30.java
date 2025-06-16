@@ -152,13 +152,13 @@ public class ConfigServerXMLOverrideTests30 extends AbstractSpringTests {
             keystores.add(keyStore);
             keyStore.setId("keystore-test");
             keyStore.setLocation("override-keystore.jks");
-            keyStore.setPassword("secret");
+            keyStore.setPassword("secret1234");
 
             KeyStore trustStore = new KeyStore();
             keystores.add(trustStore);
             trustStore.setId("truststore-test");
             trustStore.setLocation("override-truststore.jks");
-            trustStore.setPassword("secret");
+            trustStore.setPassword("secret1234");
         }
 
         else if (methodName.endsWith(OVERRIDE_SSL)) {
@@ -172,13 +172,13 @@ public class ConfigServerXMLOverrideTests30 extends AbstractSpringTests {
             keystores.add(keyStore);
             keyStore.setId("keystore-test");
             keyStore.setLocation("override-keystore.jks");
-            keyStore.setPassword("secret");
+            keyStore.setPassword("secret1234");
 
             KeyStore trustStore = new KeyStore();
             keystores.add(trustStore);
             trustStore.setId("truststore-test");
             trustStore.setLocation("override-truststore.jks");
-            trustStore.setPassword("secret");
+            trustStore.setPassword("secret1234");
         }
 
         else if (methodName.endsWith(OVERRIDE_KEYSTORES)) {
@@ -186,13 +186,13 @@ public class ConfigServerXMLOverrideTests30 extends AbstractSpringTests {
             keystores.add(keyStore);
             keyStore.setId(ID_KEY_STORE + REQUESTED_PORT);
             keyStore.setLocation("override-keystore.jks");
-            keyStore.setPassword("secret");
+            keyStore.setPassword("secret1234");
 
             KeyStore trustStore = new KeyStore();
             keystores.add(trustStore);
             trustStore.setId(ID_TRUST_STORE + REQUESTED_PORT);
             trustStore.setLocation("override-truststore.jks");
-            trustStore.setPassword("secret");
+            trustStore.setPassword("secret1234");
         }
     }
 

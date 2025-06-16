@@ -464,7 +464,7 @@ public class KeycloakAdmin {
                 /*
                  * Get the response entity.
                  *
-                 * {"type":"secret","value":"abcdefgh..."}
+                 * {"type":"secret1234","value":"abcdefgh..."}
                  */
                 return KeycloakUtils.getJsonObject(KeycloakUtils.getStringResponse(response)).getString("value");
             }

@@ -127,8 +127,8 @@ public class SSLTest {
                 break;
             case testSSLConfigured:
             case testTransportSecurityConfigured:
-                addKeystore("serverKeyStore", "server-keystore.jks", "JKS", "secret");
-                addKeystore("serverTrustStore", "server-truststore.jks", "JKS", "secret");
+                addKeystore("serverKeyStore", "server-keystore.jks", "JKS", "secret1234");
+                addKeystore("serverTrustStore", "server-truststore.jks", "JKS", "secret1234");
                 configureSSL();
                 break;
             case testSSLConfiguredEncryptedAES128:
@@ -348,8 +348,8 @@ public class SSLTest {
         RemoteFile tsRemoteFile = server.getFileFromLibertyServerRoot("resources/security/server-truststore.jks");
         final String tsPath = ksRemoteFile.getAbsolutePath();
 
-        final String ksPassword = "secret";
-        final String tsPassword = "secret";
+        final String ksPassword = "secret1234";
+        final String tsPassword = "secret1234";
 
         assertNotNull("Ecpected CWWKO0219I message not found", server.waitForStringInLog(TCP_CHANNEL_STARTED));
 

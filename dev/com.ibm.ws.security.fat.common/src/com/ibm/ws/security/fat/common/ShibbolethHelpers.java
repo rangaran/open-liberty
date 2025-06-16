@@ -87,7 +87,7 @@ public class ShibbolethHelpers {
         String def_host = "localhost";
         String def_url = "ldap://" + def_host + ":" + def_port;
         String def_princ = "uid=admin,ou=system";
-        String def_creds = "secret";
+        String def_creds = "secret1234";
 
         String selected_url = "";
         String selected_princ = "";

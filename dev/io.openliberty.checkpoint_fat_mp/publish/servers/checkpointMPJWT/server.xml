@@ -21,7 +21,7 @@
     
     <include location="../fatTestPorts.xml"/>
     
-    <keyStore id="defaultKeyStore" password="secret"/>
+    <keyStore id="defaultKeyStore" password="secret1234"/>
     
     <webApplication location="mpjwt.war" context-root="/" />
     <variable id = "issuer" name = "issuer" value ="client1" />
