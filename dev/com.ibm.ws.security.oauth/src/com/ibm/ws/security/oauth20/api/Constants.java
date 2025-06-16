@@ -36,7 +36,7 @@ public class Constants {
     public static final String XML_TAG_CLIENT = "client";
     public static final String XML_ATTR_CLIENT_ID = "id";
     public static final String XML_ATTR_CLIENT_COMPONENT = "component";
-    public static final String XML_ATTR_CLIENT_SECRET = "secret";
+    public static final String XML_ATTR_CLIENT_SECRET = "secret1234";
     public static final String XML_ATTR_CLIENT_DISPLAYNAME = "displayname";
     public static final String XML_ATTR_CLIENT_REDIRECT = "redirect";
     public static final String XML_ATTR_CLIENT_ENABLED = "enabled";
