@@ -49,10 +49,10 @@ public abstract class SSLCommonTests extends AbstractSpringTests {
         String methodName = testName.getMethodName();
         Map<String, String> properties = new HashMap<>();
         properties.put("server.ssl.key-store", "classpath:server-keystore.jks");
-        properties.put("server.ssl.key-store-password", );
-        properties.put("server.ssl.key-password", );
+        properties.put("server.ssl.key-store-password", "secret");
+        properties.put("server.ssl.key-password", "secret");
         properties.put("server.ssl.trust-store", "classpath:server-truststore.jks");
-        properties.put("server.ssl.trust-store-password", );
+        properties.put("server.ssl.trust-store-password", "secret");
         if (methodName != null) {
             if (methodName.contains("Need")) {
                 properties.put("server.ssl.client-auth", "NEED");
@@ -91,7 +91,7 @@ public abstract class SSLCommonTests extends AbstractSpringTests {
 
     public String getKeyStorePassword(String methodName) {
         if (methodName.startsWith(TEST_CLIENT_AUTH_NEED)) {
-            return ;
+            return "secret";
         }
         return null;
     }
@@ -110,7 +110,7 @@ public abstract class SSLCommonTests extends AbstractSpringTests {
 
     public String getTrustStorePassword(String methodName) {
         if (methodName.startsWith(TEST_CLIENT_AUTH_NEED)) {
-            return ;
+            return "secret";
         }
         return null;
     }

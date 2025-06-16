@@ -38,9 +38,9 @@ public class OidcStorageUtilsTest {
 
     @Test
     public void test_createStateStorageValue() {
-        String cookieValue = OidcStorageUtils.createStateStorageValue(state, );
+        String cookieValue = OidcStorageUtils.createStateStorageValue(state, "secret");
         String timestamp = state.substring(0, Utils.TIMESTAMP_LENGTH);
-        String newValue = state + ;
+        String newValue = state + "secret";
         String value = HashUtils.digest(newValue);
         String newCookieValue = timestamp + value;
         assertEquals(newCookieValue, cookieValue);

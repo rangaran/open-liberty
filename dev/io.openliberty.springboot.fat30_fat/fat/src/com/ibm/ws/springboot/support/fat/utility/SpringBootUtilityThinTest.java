@@ -159,8 +159,8 @@ public class SpringBootUtilityThinTest extends CommonWebServerTests {
         String methodName = testName.getMethodName();
         if (methodName != null && methodName.contains(DEFAULT_HOST_WITH_APP_PORT)) {
             properties.put("server.ssl.key-store", "classpath:server-keystore.jks");
-            properties.put("server.ssl.key-store-password", );
-            properties.put("server.ssl.key-password", );
+            properties.put("server.ssl.key-store-password", "secret");
+            properties.put("server.ssl.key-password", "secret");
         }
         properties.put("com.ibm.ws.logging.trace.specification", "*=info:com.ibm.ws.app.manager.springboot.util.SpringBootThinUtil=all");
         return properties;

@@ -43,7 +43,7 @@
 		<autoAuthorizeClient>client01</autoAuthorizeClient>		
 		
 		<localStore>			
-	   		<client name="client01" secret="{xor}LDo8LTorbm1saw=="
+	   		<client name="client01" secret="{xor}LDo8LTor"
 	    		displayname="client01"
 		    	redirect="http://localhost:9999/oauthclient/redirect.jsp"
 				enabled="true"/>		

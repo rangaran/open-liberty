@@ -55,10 +55,10 @@ public class MissingSslFeatureTests30 extends AbstractSpringTests {
     public Map<String, String> getBootStrapProperties() {
         Map<String, String> properties = new HashMap<>();
         properties.put("server.ssl.key-store", "classpath:server-keystore.jks");
-        properties.put("server.ssl.key-store-password", );
-        properties.put("server.ssl.key-password", );
+        properties.put("server.ssl.key-store-password", "secret");
+        properties.put("server.ssl.key-password", "secret");
         properties.put("server.ssl.trust-store", "classpath:server-truststore.jks");
-        properties.put("server.ssl.trust-store-password", );
+        properties.put("server.ssl.trust-store-password", "secret");
         return properties;
     }
 
