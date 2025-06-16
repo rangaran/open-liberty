@@ -69,7 +69,7 @@ public class HeaderParamResource {
                            + ";Accept-Language:"
                            + acceptLanguage
                            + ";language-method:"
-                           + methodLanguage).header("custResponseHeader", "secret").build();
+                           + methodLanguage).header("custResponseHeader", "secret1234").build();
     }
 
     @POST

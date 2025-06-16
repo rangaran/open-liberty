@@ -185,7 +185,7 @@ public class HeaderTest {
         H2HeaderTable writeTable = new H2HeaderTable();
         WsByteBuffer buffer = ChannelFrameworkFactory.getBufferManager().allocate(30);
         byte[] expected = HpackUtils.hexStringToByteArray("100870617373776f726406736563726574");
-        H2HeaderField expectedHeader = new H2HeaderField("password", "secret");
+        H2HeaderField expectedHeader = new H2HeaderField("password", "secret1234");
         verifyHeaderEncodeDecode(buffer, readTable, writeTable, expectedHeader, LiteralIndexType.NEVERINDEX, expected);
 
         //Dynamic table is expected to be empty

@@ -363,7 +363,7 @@ public class ApacheDSandKDC {
         entry.add("cn", "KDC Service");
         entry.add("sn", "Service");
         entry.add("uid", krbtgtUser);
-        entry.add("userPassword", "secret");
+        entry.add("userPassword", "secret1234");
         entry.add("krb5PrincipalName", krbtgtPrincipal);
         entry.add("krb5KeyVersionNumber", "0");
         directoryService.getAdminSession().add(entry);
@@ -377,7 +377,7 @@ public class ApacheDSandKDC {
         entry.add("cn", ldapUser.toUpperCase());
         entry.add("sn", "Service");
         entry.add("uid", ldapUser);
-        entry.add("userPassword", "secret");
+        entry.add("userPassword", "secret1234");
         entry.add("krb5PrincipalName", ldapPrincipal);
         entry.add("krb5KeyVersionNumber", "0");
         directoryService.getAdminSession().add(entry);

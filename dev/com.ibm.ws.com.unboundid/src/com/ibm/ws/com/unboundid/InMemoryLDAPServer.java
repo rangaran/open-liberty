@@ -232,7 +232,7 @@ public class InMemoryLDAPServer {
      * @see #getBindDN()
      */
     public static String getBindPassword() {
-        return "secret";
+        return "secret1234";
     }
 
     /**

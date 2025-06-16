@@ -518,7 +518,7 @@ public class ParamsTest {
         HttpResponse resp = client.execute(httpMethod);
         String responseBody = asString(resp);
         assertEquals(200, resp.getStatusLine().getStatusCode());
-        assertEquals("secret", resp.getFirstHeader("custResponseHeader").getValue());
+        assertEquals("secret1234", resp.getFirstHeader("custResponseHeader").getValue());
         assertEquals("getHeaderParam:somevalue;User-Agent:httpclient;Accept-Language:en;language-method:en",
                      responseBody);
     }

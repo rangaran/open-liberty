@@ -24,7 +24,7 @@
 
     <resourceAdapter id="DummyRA" location="${server.config.dir}connectors/fvtra.rar" autoStart="true">
       <classloader/>
-      <properties.DummyRA userName="Mr. Classy Loader" password="secret" />
+      <properties.DummyRA userName="Mr. Classy Loader" password="secret1234" />
     </resourceAdapter>
     
     <application location="${server.config.dir}apps/ClassLoadingApp.ear"> 

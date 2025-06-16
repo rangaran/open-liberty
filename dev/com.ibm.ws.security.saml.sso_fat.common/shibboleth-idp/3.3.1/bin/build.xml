@@ -108,9 +108,9 @@
         <TGT>getsealeralias</TGT>
         <!--
         <fail if="idp.noprompt">Input needed, silence demanded</fail>
-        <input message="Sealer Alias" addproperty="idp.sealer.alias" defaultvalue="secret"/>
+        <input message="Sealer Alias" addproperty="idp.sealer.alias" defaultvalue="secret1234"/>
         -->
-        <property name="idp.sealer.alias" value="secret"/>
+        <property name="idp.sealer.alias" value="secret1234"/>
     </target>
 
     <target name="getsource" unless="idp.src.dir">

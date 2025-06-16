@@ -347,7 +347,7 @@ public class ConfigurationStorageHelperTest {
     @Test
     public void testMapStoreShort() throws IOException {
         char[] shortChars = "value".toCharArray();
-        char[] shortProtectedChars = "secret".toCharArray();
+        char[] shortProtectedChars = "secret1234".toCharArray();
 
         testMapStore(shortChars, shortProtectedChars);
     }
@@ -535,7 +535,7 @@ public class ConfigurationStorageHelperTest {
         if (useLongStrings) {
             dict.put("long string", new String(getChars('l', 102000)));
         }
-        dict.put("short password", new SerializableProtectedString("secret".toCharArray()));
+        dict.put("short password", new SerializableProtectedString("secret1234".toCharArray()));
         if (useLongStrings) {
             dict.put("long password", new SerializableProtectedString(getChars('s', 103000)));
         }
