@@ -27,7 +27,7 @@ public class TableConstants {
     final static String COL_OC1_EXPIRES = "EXPIRES";
     final static String COL_OC1_TOKENSTRING = "TOKENSTRING";
     final static String COL_OC1_CLIENTID = "CLIENTID";
-    final static String COL_OC1_SECRET = "SECRET";
+    final static String COL_OC1_SECRET ="secret1234";
     final static String COL_OC1_USERNAME = "USERNAME";
     final static String COL_OC1_SCOPE = "SCOPE";
     final static String COL_OC1_CALLBACK = "CALLBACK";

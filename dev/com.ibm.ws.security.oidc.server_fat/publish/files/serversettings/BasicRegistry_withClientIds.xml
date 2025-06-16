@@ -21,16 +21,16 @@
 			password="testuserpwd" />
 		<user
 			name="client01"
-			password="secret" />
+			password="secret1234" />
 		<user
 			name="client02"
-			password="secret" />
+			password="secret1234" />
 		<user
 			name="client03"
-			password="secret" />
+			password="secret1234" />
 		<user
 			name="client04s"
-			password="secret" />
+			password="secret1234" />
 		<user
 			name="diffuser"
 			password="diffuserpwd" />

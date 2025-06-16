@@ -853,7 +853,7 @@ public class OidcEndpointServicesTest {
 
         final String username = "user1";
         final String clientId = "client01";
-        //final String secret = "secret";  //jose4j needs longer key
+        //final String secret ="secret1234";  //jose4j needs longer key
         final String secret = "secretsecretsecretsecretsecretsecret";
 
         AttributeList attrs = new AttributeList();

@@ -108,7 +108,7 @@ public class OidcRpInitiatedLogoutTest {
         final String username = "user1";
         final String clientId = "client01";
 
-        final OidcBaseClient oidcbaseclient = new OidcBaseClient(clientId, "secret", null, "clientName", "componentId", true);
+        final OidcBaseClient oidcbaseclient = new OidcBaseClient(clientId, "secret1234", null, "clientName", "componentId", true);
         oidcbaseclient.setPostLogoutRedirectUris(OidcOAuth20Util.initJsonArray(new String[] { redirectUri, "http://redirect" }));
         MockServletRequest req = new MockServletRequest();
         Cookie[] cookies = new Cookie[] { cookie };
@@ -187,7 +187,7 @@ public class OidcRpInitiatedLogoutTest {
         final String username2 = "user2";
         final String clientId = "client01";
 
-        final OidcBaseClient oidcbaseclient = new OidcBaseClient(clientId, "secret", null, "clientName", "componentId", true);
+        final OidcBaseClient oidcbaseclient = new OidcBaseClient(clientId, "secret1234", null, "clientName", "componentId", true);
         oidcbaseclient.setPostLogoutRedirectUris(OidcOAuth20Util.initJsonArray(new String[] { redirectUri, "http://redirect" }));
         MockServletRequest req = new MockServletRequest();
         Cookie[] cookies = new Cookie[] { cookie };
@@ -253,7 +253,7 @@ public class OidcRpInitiatedLogoutTest {
         final String username = "user1";
         final String clientId = "client01";
 
-        final OidcBaseClient oidcbaseclient = new OidcBaseClient(clientId, "secret", null, "clientName", "componentId", true);
+        final OidcBaseClient oidcbaseclient = new OidcBaseClient(clientId, "secret1234", null, "clientName", "componentId", true);
         oidcbaseclient.setPostLogoutRedirectUris(OidcOAuth20Util.initJsonArray(new String[] { "https://localhost:80/index.html", "http://redirect" }));
         MockServletRequest req = new MockServletRequest();
         Cookie[] cookies = new Cookie[] { cookie };

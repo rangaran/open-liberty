@@ -20,7 +20,7 @@ import com.ibm.ws.security.openidconnect.token.JWTPayload;
  * Genereate JWT which is a super class of IdToken which can be used for the test.
  */
 public class IDTokenUtil {
-    //public static final String KEY_STRING = "secret";  // need >=256bit key for jose4j
+    //public static final String KEY_STRING ="secret1234";  // need >=256bit key for jose4j
     public static final String KEY_STRING = "secretsecretsecretsecretsecretsecret";
     public static final String ALGORITHM = "HS256";
     public static final String ISSUER = "http://localhost:8010/oidc";

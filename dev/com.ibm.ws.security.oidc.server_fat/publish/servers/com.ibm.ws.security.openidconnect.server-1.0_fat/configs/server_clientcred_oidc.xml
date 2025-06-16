@@ -31,7 +31,7 @@
 			password="user1pwd" />
 		<user
 			name="client01"
-			password="secret" />
+			password="secret1234" />
 		<user
 			name="user2"
 			password="user2pwd" />

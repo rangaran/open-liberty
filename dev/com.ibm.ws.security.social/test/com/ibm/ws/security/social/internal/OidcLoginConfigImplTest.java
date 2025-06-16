@@ -55,7 +55,7 @@ public class OidcLoginConfigImplTest extends CommonConfigTestClass {
     String keyManagementKeyAlias = "RS256";
     String issuer = "http://some/valid/issuer";
     String token = "https://some/token/endpoint/abc";
-    SerializableProtectedString secret = new SerializableProtectedString("secret".toCharArray());
+    SerializableProtectedString secret = new SerializableProtectedString("secret1234".toCharArray());
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {

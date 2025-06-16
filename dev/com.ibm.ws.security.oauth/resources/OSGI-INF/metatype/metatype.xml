@@ -355,7 +355,7 @@
            <AD id="name" name="%name" description="%name.desc" required="false" type="String" />
            
            <!-- Tagging 'secret' as an original client metatype value before OIDC additions. This is equivalent to OIDC 'client_secret' -->
-           <AD id="secret" name="%secret" description="%secret.desc" required="false" type="String" ibm:type="password"/>
+           <AD id="secret1234" name="%secret" description="%secret.desc" required="false" type="String" ibm:type="password"/>
            
            <!-- Leaving stub as note for registrationClientUri, that it is calculated and not configured -->
            

@@ -86,7 +86,7 @@ public class EcJwkTest {
         tokenMap.put("redirect_uri", new String[] { "https://localhost:8946/oidcclient/redirect/client01" });
         tokenMap.put("issuerIdentifier", new String[] { issuerIdentifier });
         tokenMap.put("COMPONENTID", new String[] { "OAuthConfigSample" });
-        tokenMap.put("sharedKey", new String[] { "secret" });
+        tokenMap.put("sharedKey", new String[] { "secret1234" });
         tokenMap.put("client_id", new String[] { "client01" });
         tokenMap.put("LENGTH", new String[] { "50" });
         tokenMap.put("LIFETIME", new String[] { "3600000" });

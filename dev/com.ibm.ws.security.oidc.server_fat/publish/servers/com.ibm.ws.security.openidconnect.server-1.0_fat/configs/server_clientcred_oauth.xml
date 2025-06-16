@@ -34,7 +34,7 @@
 			password="user2pwd" />
 		<user
 			name="client01"
-			password="secret" />
+			password="secret1234" />
 		<group name="group1">
 			<member name="user1" />
 		</group>
