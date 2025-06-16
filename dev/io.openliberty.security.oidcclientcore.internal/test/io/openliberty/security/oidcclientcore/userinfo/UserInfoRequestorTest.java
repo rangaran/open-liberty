@@ -59,7 +59,7 @@ public class UserInfoRequestorTest extends CommonTestClass {
     private static SharedOutputManager outputMgr = SharedOutputManager.getInstance();
 
     private static final String clientId = "myOidcClientId";
-    private static final String clientSecretString = "secret";
+    private static final String clientSecretString = ;
     private static final ProtectedString clientSecret = new ProtectedString(clientSecretString.toCharArray());
     private static final String userInfoEndpoint = "https://localhost/path/userinfo";
     private static final String jwksUri = "https://localhost/path/jwk";

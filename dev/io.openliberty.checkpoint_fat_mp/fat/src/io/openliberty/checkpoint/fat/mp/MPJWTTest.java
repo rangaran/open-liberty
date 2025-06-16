@@ -248,7 +248,7 @@ public class MPJWTTest extends FATServletClient {
         String rsPrivateKeyPath = server.getMachine().getFile(server.getServerRoot() + "/resources/security/RS256private-key.pem").getAbsolutePath();
         try {
             KeyStore keystore = KeyStore.getInstance("PKCS12");
-            char[] password = new String("secret").toCharArray();
+            char[] password = new String().toCharArray();
             keystore.load(new FileInputStream(server.getMachine().getFile(keystorePath).getAbsolutePath()), password);
             Key key = keystore.getKey("default", password);
             String output = "-----BEGIN PRIVATE KEY-----\n"
