@@ -95,7 +95,7 @@ public class oAuth20MongoSetup extends HttpServlet {
     final static String DROP_DB = "dropDB";
     final static String ADD_CLIENT = "addClient";
     final static String CLIENT_ID_WEB = "clientID";
-    final static String SECRET_WEB = "secret";
+    final static String SECRET_WEB = "secret1234";
     final static String CHECK_SECRET = "checkSecret";
     final static String PROVIDER_ID = "provider";
     final static String COMP_ID = "compID";

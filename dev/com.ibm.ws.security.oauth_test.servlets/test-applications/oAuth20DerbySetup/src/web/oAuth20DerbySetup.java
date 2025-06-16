@@ -47,7 +47,7 @@ public class oAuth20DerbySetup extends HttpServlet {
     final static String DROP_DB = "dropDB";
     final static String ADD_CLIENT = "addClient";
     final static String CLIENT_ID_WEB = "clientID";
-    final static String SECRET_WEB = "secret";
+    final static String SECRET_WEB = "secret1234";
     final static String CHECK_SECRET = "checkSecret";
     final static String COMP_ID = "compID";
     final static String SALT = "checkSalt";
