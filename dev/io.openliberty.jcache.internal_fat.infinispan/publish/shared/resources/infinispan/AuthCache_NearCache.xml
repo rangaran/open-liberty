@@ -35,6 +35,10 @@
 	<!-- 
 		Set encoding for keys / values.
 	 -->
+
 	<encoding media-type="application/x-java-serialized-object" />
+
+	<ssl id="defaultSSLConfig" verifyHostname="false" />
+	
 </local-cache>
  
