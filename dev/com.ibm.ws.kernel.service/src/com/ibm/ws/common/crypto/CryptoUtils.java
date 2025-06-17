@@ -355,7 +355,7 @@ public class CryptoUtils {
     }
 
     public static boolean isFips140_3EnabledWithBetaGuard() {
-        return isRunningBetaMode() && isFips140_3Enabled(); 
+        return isRunningBetaMode() && isFips140_3Enabled();
     }
 
     private static boolean isRunningBetaMode() {
