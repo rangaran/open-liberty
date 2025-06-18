@@ -59,6 +59,10 @@
      -->
 	<authCache cacheRef="AuthCache" />
 
+	<include
+		location="${shared.resource.dir}/configs/ssl.xml" />
+	<ssl id="defaultSSLConfig" verifyHostname="false"> 
+
 	<!-- 
 		Applications.
 	 -->

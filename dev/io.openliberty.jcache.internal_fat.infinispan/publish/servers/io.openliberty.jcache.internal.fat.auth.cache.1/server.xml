@@ -35,6 +35,10 @@
 	<include
 		location="${shared.resource.dir}/configs/appBasicAuth1.xml" />
 
+	<include
+		location="${shared.resource.dir}/configs/ssl.xml" />
+	<ssl id="defaultSSLConfig" verifyHostname="false"> 
+
 	<!--
 		Configure the JCache instances.
 	 -->

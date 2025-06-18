@@ -74,4 +74,8 @@
 		loggedOutCookieCacheRef="LoggedOutCookieCache" 
 		trackLoggedOutSSOCookies="false" />
 
+	<include
+		location="${shared.resource.dir}/configs/ssl.xml" />
+	<ssl id="defaultSSLConfig" verifyHostname="false"> 
+
 </server>

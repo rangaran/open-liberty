@@ -75,4 +75,8 @@
 		krb5Keytab="${server.config.dir}/resources/security/kerberos/krb5.keytab"
 		servicePrincipalNames="HTTP/myLibertyMachine.example.com" />
 
+	<include
+		location="${shared.resource.dir}/configs/ssl.xml" />
+	<ssl id="defaultSSLConfig" verifyHostname="false"> 
+
 </server>

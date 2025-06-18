@@ -79,4 +79,8 @@
 	<mpJwt id="myMpJwt" issuer="ALL_ISSUERS"
 		jwksUri="https://localhost:${bvt.prop.HTTP_default.secure}/jwt/ibm/api/defaultJWT/jwk" />
 
+	<include
+		location="${shared.resource.dir}/configs/ssl.xml" />
+	<ssl id="defaultSSLConfig" verifyHostname="false"> 
+
 </server>
