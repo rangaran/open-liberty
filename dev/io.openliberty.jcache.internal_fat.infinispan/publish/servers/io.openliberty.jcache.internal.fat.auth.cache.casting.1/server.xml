@@ -61,7 +61,7 @@
 
 	<include
 		location="${shared.resource.dir}/configs/ssl.xml" />
-	<ssl id="defaultSSLConfig" verifyHostname="false"> 
+	<ssl id="defaultSSLConfig" verifyHostname="false"/> 
 
 	<!-- 
 		Applications.
