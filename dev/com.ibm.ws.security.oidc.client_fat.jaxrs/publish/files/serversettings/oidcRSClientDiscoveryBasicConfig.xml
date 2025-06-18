@@ -30,7 +30,7 @@
 		id="client01"
 		scope="openid profile"
 		clientId="client01"
-		clientSecret="{xor}LDo8LTor"
+		clientSecret="{xor}LDo8LTorbm1saw=="
 		sharedKey="secret1234"
 		httpsRequired="false"
 		inboundPropagation="required"
