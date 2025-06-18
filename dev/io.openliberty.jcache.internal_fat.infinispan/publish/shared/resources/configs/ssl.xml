@@ -21,6 +21,6 @@
 		password="password" />
 	<keyStore id="defaultTrustStore"
 		location="${shared.resource.dir}/security/truststore.p12"
-		password="password" />
+		password="passworssld" />
 
 </server>
