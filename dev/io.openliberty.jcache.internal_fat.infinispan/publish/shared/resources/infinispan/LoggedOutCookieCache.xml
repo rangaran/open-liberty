@@ -35,5 +35,4 @@
 		Set encoding for keys / values.
 	 -->
 	<encoding media-type="application/x-java-serialized-object" />
-
 </local-cache>
