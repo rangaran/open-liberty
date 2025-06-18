@@ -79,9 +79,9 @@
 		keyStoreRef="defaultKeyStore" trustStoreRef="defaultTrustStore" />
 	<keyStore id="defaultTrustStore"
 		location="${server.config.dir}/resources/security/truststore.p12"
-		password="trustPassword" />
+		password="password" />
 
-		
+
 	<!--
 		JWT SSO configuration.
 	 -->
