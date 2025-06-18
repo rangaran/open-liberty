@@ -41,11 +41,7 @@
 	 -->
 	<include
 		location="${shared.resource.dir}/configs/ssl.xml" />
-	<ssl id="defaultSSLConfig" verifyHostname="false" trustDefaultCerts="true"
-		keyStoreRef="defaultKeyStore" trustStoreRef="defaultTrustStore" />
-	<keyStore id="defaultTrustStore"
-		location="${server.config.dir}/resources/security/truststore.p12"
-		password="password" />
+	<ssl id="defaultSSLConfig" verifyHostname="false"  />
 
 	<!--
 		Configure the JCache instances.
