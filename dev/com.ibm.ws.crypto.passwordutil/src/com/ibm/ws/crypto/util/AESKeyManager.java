@@ -151,7 +151,7 @@ public class AESKeyManager {
      * @return
      */
     public static IvParameterSpec getIV(KeyVersion version, String cryptoKey) throws NoSuchAlgorithmException, InvalidKeySpecException {
-        if (version == KeyVersion.AES_V0 or version == KeyVersion.AES_V1) {
+        if (version == KeyVersion.AES_V0 || version == KeyVersion.AES_V1) {
             return getHolder(version, cryptoKey).getIv();
         } else {
             return null;
