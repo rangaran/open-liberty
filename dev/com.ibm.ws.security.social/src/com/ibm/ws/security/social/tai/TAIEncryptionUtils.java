@@ -240,7 +240,7 @@ public class TAIEncryptionUtils {
 
     IvParameterSpec getIvSpec(SocialLoginConfig config) throws Exception {
         byte[] clientSecretHash = getClientSecretHash(config.getClientSecret());
-        return AESKeyManager.getIV(encodingUtils.bytesToHexString(clientSecretHash));
+        return AESKeyManager.getIV(CryptoUtils.isFips140_3EnabledWithBetaGuard() ? KeyVersion.AES_V1 : KeyVersion.AES_V0, encodingUtils.bytesToHexString(clientSecretHash));
     }
 
     byte[] getClientSecretHash(@Sensitive String clientSecret) {
