@@ -212,7 +212,7 @@ public class LibertyOAuth20Provider implements OAuth20Provider, ConfigurationLis
 
     public static final String KEY_CLIENT_ID = "name";
     public static final String KEY_CLIENT_COMPONENT = "component";
-    public static final String KEY_CLIENT_SECRET = "secret1234";
+    public static final String KEY_CLIENT_SECRET = "secret";
     public static final String KEY_CLIENT_DISPLAYNAME = "displayname";
     public static final String KEY_CLIENT_REDIRECT = "redirect";
     public static final String KEY_CLIENT_ENABLED = "enabled";
