@@ -42,4 +42,10 @@
 	</servlet-mapping>
 
 
+
+  <context-param>
+    <param-name>org.apache.myfaces.MAC_ALGORITHM</param-name>
+    <param-value>HmacSHA256</param-value>
+  </context-param>
+
 </web-app>
