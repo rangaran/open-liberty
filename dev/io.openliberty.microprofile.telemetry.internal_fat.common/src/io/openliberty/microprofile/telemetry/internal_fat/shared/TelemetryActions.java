@@ -362,15 +362,4 @@ public class TelemetryActions {
         return false;
     }
 
-    @Deprecated
-    public static RepeatTests telemetry20and21Repeats(String serverName) {
-        return repeat(serverName, MicroProfileActions.MP71_EE11, MP14_MPTEL21, MP41_MPTEL21, MP50_MPTEL21,
-                      MP50_MPTEL21_JAVA8, MicroProfileActions.MP71_EE10, MicroProfileActions.MP70_EE11, MP14_MPTEL20, MP41_MPTEL20, MP50_MPTEL20,
-                      MP50_MPTEL20_JAVA8, MP61_MPTEL20, MicroProfileActions.MP70_EE10);
-    }
-
-    @Deprecated
-    public static RepeatTests telemetry20and21Repeats() {
-        return telemetry20Repeats(FeatureReplacementAction.ALL_SERVERS);
-    }
 }
