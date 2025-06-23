@@ -20,11 +20,6 @@
      <jsp-file>configured.jsp</jsp-file>
   </servlet>
 
-  <context-param>
-    <param-name>org.apache.myfaces.MAC_ALGORITHM</param-name>
-    <param-value>HmacSHA256</param-value>
-  </context-param>
-
   <servlet-mapping>
      <servlet-name>configuredJSP</servlet-name>
      <url-pattern>/configured</url-pattern>
