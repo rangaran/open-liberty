@@ -55,7 +55,7 @@ import componenttest.app.FATServlet;
                                                className = "org.apache.derby.jdbc.EmbeddedConnectionPoolDataSource",
                                                databaseName = "memory:firstdb",
                                                properties = {
-                                                              "agedTimeout=1h5m30s",
+                                                              "agedTimeout=1:05:30",
                                                               "connectionSharing=MatchCurrentState",
                                                               "createDatabase=create"
                                                }),
