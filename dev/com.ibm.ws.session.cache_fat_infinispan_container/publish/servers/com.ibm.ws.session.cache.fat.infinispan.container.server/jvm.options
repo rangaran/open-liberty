@@ -1,1 +1,2 @@
 -Djava.net.preferIPv4Stack=true
+-Djava.security.properties=./configs/fips-md5-elytron.security
