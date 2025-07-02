@@ -8109,8 +8109,6 @@ public class LibertyServer implements LogMonitorClient {
                 // Log.info(this.getClass(), "configureLTPAKeys",
                 //         "Waiting for 2 seconds after updating ltpa.keys ...");
                 // Thread.sleep(2000);
-                opts.put("-Xdump:stack:events=throw+systhrow+catch", null);
-                opts.put("-Xdump:stack:events=throw,filter=*", null);
             }
             if (ltpaKeys.exists()) {
                 // Log the content of ltpa.keys
@@ -8133,6 +8131,8 @@ public class LibertyServer implements LogMonitorClient {
                                                  + " with IBM Java " + info.majorVersion() + ", adding required JVM arguments to run with FIPS 140-3 enabled");
                 opts.put("-Dsemeru.fips", "true");
                 opts.put("-Dsemeru.customprofile", "OpenJCEPlusFIPS.FIPS140-3-Custom");
+                opts.put("-Xdump:stack:events=throw+systhrow+catch", null);
+                opts.put("-Xdump:stack:events=throw,filter=*", null);
                 opts.put("-Djava.security.properties", getSemeruFips140_3CustomProfileLocationAndPrintFileContents());
             } else if (info.majorVersion() == 8) {
                 Log.info(c, "getFipsJvmOptions", "FIPS 140-3 global build properties is set for server "
