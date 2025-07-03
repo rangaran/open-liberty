@@ -28,7 +28,7 @@
     <variable name="onError" value="FAIL"/>
 
     <connectionFactory id="cf1" jndiName="eis/cf1">
-      <containerAuthData user="CNTRUSER" password="{aes}APsFRXLhJp7FYchi1uAsgi+eFzVg87omLpRnYxeBEKiM"/>    
+      <containerAuthData user="CNTRUSER" password="{aes}ARB8AqwcDz6FKge0YPLTzcl3fg1dMahVWbPHFozb47LJywphgiQS/3C0lQdULcMU20T46wE85y6auKcR4kE0pbX82wkXitMJwtN9o3jUjxK+3vOxGP5rF32zf78j/ow3Wql1r9Cz0Ab5TA=="/>    
       <properties.RAR1 sslSocketFactory="mySSLConfig" tableName="cf1tbl" userName="CF1USER"/>
     </connectionFactory>
 
