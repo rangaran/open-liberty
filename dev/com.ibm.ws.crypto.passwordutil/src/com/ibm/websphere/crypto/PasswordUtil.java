@@ -659,6 +659,7 @@ public class PasswordUtil {
                     if ((decrypted_bytes != null) && (decrypted_bytes.length > 0)) {
                         // convert decrypted password byte[] to string
                         decoded_string = convert_to_string(decrypted_bytes);
+                        System.out.println(decoded_string);
                     }
                 }
             }
