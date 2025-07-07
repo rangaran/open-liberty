@@ -155,8 +155,12 @@ public class ClassLoaderRef extends LibertyLoader implements SpringLoader {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder(super.toString());
-        sb.append(": Application ClassLoader ");
-        sb.append(classLoaderWeakRef.get());
+        // classLoaderWeakRef can be null if toString() is called by trace during 
+        // super constructor
+        if (classLoaderWeakRef != null) {
+            sb.append(": Application ClassLoader ");
+            sb.append(classLoaderWeakRef.get());
+        }
         return sb.toString();
     }
 

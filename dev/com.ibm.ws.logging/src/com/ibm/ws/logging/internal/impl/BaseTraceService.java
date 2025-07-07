@@ -1591,9 +1591,44 @@ public class BaseTraceService implements TrService {
         String sequenceNumber = getSequenceNumber();
         //indicate that we're using json fields
         int jsonKey = CollectorConstants.KEYS_JSON;
+        //get field names
+        List<String> LogTraceList = Arrays.asList(LogTraceData.NAMES_JSON);
+        Map<String, String> messageMap = new HashMap<>();
         //construct json header
         JSONObjectBuilder jsonBuilder = new JSONObject.JSONObjectBuilder();
+        //get field mappings
+        String fieldMappings = config.getjsonFields();
 
+        //apply json fields
+        if (fieldMappings != null && !fieldMappings.isEmpty() && fieldMappings != "") {
+            String[] keyValuePairs = fieldMappings.split(",");
+            for (String pair : keyValuePairs) {
+                pair = pair.trim();
+                if (pair.endsWith(":"))
+                    pair = pair + OMIT_FIELDS_STRING;
+
+                String[] entry = pair.split(":");
+                entry[0] = entry[0].trim();
+
+                if (entry.length == 2) {
+                    entry[1] = entry[1].trim();
+                    if (LogTraceList.contains(entry[0])) {
+                        messageMap.put(entry[0], entry[1]);
+                    }
+                } 
+                else if (entry.length == 3) {
+                    entry[1] = entry[1].trim();
+                    entry[2] = entry[2].trim();
+                    //add properties to their respective hashmaps and trim whitespaces
+                    if (CollectorConstants.MESSAGES_CONFIG_VAL.equals(entry[0])) {
+                        if (LogTraceList.contains(entry[1]) || entry[1].startsWith("ext_")) {
+                            messageMap.put(entry[1], entry[2]);
+                        }
+                    } 
+                }
+            }
+        }
+        LogTraceData.newJsonLoggingNameAliasesMessage(messageMap);
         //@formatter:off
         jsonBuilder.addField(LogTraceData.getTypeKey(jsonKey, true), "liberty_message", false, false)
                    .addField(LogTraceData.getHostKey(jsonKey, true), serverHostName, false, true)
@@ -1603,7 +1638,7 @@ public class BaseTraceService implements TrService {
                    .addField(LogTraceData.getDatetimeKey(jsonKey, true), datetime, false, true)
                    .addField(LogTraceData.getSequenceKey(jsonKey, true), sequenceNumber, false, true);
         //@formatter:on
-
+        
         return jsonBuilder.build().toString().concat("\n");
     }
 

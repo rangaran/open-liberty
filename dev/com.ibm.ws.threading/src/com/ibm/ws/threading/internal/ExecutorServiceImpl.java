@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2010, 2024 IBM Corporation and others.
+ * Copyright (c) 2010, 2025 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -262,12 +262,15 @@ public final class ExecutorServiceImpl implements WSExecutorService, ThreadQuies
         // ... and then make sure maxThreads is not smaller than coreThreads ...
         maxThreads = Math.max(coreThreads, maxThreads);
 
-        BlockingQueue<Runnable> workQueue = new BoundedBuffer<Runnable>(java.lang.Runnable.class, 1000, 1000);
+        BlockingQueue<Runnable> workQueue = new ConcurrentPriorityBlockingQueue<Runnable>();
 
         RejectedExecutionHandler rejectedExecutionHandler = new ExpandPolicy(workQueue, this);
 
         if (threadPool != null) {
-            ((BoundedBuffer<Runnable>) threadPool.getQueue()).removeFromAvailableProcessors();
+            BlockingQueue<Runnable> queue = threadPool.getQueue();
+            if (queue instanceof BoundedBuffer) {
+                ((BoundedBuffer<Runnable>) queue).removeFromAvailableProcessors();
+            }
         }
         threadPool = new ThreadPoolExecutor(coreThreads, maxThreads, 0, TimeUnit.MILLISECONDS, workQueue, threadFactory != null ? threadFactory : new ThreadFactoryImpl(poolName, threadGroupName), rejectedExecutionHandler);
 
@@ -479,14 +482,14 @@ public final class ExecutorServiceImpl implements WSExecutorService, ThreadQuies
      */
     public static class ExpandPolicy implements RejectedExecutionHandler {
 
-        public BoundedBuffer<Runnable> workQueue;
+        public BlockingQueue<Runnable> workQueue;
         public WSExecutorService exService;
 
         /**
          * Creates an {@code ExpandPolicy}.
          */
         public ExpandPolicy(BlockingQueue<Runnable> workQueue2, WSExecutorService exService) {
-            this.workQueue = (BoundedBuffer<Runnable>) workQueue2;
+            this.workQueue = workQueue2;
             this.exService = exService;
         }
 
@@ -504,10 +507,12 @@ public final class ExecutorServiceImpl implements WSExecutorService, ThreadQuies
                                                      " rejected from " +
                                                      e.toString());
             } else {
-                if (r instanceof QueueItem && ((QueueItem) r).isExpedited())
-                    workQueue.expandExpedited(1000);
-                else
-                    workQueue.expand(1000);
+                if (workQueue instanceof BoundedBuffer) {
+                    if (r instanceof QueueItem && ((QueueItem) r).isExpedited())
+                        ((BoundedBuffer<Runnable>) workQueue).expandExpedited(1000);
+                    else
+                        ((BoundedBuffer<Runnable>) workQueue).expand(1000);
+                }
 
                 //Resubmit rejected task
                 exService.execute(r);

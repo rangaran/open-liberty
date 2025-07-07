@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2023 IBM Corporation and others.
+ * Copyright (c) 2017, 2025 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -862,6 +862,12 @@ public class SessionCacheTestServlet extends FATServlet {
         }
         String key = request.getParameter("key");
         String expected = request.getParameter("expectedValue");
+        if (session == null) {
+            // Retry getSession() as request.getSession(true) can not be null in the production world
+            System.out.println("Sleep 5 seconds due to session return null");
+            TimeUnit.SECONDS.sleep(5);
+            session = request.getSession(createSession);
+        }        
         String sessionId = session.getId();
 
         // poll for entry to be invalidated from cache

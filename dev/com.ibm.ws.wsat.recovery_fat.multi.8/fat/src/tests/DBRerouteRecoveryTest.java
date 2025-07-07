@@ -83,11 +83,15 @@ public class DBRerouteRecoveryTest extends MultiRecoveryTest1 {
         final WebArchive serverApp = ShrinkHelper.buildDefaultApp("recoveryServer", "server.*");
 		ShrinkHelper.exportDropinAppToServer(server1, serverApp);
 		ShrinkHelper.exportDropinAppToServer(server2, serverApp);
+
+		FATUtils.startServers(runner, server3);
 	}
 
 	@AfterClass
 	public static void afterClass() throws Exception {
 		Log.info(DBRerouteRecoveryTest.class, "afterClass", "");
+
+		FATUtils.stopServers(server3);
 
 		DBTestBase.cleanupWSATTest(server1);
 		DBTestBase.cleanupWSATTest(server2);		
@@ -96,12 +100,12 @@ public class DBRerouteRecoveryTest extends MultiRecoveryTest1 {
 	@Before
 	public void before() throws Exception {
 		Log.info(DBRerouteRecoveryTest.class, "before", "");
-		FATUtils.startServers(runner, server1, server2, server3);
+		FATUtils.startServers(runner, server1, server2);
 	}
 
 	@After
 	public void after() throws Exception {
 		Log.info(DBRerouteRecoveryTest.class, "after", "");
-		FATUtils.stopServers(server1, server2, server3);
+		FATUtils.stopServers(server1, server2);
 	}
 }

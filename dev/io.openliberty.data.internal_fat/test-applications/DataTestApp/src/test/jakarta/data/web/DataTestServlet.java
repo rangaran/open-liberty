@@ -1172,6 +1172,52 @@ public class DataTestServlet extends FATServlet {
     }
 
     /**
+     * Verify that a single JPQL query can use different escape characters
+     * for each LIKE comparison.
+     */
+    @Test
+    public void testDifferentEscapeCharactersInSameQuery() {
+        products.clear();
+
+        Product p1 = new Product();
+        p1.name = "DifferentEscapeCharactersInSameQuery-1";
+        p1.pk = UUID.nameUUIDFromBytes(p1.name.getBytes());
+        p1.price = 150.0f;
+        p1.description = "DISCOUNT$:10";
+        products.save(p1);
+
+        Product p2 = new Product();
+        p2.name = "DifferentEscapeCharactersInSameQuery-2";
+        p2.pk = UUID.nameUUIDFromBytes(p2.name.getBytes());
+        p2.price = 250.0f;
+        p2.description = "DISCOUNT%:20";
+        products.save(p2);
+
+        Product p3 = new Product();
+        p3.name = "DifferentEscapeCharactersInSameQuery-3";
+        p3.pk = UUID.nameUUIDFromBytes(p3.name.getBytes());
+        p3.price = 350.0f;
+        p3.description = "DISCOUNT%:10";
+        products.save(p3);
+
+        Product p4 = new Product();
+        p4.name = "DifferentEscapeCharactersInSameQuery-4";
+        p4.pk = UUID.nameUUIDFromBytes(p4.name.getBytes());
+        p4.price = 450.0f;
+        p4.description = "DISCOUNT$:20";
+        products.save(p4);
+
+        Stream<Product> found = products.discounted10or20Percent();
+
+        assertEquals(List.of("DifferentEscapeCharactersInSameQuery-3",
+                             "DifferentEscapeCharactersInSameQuery-2"),
+                     found.map(p -> p.name)
+                                     .collect(Collectors.toList()));
+
+        products.clear();
+    }
+
+    /**
      * Query-by-Method-Name query with a Contains restriction applied to an
      * ElementCollection.
      */
@@ -2098,8 +2144,8 @@ public class DataTestServlet extends FATServlet {
                                      .map(p -> p.name)
                                      .collect(Collectors.toList()));
 
-        // Escape characters are not possible for the repository Like keyword, however,
-        // consider using JPQL escape characters and ESCAPE '\' clause for StartsWith, EndsWith, and Contains
+        // Escape characters are not allowed with the Query by Method Name keywords:
+        // Like, StartsWith, EndsWith, and Contains.
     }
 
     /**
