@@ -17,6 +17,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
+import componenttest.custom.junit.runner.AlwaysPassesTest;
 import componenttest.rules.repeater.FeatureReplacementAction;
 import componenttest.rules.repeater.RepeatTests;
 import tests.DualServerDynamicFSTest1;
@@ -24,6 +25,7 @@ import tests.DualServerDynamicFSTest2;
 
 @RunWith(Suite.class)
 @SuiteClasses({
+                AlwaysPassesTest.class,
                 DualServerDynamicFSTest1.class,
                 DualServerDynamicFSTest2.class,
 })

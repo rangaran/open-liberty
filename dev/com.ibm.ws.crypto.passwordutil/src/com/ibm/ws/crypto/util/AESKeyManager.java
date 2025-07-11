@@ -63,7 +63,8 @@ public class AESKeyManager {
                 SecretKeyFactory keyFactory = SecretKeyFactory.getInstance(alg);
                 KeySpec aesKey = new PBEKeySpec(keyChars, salt, iterations, keyLength);
                 byte[] data = keyFactory.generateSecret(aesKey).getEncoded();
-                KeyHolder holder2 = new KeyHolder(keyChars, new SecretKeySpec(data, "AES"), new IvParameterSpec(data));
+                byte[] iv = Arrays.copyOfRange(data, 0, 16);
+                KeyHolder holder2 = new KeyHolder(keyChars, new SecretKeySpec(data, "AES"), new IvParameterSpec(iv));
                 _key.compareAndSet(holder, holder2);
                 // Still use this holder for returns even if I do not end up caching it.
                 holder = holder2;
@@ -146,11 +147,7 @@ public class AESKeyManager {
      * @return
      */
     public static IvParameterSpec getIV(KeyVersion version, String cryptoKey) throws NoSuchAlgorithmException, InvalidKeySpecException {
-        if (version == KeyVersion.AES_V0) {
-            return getHolder(version, cryptoKey).getIv();
-        } else {
-            return null;
-        }
+        return getHolder(version, cryptoKey).getIv();
     }
 
     /**

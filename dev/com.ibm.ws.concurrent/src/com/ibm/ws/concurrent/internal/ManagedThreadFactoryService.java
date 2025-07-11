@@ -514,7 +514,7 @@ public class ManagedThreadFactoryService implements ResourceFactory, Application
     }
 
     /**
-     * Raises an error if the application requests a virtual threads.
+     * Raises an error if the application requests a virtual thread.
      */
     @Trivial
     private class VirtualThreadsUnsupported implements ThreadFactory {
