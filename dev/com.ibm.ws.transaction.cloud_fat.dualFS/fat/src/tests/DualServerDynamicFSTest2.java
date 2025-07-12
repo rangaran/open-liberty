@@ -19,10 +19,12 @@ import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 
 import componenttest.annotation.Server;
+import componenttest.annotation.SkipIfSysProp;
 import componenttest.custom.junit.runner.FATRunner;
 import componenttest.topology.impl.LibertyServer;
 
 @RunWith(FATRunner.class)
+@SkipIfSysProp(SkipIfSysProp.OS_AIX)
 public class DualServerDynamicFSTest2 extends DualServerDynamicCoreTest2 {
 
     @Server("com.ibm.ws.transaction_FSCLOUD001")

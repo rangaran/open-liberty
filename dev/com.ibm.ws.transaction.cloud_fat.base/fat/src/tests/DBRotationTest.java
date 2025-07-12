@@ -498,7 +498,7 @@ public class DBRotationTest extends CloudFATServletClient {
             serversToCleanup = Arrays.asList(server2, noRecoveryGroupServer1);
             server2.useSecondaryHTTPPort();
 
-            try (AutoCloseable x = withExtraTranAttribute(server2, "peerTimeBeforeStale", "600", "timeBetweenHeartbeats", "600")) {
+            try (AutoCloseable x = withExtraTranAttributes(server2, "peerTimeBeforeStale", "600", "timeBetweenHeartbeats", "600")) {
                 FATUtils.startServers(_runner, server2, noRecoveryGroupServer1);
                 assertNotNull(server2.getServerName() + " recovery should have completed",
                               server2.waitForStringInTrace("WTRN0133I: Transaction recovery processing for this server is complete", FATUtils.LOG_SEARCH_TIMEOUT));
@@ -576,7 +576,7 @@ public class DBRotationTest extends CloudFATServletClient {
         longLeaseServerB.setHttpDefaultPort(longLeaseServerPortB);
         longLeaseServerC.setHttpDefaultPort(longLeaseServerPortC);
 
-        try (AutoCloseable x = withExtraTranAttribute(server2, "peerTimeBeforeStale", "20")) {
+        try (AutoCloseable x = withExtraTranAttributes(server2, "peerTimeBeforeStale", "300")) {
             FATUtils.startServers(_runner, longLeaseServerA, longLeaseServerB, longLeaseServerC, server2);
 
             //  Check for key strings to see whether peer recovery has failed
@@ -589,6 +589,9 @@ public class DBRotationTest extends CloudFATServletClient {
             assertNotNull("Third peer recovery unexpectedly succeeded",
                           server2.waitForStringInTrace("WTRN0108I: Peer recovery will not be attempted, this server was unable to claim the logs of the server with recovery identity cloud0013",
                                                        FATUtils.LOG_SEARCH_TIMEOUT));
+
+            // Shutdown server2 here so it doesn't have to process the config update
+            FATUtils.stopServers(server2);
         }
     }
 
@@ -665,7 +668,7 @@ public class DBRotationTest extends CloudFATServletClient {
     /**
      * Temporarily set an extra transaction attribute
      */
-    private static AutoCloseable withExtraTranAttribute(LibertyServer server, String... attrs) throws Exception {
+    private static AutoCloseable withExtraTranAttributes(LibertyServer server, String... attrs) throws Exception {
         final ServerConfiguration config = server.getServerConfiguration();
         final ServerConfiguration originalConfig = config.clone();
         final Transaction transaction = config.getTransaction();

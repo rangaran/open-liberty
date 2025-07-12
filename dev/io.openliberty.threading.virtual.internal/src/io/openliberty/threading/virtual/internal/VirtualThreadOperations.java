@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2023, 2024 IBM Corporation and others.
+ * Copyright (c) 2023, 2025 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -15,7 +15,6 @@ package io.openliberty.threading.virtual.internal;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.concurrent.ThreadFactory;
 
-import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.ConfigurationPolicy;
 import org.osgi.service.component.propertytypes.SatisfyingConditionTarget;
@@ -26,7 +25,8 @@ import com.ibm.ws.kernel.service.util.JavaInfo;
 import io.openliberty.threading.virtual.VirtualThreadOps;
 
 /**
- * Makes Jakarta Data's Repository annotation into a bean defining annotation.
+ * Virtual thread-related operations that are available because the Java level
+ * is at least Java SE 21.
  */
 @Component(name = "io.openliberty.threading.virtual.internal.VirtualThreadOperations",
            configurationPolicy = ConfigurationPolicy.IGNORE,
