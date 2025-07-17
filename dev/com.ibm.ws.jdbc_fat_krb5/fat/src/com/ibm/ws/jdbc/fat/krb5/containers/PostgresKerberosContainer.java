@@ -58,7 +58,7 @@ public class PostgresKerberosContainer extends PostgreSQLContainer<PostgresKerbe
 
         // Authentication
         withUsername("nonkrbuser");
-        withPassword("password");
+        withPassword("passwordpassword");
 
         // Database
         withDatabaseName("pg");
@@ -129,6 +129,6 @@ public class PostgresKerberosContainer extends PostgreSQLContainer<PostgresKerbe
     }
 
     public String getKerberosPassword() {
-        return "password";
+        return "passwordpassword";
     }
 }
