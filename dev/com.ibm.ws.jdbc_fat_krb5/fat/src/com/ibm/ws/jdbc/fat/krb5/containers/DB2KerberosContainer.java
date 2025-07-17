@@ -65,7 +65,7 @@ public class DB2KerberosContainer extends Db2Container {
 
     @Override
     public String getPassword() {
-        return "passwordpassword";
+        return "password";
     }
 
     @Override

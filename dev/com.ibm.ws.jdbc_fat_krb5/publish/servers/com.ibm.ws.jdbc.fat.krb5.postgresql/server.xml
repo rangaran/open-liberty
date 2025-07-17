@@ -35,7 +35,7 @@
   <dataSource jndiName="jdbc/krb/invalidPrincipal">
     <jdbcDriver libraryRef="pglib"/>
     <properties.postgresql user="bogus" databaseName="${PG_DBNAME}" serverName="${PG_HOSTNAME}" portNumber="${PG_PORT}"/>
-    <containerAuthData krb5Principal="bogus" password="boguspassword"/>
+    <containerAuthData krb5Principal="bogus" password="bogus"/>
   </dataSource>
   
   <!-- Mis-configured datasource: backend DB requires Kerb but only basic user/pass configured -->

@@ -53,7 +53,7 @@ public class OracleKerberosContainer extends OracleContainer {
         });
 
         // Authentication
-        super.withPassword("oraclepassword");
+        super.withPassword("oracle");
 
         // Connections
         usingSid(); //Maintain current behavior of connecting with SID instead of pluggable database
