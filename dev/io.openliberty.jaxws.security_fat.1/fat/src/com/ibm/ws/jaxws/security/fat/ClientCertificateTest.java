@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2024 IBM Corporation and others.
+ * Copyright (c) 2025 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -25,6 +25,10 @@ import org.junit.runner.RunWith;
 import componenttest.annotation.AllowedFFDC;
 import componenttest.custom.junit.runner.FATRunner;
 import componenttest.custom.junit.runner.Mode;
+
+import componenttest.rules.SkipKeymanagerFactoryPKIXEnabled;
+import componenttest.rules.SkipKeymanagerFactoryPKIXEnabled.SkipKeymanagerFactoryPKIXEnabledRule;
+import org.junit.Rule;
 
 /**
  * Test cases for client certificate on JAX-WS transport security
@@ -68,6 +72,9 @@ public class ClientCertificateTest extends AbstractJaxWsTransportSecurityTest {
 
         dynamicUpdate = false;
     }
+
+    @Rule
+    public final SkipKeymanagerFactoryPKIXEnabled skipKeymanagerFactoryPKIXEnabled = new SkipKeymanagerFactoryPKIXEnabled();
 
     @BeforeClass
     public static void beforeAllTests() throws Exception {
@@ -170,6 +177,7 @@ public class ClientCertificateTest extends AbstractJaxWsTransportSecurityTest {
                    "sun.security.validator.ValidatorException", "com.ibm.security.cert.IBMCertPathBuilderException" })
     @Test
     @Mode(Mode.TestMode.FULL)
+    @SkipKeymanagerFactoryPKIXEnabledRule
     public void testCertInClientKeyStoreButNotInServerTrustStore() throws Exception {
         prepareForTest("serverConfigs/" + PATCHY_SERVER_TRUST_STORE_CONFIG, "clientCert_provider_web.xml",
                        "bindings/certInClientKSButNotInServerTS.xml");

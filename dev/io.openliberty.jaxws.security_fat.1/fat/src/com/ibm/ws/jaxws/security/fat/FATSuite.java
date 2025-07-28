@@ -23,7 +23,7 @@ import componenttest.rules.repeater.RepeatTests;
  * TODO: Lite Mode
  */
 @RunWith(Suite.class)
-@SuiteClasses({ //ClientCertFailOverToBasicAuthTest.class,
+@SuiteClasses({ ClientCertFailOverToBasicAuthTest.class,
                 ClientCertificateTest.class
 })
 public class FATSuite {
