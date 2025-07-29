@@ -24,6 +24,8 @@ import com.ibm.ws.transport.iiop.asn1.DEREncodable;
 import com.ibm.ws.transport.iiop.asn1.DERObject;
 import com.ibm.ws.transport.iiop.asn1.DERObjectIdentifier;
 import com.ibm.ws.transport.iiop.asn1.DERSequence;
+import com.ibm.ws.common.crypto.CryptoUtils;
+
 
 public class AlgorithmIdentifier
     extends ASN1Encodable
@@ -47,9 +49,14 @@ public class AlgorithmIdentifier
             return (AlgorithmIdentifier)obj;
         }
 
-        if (obj instanceof DERObjectIdentifier)
-        {
-            return new AlgorithmIdentifier((DERObjectIdentifier)obj);
+        if (obj instanceof DERObjectIdentifier) {
+            DERObjectIdentifier oid = (DERObjectIdentifier) obj;
+            if (CryptoUtils.isFips140_3EnabledWithBetaGuard()) {
+                if ("1.2.840.113549.2.5".equals(oid.getId())) {
+                    throw new IllegalArgumentException("MD5 is not allowed in FIPS 140-3 mode");
+                }
+            }
+            return new AlgorithmIdentifier(oid);
         }
 
         if (obj instanceof String)

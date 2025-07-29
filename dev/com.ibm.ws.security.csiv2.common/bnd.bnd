@@ -96,12 +96,14 @@ instrument.classesExcludes: com/ibm/ws/security/csiv2/internal/resources/*.class
 	com.ibm.ws.org.apache.yoko.corba.spec.1.5;version=latest,\
 	com.ibm.ws.org.apache.yoko.core.1.5;version=latest,\
 	com.ibm.ws.org.apache.yoko.osgi.1.5;version=latest,\
-	com.ibm.ws.org.osgi.annotation.versioning;version=latest, \
+	com.ibm.ws.org.osgi.annotation.versioning;version=latest,\
 	com.ibm.ws.security.authentication;version=latest,\
-	com.ibm.ws.security.credentials;version=latest, \
+	com.ibm.ws.security.credentials;version=latest,\
 	com.ibm.ws.security;version=latest,\
 	com.ibm.ws.ssl;version=latest,\
 	com.ibm.ws.transport.iiop;version=latest,\
 	com.ibm.wsspi.org.osgi.service.component.annotations;version=latest,\
 	com.ibm.ws.security.mp.jwt.proxy;version=latest,\
-	com.ibm.ws.config;version=latest
+	com.ibm.ws.config;version=latest,\
+	com.ibm.ws.kernel.service,\
+	com.ibm.ws.kernel.service
