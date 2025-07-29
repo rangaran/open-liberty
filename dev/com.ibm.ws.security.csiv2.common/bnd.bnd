@@ -105,5 +105,4 @@ instrument.classesExcludes: com/ibm/ws/security/csiv2/internal/resources/*.class
 	com.ibm.wsspi.org.osgi.service.component.annotations;version=latest,\
 	com.ibm.ws.security.mp.jwt.proxy;version=latest,\
 	com.ibm.ws.config;version=latest,\
-	com.ibm.ws.kernel.service,\
 	com.ibm.ws.kernel.service
