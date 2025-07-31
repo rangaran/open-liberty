@@ -253,7 +253,6 @@ public final class WSX509KeyManager extends X509ExtendedKeyManager implements X5
     public String chooseClientAlias(String keyType, Principal[] issuers) {
         if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled())
             Tr.entry(tc, "chooseClientAlias", new Object[] { keyType, issuers });
-        System.out.println("WRG+++ clientAlias is: "+ clientAlias);
         Map<String, Object> connectionInfo = JSSEHelper.getInstance().getOutboundConnectionInfo();
         
         // if SSL client auth is disabled do not return a client alias
@@ -263,19 +262,10 @@ public final class WSX509KeyManager extends X509ExtendedKeyManager implements X5
                 Tr.exit(tc, "chooseClientAlias: null");
             return null;
         } else if (clientAlias != null && !clientAlias.equals("")) {
-            System.out.println("WRG+++ I am in the else");
             String algorithm =JSSEProviderFactory.getKeyManagerFactoryAlgorithm();
-            System.out.println("WRG+++ algorithm: "+ algorithm);
             boolean isPKIX = algorithm.equalsIgnoreCase("PKIX") ?true:false;
-            System.out.println("WRG+++ isPKIX: "+ isPKIX);
-            System.out.println("WRG+++ keyType: "+ keyType);
-            for (int i = 0; i < issuers.length; i++) {
-                System.out.println("Principal Name: " + issuers[i].getName());
-            }
             String[] list = km.getClientAliases(keyType, issuers);
-            System.out.println("WRG+++ I am in the second else");
             if (list != null) {
-                System.out.println("WRG+++ List is not null");
                 boolean found = false;
                 for (int i = 0; i < list.length && !found; i++) {
                     if (isPKIX){
@@ -297,7 +287,6 @@ public final class WSX509KeyManager extends X509ExtendedKeyManager implements X5
                 }
 
                 if (found) {
-                    System.out.println("WRG+++ We found it!");
                     if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled())
                         Tr.exit(tc, "chooseClientAlias", new Object[] { clientAlias });
 
@@ -322,7 +311,6 @@ public final class WSX509KeyManager extends X509ExtendedKeyManager implements X5
             // error case, alias not found in the list.
             return clientAlias;
         } else {
-            System.out.println("WRG+++ we are in the second else");
             String[] keyArray = new String[] { keyType };
             String alias = km.chooseClientAlias(keyArray, issuers, null);
 

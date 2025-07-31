@@ -137,7 +137,7 @@ fat.test.container.images:\
     net.bytebuddy:byte-buddy;version=1.16.1,\
     io.openliberty.jakarta.concurrency.3.1;version=latest,\
     io.openliberty.jakarta.annotation.3.0;version=latest,\
-    com.ibm.ws.ssl
+    com.ibm.ws.ssl;version=latest
     
 -testpath: \
     org.mockito:mockito-core;version=4.11.0,\
