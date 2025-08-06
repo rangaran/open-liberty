@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2013 IBM Corporation and others.
+ * Copyright (c) 2013,2025 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -63,7 +63,7 @@ public class PromptX509TrustManager implements X509TrustManager {
     }
 
     /**
-     * This method is used to create a "SHA1" or "MD5" digest on an
+     * This method is used to create a "SHA512" digest on an
      * X509Certificate as the "fingerprint".
      * 
      * @param algorithmName
@@ -136,22 +136,22 @@ public class PromptX509TrustManager implements X509TrustManager {
         }
         logger.fine("None of the default trust managers trusts the certificate...");
 
-        // Compute the full MD5 digest. This does not have to be perfectly unique,
+        // Compute the full SHA512 digest. This does not have to be perfectly unique,
         // it just has to be unique enough to know if we've seen this certificate
         // before. If we have, we do not have to prompt again. This entire class
         // will eventually be replaced when we have a client-side SSL solution.
-        StringBuilder fullMD5Buf = new StringBuilder();
+        StringBuilder fullSHA512Buf = new StringBuilder();
         for (int i = 0; i < chain.length; i++) {
-            fullMD5Buf.append(generateDigest(CryptoUtils.MESSAGE_DIGEST_ALGORITHM_MD5, chain[i]));
+        	fullSHA512Buf.append(generateDigest(CryptoUtils.MESSAGE_DIGEST_ALGORITHM_SHA512, chain[i]));
             if (i < (chain.length - 1)) {
                 // Still more to go, so append a comma
-                fullMD5Buf.append(',');
+            	fullSHA512Buf.append(',');
             }
         }
-        final String fullMD5 = fullMD5Buf.toString();
+        final String fullSHA512 = fullSHA512Buf.toString();
 
         // If we have already provided an accept answer, do not prompt again
-        final Boolean previousAnswer = answeredCertificates.get(fullMD5);
+        final Boolean previousAnswer = answeredCertificates.get(fullSHA512);
         if (previousAnswer != null) {
             if (previousAnswer) {
                 return;
@@ -165,7 +165,7 @@ public class PromptX509TrustManager implements X509TrustManager {
             stdout.println();
             stdout.println(getMessage("sslTrust.autoAccept", chain[0].getSubjectDN()));
             stdout.println();
-            answeredCertificates.put(fullMD5, Boolean.TRUE);
+            answeredCertificates.put(fullSHA512, Boolean.TRUE);
             return;
         }
 
@@ -180,17 +180,16 @@ public class PromptX509TrustManager implements X509TrustManager {
             stdout.println(getMessage("sslTrust.certIssueDN", chain[i].getIssuerDN()));
             stdout.println(getMessage("sslTrust.certSerial", chain[i].getSerialNumber()));
             stdout.println(getMessage("sslTrust.certExpires", chain[i].getNotAfter()));
-            stdout.println(getMessage("sslTrust.certSHADigest", generateDigest(CryptoUtils.MESSAGE_DIGEST_ALGORITHM_SHA_1, chain[i])));
-            stdout.println(getMessage("sslTrust.certMD5Digest", generateDigest(CryptoUtils.MESSAGE_DIGEST_ALGORITHM_MD5, chain[i])));
+            stdout.println(getMessage("sslTrust.certSHADigest", generateDigest(CryptoUtils.MESSAGE_DIGEST_ALGORITHM_SHA_256, chain[i])));
             stdout.println();
         }
 
         String read = stdin.readText(getMessage("sslTrust.promptToAcceptTrust"));
         if (isYes(read)) {
             // We are trusted
-            answeredCertificates.put(fullMD5, Boolean.TRUE);
+            answeredCertificates.put(fullSHA512, Boolean.TRUE);
         } else {
-            answeredCertificates.put(fullMD5, Boolean.FALSE);
+            answeredCertificates.put(fullSHA512, Boolean.FALSE);
             throw new CertificateException(getMessage("sslTrust.rejectTrust"));
         }
     }
