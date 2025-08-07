@@ -27,6 +27,7 @@ import static test.jakarta.data.web.Assertions.assertIterableEquals;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.Duration;
+import java.time.LocalTime;
 import java.time.Year;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -199,6 +200,55 @@ public class DataTestServlet extends FATServlet {
                        new Prime(4019, "FB3", "111110110011", 9, "", "four thousand nineteen"),
                        // extra blank space at beginning and end:
                        new Prime(4021, "FB5", "111110110101", 9, "", " Four thousand twenty-one "));
+    }
+
+    /**
+     * A repository default method that is annotated with the Jakarta Concurrency
+     * Asynchronous annotation must run on the specified executor, which can be
+     * used to constrain concurrency. In the case of this test, the executor must
+     * constraint of the asynchronous operations to 1, such that each reads and
+     * operates on the mostly recently updated value in the database, preventing
+     * operations on stale data.
+     */
+    @Test
+    public void testAsyncDefaultMethod() throws InterruptedException, //
+                    ExecutionException, //
+                    TimeoutException {
+        packages.deleteAll();
+
+        Package p1 = new Package(99001, 100.0f, 15.0f, 30.0f, "Package:99001");
+        Package p2 = new Package(99002, 120.0f, 25.0f, 20.0f, "Package:99002");
+        Package p3 = new Package(99003, 300.0f, 33.3f, 63.0f, "Package:99003");
+        Package p4 = new Package(99004, 240.0f, 40.0f, 54.0f, "Package:99004");
+
+        packages.saveAll(List.of(p1, p2, p3, p4));
+
+        CompletionStage<Boolean> s1 = packages.widen(99002, 2.0f, 0.25f)
+                        .thenCompose(b -> b //
+                                        ? packages.widen(99002, 1.4f, 0.25f) //
+                                        : CompletableFuture.completedStage(false));
+        CompletionStage<Boolean> s2 = packages.widen(99002, 2.5f, 0.5f);
+        CompletionStage<Boolean> s3 = packages.widen(99002, 1.5f, 0.33f);
+
+        CompletableFuture<Boolean> f1 = s1.toCompletableFuture();
+        CompletableFuture<Boolean> f2 = s2.toCompletableFuture();
+        CompletableFuture<Boolean> f3 = s3.toCompletableFuture();
+
+        CompletableFuture.allOf(f1, f2, f3)
+                        .get(TIMEOUT_MINUTES, TimeUnit.MINUTES);
+
+        p2 = packages.findById(99002).orElseThrow();
+        assertEquals(99002, p2.id);
+        assertEquals(120.0f, p2.length, 0.01f);
+        assertEquals(26.9f, p2.width, 0.01f);
+        assertEquals(20.0f, p2.height, 0.01f);
+        assertEquals("Package:99002", p2.description);
+
+        assertEquals(Boolean.TRUE, f1.getNow(null));
+        assertEquals(Boolean.TRUE, f2.getNow(null));
+        assertEquals(Boolean.TRUE, f3.getNow(null));
+
+        assertEquals(4, packages.deleteAll());
     }
 
     /**
@@ -5221,6 +5271,73 @@ public class DataTestServlet extends FATServlet {
         assertEquals(25500f, found.get().price, 0.001f);
 
         vehicles.removeAll();
+    }
+
+    /**
+     * A repository method can also be a Scheduled Asynchronous Method, in which
+     * case the method must run after the next time on the schedule rather than
+     * immediately.
+     */
+    @Test
+    public void testScheduledAsyncMethod() throws ExecutionException, //
+                    InterruptedException, //
+                    TimeoutException {
+
+        participants.remove("TestScheduledAsyncMethod");
+
+        participants.add(Participant.of("Sam", "TestScheduledAsyncMethod", 10),
+                         Participant.of("Samson", "TestScheduledAsyncMethod", 20),
+                         Participant.of("Samuel", "TestScheduledAsyncMethod", 30));
+
+        LocalTime before = LocalTime.now().minusNanos(1);
+
+        // Schedule removal to occur on seconds that end in 5
+        CompletableFuture<Long> future = participants
+                        .scheduledRemoval("Sam", "TestScheduledAsyncMethod");
+
+        LocalTime after = LocalTime.now().plusNanos(1);
+
+        int s = before.getSecond() % 10;
+        if (s < 5)
+            s = 5 - s;
+        else
+            s = 15 - s;
+        LocalTime earliestExpected = before.plusSeconds(s).withNano(0);
+
+        // Ensure the entity is not removed too early
+        boolean found = true;
+        for (; found; TimeUnit.SECONDS.sleep(1)) {
+            found = participants.getFirstName(10).isPresent();
+            LocalTime current = LocalTime.now();
+            if (current.isBefore(earliestExpected))
+                assertEquals("Between " + before + " and " + after + ", we" +
+                             " scheduled removal. Removal must occur no sooner" +
+                             " than " + earliestExpected + ". Prior to that" +
+                             " point, at " + current + ", the entry was already" +
+                             " gone.",
+                             true,
+                             found);
+            else
+                break;
+        }
+
+        // Ensure the entity is removed with a reasonable amount of time
+        long timeout_ns = Duration.ofMinutes(TIMEOUT_MINUTES).toNanos();
+        for (long start = System.nanoTime(); //
+                        System.nanoTime() - start < timeout_ns && found; //
+                        TimeUnit.SECONDS.sleep(1)) {
+            found = participants.getFirstName(10).isPresent();
+        }
+
+        assertEquals(found,
+                     false);
+
+        assertEquals(Long.valueOf(1L),
+                     future.get(TIMEOUT_MINUTES, TimeUnit.MINUTES));
+
+        // 2 entities must remain because 1 of the 3 was removed
+        assertEquals(2L,
+                     participants.remove("TestScheduledAsyncMethod"));
     }
 
     /**

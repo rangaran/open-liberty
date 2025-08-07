@@ -222,7 +222,7 @@ public class EE10Features {
         features.remove("opentracing-1.3");
         features.remove("opentracing-2.0");
         features.remove("sipServlet-1.1"); // purposely not supporting EE 10
-        features.remove("springBoot-1.5"); // springBoot 3.0 only supports EE10
+        features.remove("springBoot-1.5");
         features.remove("springBoot-2.0");
 
         features.remove("mpHealth"); //versionless features in development
@@ -314,10 +314,13 @@ public class EE10Features {
         features.remove("logAnalysis-1.0");
 
         features.remove("audit-2.0");
+        //Removing springBoot-3.0 here because springBoot-4.0 and 3.0 cannot be loaded at the same time.
+        //Also removing the feature would mean springBoot-3.0 is not being tested for EE10 compatibility giving priority to test the springBoot-4.0 feature for EE10 compatibility.
+        features.remove("springBoot-3.0");
 
-        // springBoot-3.0 and nosql-1.0 require Java 17 so if we are currently not using Java 17 or later, remove it from the list of features.
+        // springBoot-4.0 and nosql-1.0 require Java 17 so if we are currently not using Java 17 or later, remove it from the list of features.
         if (JavaInfo.JAVA_VERSION < 17) {
-            features.remove("springBoot-3.0");
+            features.remove("springBoot-4.0");
             features.remove("nosql-1.0");
         }
 

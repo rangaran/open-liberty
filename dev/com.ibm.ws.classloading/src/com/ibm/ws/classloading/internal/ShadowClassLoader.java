@@ -12,6 +12,10 @@
  *******************************************************************************/
 package com.ibm.ws.classloading.internal;
 
+import static com.ibm.ws.classloading.internal.LibertyLoader.DelegatePolicy.checkParent;
+import static com.ibm.ws.classloading.internal.LibertyLoader.DelegatePolicy.excludeParent;
+import static com.ibm.ws.classloading.internal.LibertyLoader.DelegatePolicy.includeParent;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -93,12 +97,12 @@ class ShadowClassLoader extends LibertyLoader implements Keyed<ClassLoaderIdenti
 
     @Override
     protected final Class<?> loadClass(String className, boolean resolveClass) throws ClassNotFoundException {
-        return loadClass(className, resolveClass, false, false);
+        return loadClass(className, resolveClass, includeParent, false);
     }
 
     @Override
     @FFDCIgnore(ClassNotFoundException.class)
-    protected Class<?> loadClass(String className, boolean resolveClass, boolean onlySearchSelf, boolean returnNull) throws ClassNotFoundException {
+    protected Class<?> loadClass(String className, boolean resolveClass, DelegatePolicy delegatePolicy, boolean returnNull) throws ClassNotFoundException {
         // The resolve parameter is a legacy parameter that is effectively
         // never used as of JDK 1.1 (see footnote 1 of section 5.3.2 of the 2nd
         // edition of the JVM specification).  The only caller of this method is
@@ -108,11 +112,8 @@ class ShadowClassLoader extends LibertyLoader implements Keyed<ClassLoaderIdenti
         ClassNotFoundException lastException = null;
         synchronized (getClassLoadingLock(className)) {
             Class<?> result = findLoadedClass(className);
-            if (result != null)
+            if (result != null) {
                 return result;
-
-            if (onlySearchSelf) {
-                return findClass(className, returnNull);
             }
 
             // use the shadowed loader's search order when searching for a class
@@ -120,29 +121,27 @@ class ShadowClassLoader extends LibertyLoader implements Keyed<ClassLoaderIdenti
                 try {
                     switch (what) {
                         case BEFORE_DELEGATES: 
-                            result = loadFrom(beforeAppDelegateLoaders, className, returnNull);
+                            result = loadFrom(true, className, returnNull);
                             if (result != null) {
                                 return result;
                             }
                             break;
                         case PARENT:
-                            if (parent instanceof LibertyLoader) {
-                                result = ((LibertyLoader) parent).loadClass(className, false, false, returnNull);
+                            if (delegatePolicy == includeParent) {
+                                result = loadFromParent(className, returnNull);
                                 if (result != null) {
                                     return result;
                                 }
-                            } else {
-                                return parent.loadClass(className);
                             }
                             break;
                         case SELF:
-                            result = findClass(className, returnNull);
+                            result = findClass(className, delegatePolicy, returnNull);
                             if (result != null) {
                                 return result;
                             }
                             break;
                         case AFTER_DELEGATES:
-                            result = loadFrom(afterAppDelegateLoaders, className, returnNull);
+                            result = loadFrom(false, className, returnNull);
                             if (result != null) {
                                 return result;
                             }
@@ -165,13 +164,24 @@ class ShadowClassLoader extends LibertyLoader implements Keyed<ClassLoaderIdenti
         throw lastException;
     }
 
+    @Trivial
+    private Class<?> loadFromParent(String className, boolean returnNull) throws ClassNotFoundException {
+        if (parent instanceof LibertyLoader) {
+            return ((LibertyLoader) parent).loadClass(className, false, includeParent, returnNull);
+        } else {
+            return parent.loadClass(className);
+        }
+    }
+
     @FFDCIgnore(ClassNotFoundException.class)
     @Trivial
-    private Class<?> loadFrom(Iterable<LibertyLoader> delegates, String className, boolean returnNull) throws ClassNotFoundException {
+    private Class<?> loadFrom(boolean beforeApp, String className, boolean returnNull) throws ClassNotFoundException {
         ClassNotFoundException lastException = null;
+        DelegatePolicy delegatePolicy = beforeApp || shadowedLoader.isParentFirst() ? excludeParent : checkParent;
+        Iterable<LibertyLoader> delegates = beforeApp ? beforeAppDelegateLoaders : afterAppDelegateLoaders;
         for (LibertyLoader delegate : delegates) {
             try {
-                Class<?> result = delegate.loadClass(className, false, false, returnNull);
+                Class<?> result = delegate.loadClass(className, false, delegatePolicy, returnNull);
                 if (result != null) {
                     return result;
                 }
@@ -186,7 +196,8 @@ class ShadowClassLoader extends LibertyLoader implements Keyed<ClassLoaderIdenti
     }
 
     @Override
-    protected Class<?> findClass(String name, boolean returnNull) throws ClassNotFoundException {
+    @FFDCIgnore(ClassNotFoundException.class)
+    protected Class<?> findClass(String name, DelegatePolicy delegatePolicy, boolean returnNull) throws ClassNotFoundException {
         String resourceName = Util.convertClassNameToResourceName(name);
         final ByteResourceInformation classBytesResourceInformation = shadowedLoader.findClassBytes(name, resourceName);
 
@@ -197,6 +208,16 @@ class ShadowClassLoader extends LibertyLoader implements Keyed<ClassLoaderIdenti
             throw new ClassNotFoundException(name);
         }
 
+        if (delegatePolicy == checkParent) {
+            try {
+                Class<?> checkParentResult = loadFromParent(name, returnNull);
+                if (checkParentResult != null) {
+                    return checkParentResult;
+                }
+            } catch (ClassNotFoundException e) {
+                // ignore
+            }
+        }
         // Now define a package for this class if it has one
         int lastDotIndex = name.lastIndexOf('.');
         if (lastDotIndex != -1) {

@@ -17,6 +17,7 @@ import static com.ibm.ws.classloading.internal.AppClassLoader.SearchLocation.AFT
 import static com.ibm.ws.classloading.internal.AppClassLoader.SearchLocation.BEFORE_DELEGATES;
 import static com.ibm.ws.classloading.internal.AppClassLoader.SearchLocation.PARENT;
 import static com.ibm.ws.classloading.internal.AppClassLoader.SearchLocation.SELF;
+import static com.ibm.ws.classloading.internal.LibertyLoader.DelegatePolicy.includeParent;
 import static com.ibm.ws.classloading.internal.Util.freeze;
 import static com.ibm.ws.classloading.internal.Util.list;
 
@@ -85,7 +86,7 @@ class ParentLastClassLoader extends AppClassLoader {
     @FFDCIgnore(ClassNotFoundException.class)
     @Override
     @Trivial
-    protected Class<?> findOrDelegateLoadClass(String className, boolean onlySearchSelf, boolean returnNull) throws ClassNotFoundException {
+    protected Class<?> findOrDelegateLoadClass(String className, DelegatePolicy delegatePolicy, boolean returnNull) throws ClassNotFoundException {
         final boolean RETURN_NULL_FOR_NO_CLASS = true;
         Class<?> beforeAppLoad = findClassCommonLibraryClassLoaders(className, RETURN_NULL_FOR_NO_CLASS, beforeApp);
         if (beforeAppLoad != null) {
@@ -102,7 +103,7 @@ class ParentLastClassLoader extends AppClassLoader {
             if (rc == null) {
                 // first check our classpath
                 try {
-                    rc = findClass(className, returnNull);
+                    rc = findClass(className, delegatePolicy, returnNull);
                 } catch (ClassNotFoundException cnfe) {
                     findClassException = cnfe;
                 }
@@ -119,7 +120,7 @@ class ParentLastClassLoader extends AppClassLoader {
         }
 
         // no luck? try the parent next unless we are only checking ourself
-        if (onlySearchSelf) {
+        if (delegatePolicy != includeParent) {
             if (returnNull) {
                 return null;
             }
@@ -143,5 +144,11 @@ class ParentLastClassLoader extends AppClassLoader {
         }
         
         return this.parent.loadClass(className);
+    }
+
+    @Override
+    @Trivial
+    protected boolean isParentFirst() {
+        return false;
     }
 }

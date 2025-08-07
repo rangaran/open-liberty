@@ -25,6 +25,7 @@ tested.features: \
   jsp-2.3, \
   websocket-1.1, \
   cdi-1.2, \
+  monitor-1.0,\
 \
   appSecurity-2.0, \
   transportSecurity-1.0, \
@@ -82,8 +83,11 @@ src: \
   net.sourceforge.htmlunit:webdriver;version=2.6,\
   org.seleniumhq.webdriver:webdriver-common;version=0.9.7376,\
   org.brotli:dec;version=0.1.2,\
+  com.ibm.ws.springboot.fat20.http.app;version=latest,\
+  com.ibm.ws.springboot.fat20.http.contextroot.app;version=latest,\
 \
   com.ibm.websphere.javaee.servlet.3.1;version=latest,\
   com.ibm.websphere.javaee.websocket.1.1;version=latest,\
 \
   com.ibm.ws.org.apache.httpcomponents;version=latest
+

@@ -1,0 +1,52 @@
+/*******************************************************************************
+ * Copyright (c) 2025 IBM Corporation and others.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License 2.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-2.0/
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ *
+ * Contributors:
+ *     IBM Corporation - initial API and implementation
+ *******************************************************************************/
+addRequiredLibraries.dependsOn addJakartaTransformer
+
+repositories { 
+  mavenCentral()
+}
+
+def appDefs =
+  [ [ 'io.openliberty.springboot.fat40.app', '.jar' ]]
+
+autoFVT.dependsOn ':wlp.lib.extract:build'
+appDefs.each { appDef ->
+  autoFVT.dependsOn ':' + appDef[0] + ':build'
+}
+
+autoFVT.doLast {
+  // Copy wlp.lib.extract.jar for doing bin/server package command
+  copy {
+    from new File('../wlp.lib.extract/build/libs', 'wlp.lib.extract.jar')
+    into new File(autoFvtDir, 'lib/LibertyFATTestFiles')
+  }
+
+  def server = 'SpringBootTests'
+  def appsDir = new File(autoFvtDir, 'publish/servers/' + server + '/apps')
+
+  println 'Auto FVT directory [ ' + autoFvtDir + ' ]'
+  println 'FAT server [ ' + server + ' ]'
+  println 'Auto FVT applications [ ' + appsDir + ' ]'
+
+  appDefs.each { appDef ->
+    def appName = appDef[0]
+    def appExt = appDef[1]
+
+    println 'FAT application [ ' + appName + ' ] [ ' + appExt + ' ]'
+
+    copy {
+      from new File( '../' + appDef[0] + '/build/libs/' + appDef[0] + '-0.0.1-SNAPSHOT' + appDef[1] )
+      into appsDir
+    }
+  }
+}

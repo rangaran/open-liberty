@@ -19,6 +19,9 @@ import static com.ibm.ws.classloading.internal.AppClassLoader.SearchLocation.BEF
 import static com.ibm.ws.classloading.internal.AppClassLoader.SearchLocation.PARENT;
 import static com.ibm.ws.classloading.internal.AppClassLoader.SearchLocation.SELF;
 import static com.ibm.ws.classloading.internal.ClassLoadingConstants.LS;
+import static com.ibm.ws.classloading.internal.LibertyLoader.DelegatePolicy.checkParent;
+import static com.ibm.ws.classloading.internal.LibertyLoader.DelegatePolicy.excludeParent;
+import static com.ibm.ws.classloading.internal.LibertyLoader.DelegatePolicy.includeParent;
 import static com.ibm.ws.classloading.internal.Util.freeze;
 import static com.ibm.ws.classloading.internal.Util.list;
 
@@ -389,7 +392,8 @@ public class AppClassLoader extends ContainerClassLoader implements SpringLoader
      *              don't override this method and lose the common library classloader support.
      */
     @Override
-    protected final Class<?> findClass(String name, boolean returnNull) throws ClassNotFoundException {
+    @FFDCIgnore(ClassNotFoundException.class)
+    protected final Class<?> findClass(String name, DelegatePolicy delegatePolicy, boolean returnNull) throws ClassNotFoundException {
         String resourceName = Util.convertClassNameToResourceName(name);
         ByteResourceInformation byteResInfo = findClassBytes(name, resourceName);
         if (byteResInfo == null) {
@@ -397,6 +401,21 @@ public class AppClassLoader extends ContainerClassLoader implements SpringLoader
             return findClassCommonLibraryClassLoaders(name, returnNull, afterApp);
         }
 
+        if (delegatePolicy == checkParent) {
+            Class<?> checkParentResult = null;
+            if (parent instanceof NoClassNotFoundLoader) {
+                checkParentResult = ((NoClassNotFoundLoader) parent).loadClassNoException(name);
+            } else {
+                try {
+                    checkParentResult = parent.loadClass(name);
+                } catch (ClassNotFoundException e) {
+                    // move on to local findClass
+                }
+            }
+            if (checkParentResult != null) {
+                return checkParentResult;
+            }
+        }
         byte[] bytes = transformers.isEmpty() && systemTransformers.isEmpty() ?
                         byteResInfo.getBytes() : transformClassBytes(name, byteResInfo);
 
@@ -580,13 +599,13 @@ public class AppClassLoader extends ContainerClassLoader implements SpringLoader
     @Override
     @Trivial
     protected final Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-        return loadClass(name, resolve, false, false);
+        return loadClass(name, resolve, includeParent, false);
     }
 
     @Override
     @Trivial
     @FFDCIgnore(ClassNotFoundException.class)
-    protected final Class<?> loadClass(String name, boolean resolve, boolean onlySearchSelf, boolean returnNull) throws ClassNotFoundException {
+    protected final Class<?> loadClass(String name, boolean resolve, DelegatePolicy delegatePolicy, boolean returnNull) throws ClassNotFoundException {
         // Fail classes which are forbidden.  For example, by a CVE.
         if ( forbiddenClassNames.contains(name) ) {
             if ( TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled() ) {
@@ -611,7 +630,7 @@ public class AppClassLoader extends ContainerClassLoader implements SpringLoader
         ClassNotFoundException cnfe = null;
         Object token = ThreadIdentityManager.runAsServer();
         try {
-            Class<?> result = findOrDelegateLoadClass(name, onlySearchSelf, returnNull);
+            Class<?> result = findOrDelegateLoadClass(name, delegatePolicy, returnNull);
             if (result != null) {
                 return result;
             }
@@ -626,7 +645,7 @@ public class AppClassLoader extends ContainerClassLoader implements SpringLoader
         // the appropriate info message is output to the message.log.
         // If onlySeardchSelf this is a delegation in which case we do NOT want to log a feature suggestion.
         // Doing so will cause the message to get logged before parent/gateway delegation when using parentLast delegation
-        ClassNotFoundException toThrow = onlySearchSelf ? cnfe : FeatureSuggestion.getExceptionWithSuggestion(cnfe, name, returnNull);
+        ClassNotFoundException toThrow = delegatePolicy == includeParent ? FeatureSuggestion.getExceptionWithSuggestion(cnfe, name, returnNull) : cnfe;
 
         if (returnNull) {
             return null;
@@ -689,7 +708,7 @@ public class AppClassLoader extends ContainerClassLoader implements SpringLoader
      * loader.
      */
     @FFDCIgnore(ClassNotFoundException.class)
-    protected Class<?> findOrDelegateLoadClass(String name, boolean onlySearchSelf, boolean returnNull) throws ClassNotFoundException {
+    protected Class<?> findOrDelegateLoadClass(String name, DelegatePolicy delegatePolicy, boolean returnNull) throws ClassNotFoundException {
         final boolean RETURN_NULL_FOR_NO_CLASS = true;
         Class<?> beforeAppLoad = findClassCommonLibraryClassLoaders(name, RETURN_NULL_FOR_NO_CLASS, beforeApp);
         if (beforeAppLoad != null) {
@@ -705,7 +724,7 @@ public class AppClassLoader extends ContainerClassLoader implements SpringLoader
         synchronized (getClassLoadingLock(name)) {
             result = findLoadedClass(name);
             if (result == null) {
-                if (!onlySearchSelf) {
+                if (delegatePolicy == includeParent) {
                     if (parent instanceof NoClassNotFoundLoader) {
                         result = ((NoClassNotFoundLoader) parent).loadClassNoException(name);
                     } else {
@@ -718,7 +737,7 @@ public class AppClassLoader extends ContainerClassLoader implements SpringLoader
                 }
                 if (result == null) {
                     try {
-                        result = findClass(name, returnNull);
+                        result = findClass(name, delegatePolicy, returnNull);
                     } catch (ClassNotFoundException cnfe) {
                         findException = cnfe;
                     }
@@ -757,9 +776,10 @@ public class AppClassLoader extends ContainerClassLoader implements SpringLoader
      */
     @FFDCIgnore(ClassNotFoundException.class)
     protected Class<?> findClassCommonLibraryClassLoaders(String name, boolean returnNull, LibraryPrecedence precedence) throws ClassNotFoundException {
+        DelegatePolicy delegatePolicy = precedence == beforeApp || isParentFirst() ? excludeParent : checkParent;
         for (LibertyLoader cl : getDelegates(precedence)) {
             try {
-                Class<?> rc = cl.loadClass(name, false, true, true);
+                Class<?> rc = cl.loadClass(name, false, delegatePolicy, true);
                 if (rc != null) {
                     return rc;
                 }
@@ -772,6 +792,11 @@ public class AppClassLoader extends ContainerClassLoader implements SpringLoader
             return null;
         }
         throw new ClassNotFoundException(name);
+    }
+
+    @Trivial
+    protected boolean isParentFirst() {
+        return true;
     }
 
     /**

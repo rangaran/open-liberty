@@ -191,7 +191,21 @@ public class DataStoreTestServlet extends FATServlet {
     }
 
     /**
-     * Use a repository that is defined within an EJB application.
+     * Use a repository that is defined within an EJB application,
+     * where the data source is the default data source.
+     */
+    @Test
+    public void testDefaultDataSourceInEJBModule() {
+        ejbApp.accept("testDefaultDataSourceInEJBModule");
+
+        // Prove it went into the expected database by accessing it from
+        // another repository that uses the same DataSource
+        defaultDSRepo.existsByIdAndValue(62, "sixty-two");
+    }
+
+    /**
+     * Use a repository that is defined within an EJB application,
+     * where the EJB application also defines the data source.
      */
     @Test
     public void testEJBAppDefinesAndUsesRepository() {

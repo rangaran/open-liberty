@@ -195,6 +195,9 @@ public class SSLConfig {
 
     //static final Pattern p = Pattern.compile("(?:(SSL)|(TLS))_([A-Z0-9]*)(_anon)?(_[a-zA-Z0-9]*)??(_EXPORT)?_WITH_([A-Z0-9]*)(?:_(\\d*))?([_a-zA-Z0-9]*)?_(?:(?:(SHA)(\\d*))|(MD5))");
     //Made "WITH" as optional in the above pattern to accommodate ciphers without the substring "WITH" in their cipher-names
+
+    // FIPS 140-3: The following was assessed for FIPS 140-3 compliance and no changes were required.
+    // since the encryption and hashing algorithms are only being used to set filter criteria and in both cases the filter criteria aren't used (Options.strong is never set)
     static final Pattern p = Pattern.compile("(?:(SSL)|(TLS))_([A-Z0-9]*)?(_anon)?(_[a-zA-Z0-9]*)??(_EXPORT)?(_WITH_)?(AES|RC4|DES40|3DES|NULL)(?:_(\\d*))?([_a-zA-Z0-9]*)?_(?:(?:(SHA)(\\d*))|(MD5))");
     //[1 null, 2 TLS, 3 ECDHE, 4 null, 5 _ECDSA, 6 null, 8 AES, 9 128, 10 _CBC, 11 SHA, 12 256, 13 null]
     

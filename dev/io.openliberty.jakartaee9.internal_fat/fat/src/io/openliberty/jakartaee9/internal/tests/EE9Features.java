@@ -239,6 +239,7 @@ public class EE9Features {
         features.remove("springBoot-1.5");
         features.remove("springBoot-2.0");
         features.remove("springBoot-3.0"); // springBoot 3.0 only supports EE 10
+        features.remove("springBoot-4.0"); // springBoot 4.0 supports EE10 and EE11
 
         if (!openLiberty) {
             // These stabilized features are not compatible with EE9.

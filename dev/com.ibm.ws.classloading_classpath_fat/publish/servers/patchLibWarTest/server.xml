@@ -28,6 +28,8 @@
        <path name="libs/testLib8.jar"/>
     </library>
 
-    <javaPermission codeBase="${server.config.dir}/apps/testLibDelegation.war" className="java.lang.RuntimePermission" name="getClassLoader"/>
+    <javaPermission codeBase="${server.config.dir}/apps/testPatchLib.war" className="java.lang.RuntimePermission" name="getClassLoader"/>
+    <javaPermission codeBase="${server.config.dir}/apps/testPatchLib.war" className="java.lang.RuntimePermission" name="getProtectionDomain"/>
+    <javaPermission codeBase="${server.config.dir}/libs/testLib1.jar" className="java.lang.RuntimePermission" name="getProtectionDomain"/>
 </server>
 

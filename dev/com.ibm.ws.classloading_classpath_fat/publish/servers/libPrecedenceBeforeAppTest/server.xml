@@ -41,5 +41,7 @@
     </library>
 
     <javaPermission codeBase="${server.config.dir}/apps/testLibPrecedence.war" className="java.lang.RuntimePermission" name="getClassLoader"/>
+    <javaPermission codeBase="${server.config.dir}/apps/testLibPrecedence.war" className="java.lang.RuntimePermission" name="getProtectionDomain"/>
+    <javaPermission codeBase="${server.config.dir}/libs/testLib1.jar" className="java.lang.RuntimePermission" name="getProtectionDomain"/>
 </server>
 

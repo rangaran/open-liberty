@@ -17,6 +17,8 @@ import static jakarta.data.repository.By.ID;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import jakarta.data.Limit;
 import jakarta.data.Order;
@@ -29,12 +31,20 @@ import jakarta.data.repository.Delete;
 import jakarta.data.repository.OrderBy;
 import jakarta.data.repository.Query;
 import jakarta.data.repository.Repository;
+import jakarta.data.repository.Update;
+import jakarta.enterprise.concurrent.Asynchronous;
+import jakarta.enterprise.concurrent.ManagedExecutorDefinition;
 
 /**
- *
+ * A repository for the Package entity.
  */
+@ManagedExecutorDefinition(name = "java:comp/PackageRepositoryExecutor",
+                           maxAsync = 1)
 @Repository
 public interface Packages extends BasicRepository<Package, Integer> {
+
+    @Update
+    boolean adjust(Package p);
 
     @Query("SELECT COUNT(o) FROM Package o")
     long countAll();
@@ -122,4 +132,25 @@ public interface Packages extends BasicRepository<Package, Integer> {
     @OrderBy(value = "length")
     @OrderBy(value = "id")
     CursoredPage<Package> whereVolumeWithin(float minVolume, float maxVolume, PageRequest pagination);
+
+    // The executor constrains concurrency to 1
+    @Asynchronous(executor = "java:comp/PackageRepositoryExecutor")
+    default CompletionStage<Boolean> widen(int id,
+                                           float percentIncrease,
+                                           float minAmount) {
+        Optional<Package> found = findById(id);
+        if (found.isPresent()) {
+            Package p = found.get();
+
+            float increase = p.width * percentIncrease / 100.0f;
+            if (increase > minAmount)
+                p.width += increase;
+            else
+                p.width += minAmount;
+
+            return CompletableFuture.completedStage(adjust(p));
+        } else {
+            return CompletableFuture.completedStage(false);
+        }
+    }
 }
