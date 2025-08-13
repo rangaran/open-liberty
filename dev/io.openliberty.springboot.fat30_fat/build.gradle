@@ -91,6 +91,8 @@ addRequiredLibraries.dependsOn addMQ
 def appDefs =
   [ [ 'io.openliberty.springboot.fat30.app', '.jar' ],
     [ 'io.openliberty.springboot.fat30.war.app', '.war' ],
+    [ 'io.openliberty.springboot.fat30.http.app', '.war' ],
+    [ 'io.openliberty.springboot.fat30.http.contextroot.app', '.war' ],
     [ 'io.openliberty.springboot.fat30.java.app', '.jar' ],
     [ 'io.openliberty.springboot.fat30.webanno.app', '.jar' ],
     [ 'io.openliberty.springboot.fat30.websocket.app', '.war' ],
