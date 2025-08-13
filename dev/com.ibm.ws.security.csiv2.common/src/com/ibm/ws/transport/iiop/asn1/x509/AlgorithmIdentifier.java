@@ -15,7 +15,8 @@
  */
 
 package com.ibm.ws.transport.iiop.asn1.x509;
-
+import com.ibm.websphere.ras.Tr;
+import com.ibm.websphere.ras.TraceComponent;
 import com.ibm.ws.transport.iiop.asn1.ASN1Encodable;
 import com.ibm.ws.transport.iiop.asn1.ASN1EncodableVector;
 import com.ibm.ws.transport.iiop.asn1.ASN1Sequence;
@@ -31,6 +32,7 @@ public class AlgorithmIdentifier
     private DERObjectIdentifier objectId;
     private DEREncodable        parameters;
     private boolean             parametersDefined = false;
+    private static final TraceComponent tc = Tr.register(AlgorithmIdentifier.class);
 
     public static AlgorithmIdentifier getInstance(
         ASN1TaggedObject obj,
@@ -49,6 +51,10 @@ public class AlgorithmIdentifier
 
         if (obj instanceof DERObjectIdentifier)
         {
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+
+                            Tr.debug(tc, "DER object --->" + cryptoKeysMap.size() );
+            }
             return new AlgorithmIdentifier((DERObjectIdentifier)obj);
         }
 
