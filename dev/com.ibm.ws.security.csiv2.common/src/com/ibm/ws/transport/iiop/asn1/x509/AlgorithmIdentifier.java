@@ -53,7 +53,7 @@ public class AlgorithmIdentifier
         {
             if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
 
-                            Tr.debug(tc, "DER object --->" + cryptoKeysMap.size() );
+                            Tr.debug(tc, "DER object --->");
             }
             return new AlgorithmIdentifier((DERObjectIdentifier)obj);
         }
