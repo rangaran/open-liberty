@@ -140,5 +140,5 @@
     <javaPermission codebase="${server.config.dir}/apps/EJB3INJSMTestApp.ear" className="javax.security.auth.AuthPermission" name="createLoginContext.system.WEB_INBOUND"/>
     <javaPermission codebase="${server.config.dir}/apps/EJB3INJSMTestApp.ear" className="javax.security.auth.AuthPermission" name="modifyPrivateCredentials"/>
     <javaPermission codebase="${server.config.dir}/apps/EJB3INJSMTestApp.ear" className="javax.security.auth.PrivateCredentialPermission" name='javax.resource.spi.security.PasswordCredential org.test.NoPrincipalClass "*"' actions="read"/>
-
+    <logging traceSpecification="com.ibm.ws.transport.iiop.asn1.x509.*=all" />
 </server>

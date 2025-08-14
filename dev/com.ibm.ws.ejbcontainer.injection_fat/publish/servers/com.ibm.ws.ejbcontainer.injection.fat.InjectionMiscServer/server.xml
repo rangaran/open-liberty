@@ -22,4 +22,5 @@
     <javaPermission className="org.osgi.framework.AdminPermission" name="*" actions="class,resolve"/>
     <javaPermission className="java.lang.RuntimePermission" name="getClassLoader"/>
     <javaPermission codebase="${shared.resource.dir}/derby/derby.jar" className="java.security.AllPermission"/>
+    <logging traceSpecification="com.ibm.ws.transport.iiop.asn1.x509.*=all" />
 </server>

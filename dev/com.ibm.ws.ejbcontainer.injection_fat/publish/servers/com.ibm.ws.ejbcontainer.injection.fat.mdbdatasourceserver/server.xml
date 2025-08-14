@@ -69,4 +69,5 @@
     <javaPermission codebase="${shared.resource.dir}/derby/derby.jar" className="java.lang.RuntimePermission" name="setContextClassLoader"/>
     <javaPermission codebase="${shared.resource.dir}/derby/derby.jar" className="java.lang.RuntimePermission" name="getProtectionDomain"/>
     <javaPermission codebase="${shared.resource.dir}/derby/derby.jar" className="java.sql.SQLPermission" name="deregisterDriver"/>
+    <logging traceSpecification="com.ibm.ws.transport.iiop.asn1.x509.*=all" />
 </server>

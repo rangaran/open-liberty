@@ -86,5 +86,5 @@
 
 
 	<include location="../fatTestPorts.xml"/>
-
+	<logging traceSpecification="com.ibm.ws.transport.iiop.asn1.x509.*=all" />
 </server>
