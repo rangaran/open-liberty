@@ -405,28 +405,18 @@ public final class WSX509KeyManager extends X509ExtendedKeyManager implements X5
         String certMappingFile = certMappingKeyManager.getProperty(CertMappingKeyManager.PROTOCOL_HTTPS_CERT_MAPPING_FILE);
         String mappedAlias = null;
         Boolean webContainerInbound = null;
-        Tr.debug(tc, "chooseServerAlias", "WRG+++webContainerInbound: "+ webContainerInbound);
-        Tr.debug(tc, "chooseServerAlias", "WRG+++certMappingFile != null: " +certMappingFile);
         if (connectionInfo != null)
             webContainerInbound = (Boolean) connectionInfo.get(JSSEHelper.CONNECTION_INFO_IS_WEB_CONTAINER_INBOUND);
 
         if (webContainerInbound != null && webContainerInbound.booleanValue() && certMappingFile != null) {
             mappedAlias = certMappingKeyManager.chooseServerAlias(keyType, issuers, null);
         }
-        Tr.debug(tc, "chooseServerAlias", "WRG+++mappedAlias: "+ mappedAlias);
-         Tr.debug(tc, "chooseServerAlias", "WRG+++serverAlias: "+ serverAlias);
         if (mappedAlias == null) {
             if (serverAlias != null && !serverAlias.equals("")) {
-                Tr.debug(tc, "chooseServerAlias", "WRG++++Inside the if in line 420");
                 String[] list = km.getServerAliases(keyType, issuers);
-                if (list == null ){
-                    Tr.debug(tc, "chooseServerAlias", "WRG++++My list is null");
-                }
                 if (list != null) {
-                    Tr.debug(tc, "chooseServerAlias", "WRG++++My list length is "+ list.length);
                     boolean found = false;
                     for (int i = 0; i < list.length && !found; i++) {
-                         Tr.debug(tc, "chooseServerAlias", "WRG++++The value in the list is "+ list[i]);
                         if (isPKIX){
                             if (list[i].toLowerCase().contains(serverAlias.toLowerCase())){
                                 Pattern r = Pattern.compile("\\d+\\.\\d+\\."+serverAlias+"$");

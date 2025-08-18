@@ -27,10 +27,6 @@
     
     <application type="war" id="basicauth" name="basicauth" location="${server.config.dir}/apps/basicauth.war"/>
 
-    <logging  traceSpecification="SSLChannel=all:com.ibm.ws.ssl.*=all:com.ibm.websphere.ssl=all:com.ibm.wsspi.ssl.*=all"
-    traceFileName="trace.log"
-    maxFileSize="200"
-    maxFiles="10"
-    traceFormat="BASIC" />
+
 
 </server>

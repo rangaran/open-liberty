@@ -12,7 +12,7 @@
  *******************************************************************************/
 
 package com.ibm.ws.ssl;
-import java.io.File;
+
 import java.security.AccessController;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;

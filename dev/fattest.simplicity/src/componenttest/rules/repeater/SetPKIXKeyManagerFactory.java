@@ -13,16 +13,27 @@ public class SetPKIXKeyManagerFactory extends KeyManagerFactoryReplacementAction
     private static final Class<?> c = SetPKIXKeyManagerFactory.class;
     public static final String ID = "PKIX_Key_Manager_Factory";
     public SetPKIXKeyManagerFactory() {
-        if (isPKIXEnabledInConfig()) {
-            Log.info(c, "isEnabled", "Skipping action as PKIX is already set for ssl.KeyManagerFactory.algorithm");
+        String originalKeyManagerFactoryAlgorithm = Security.getProperty("ssl.KeyManagerFactory.algorithm");
+        Log.info(c, "setup", "Current KeyManager Factory algorithm: " + originalKeyManagerFactoryAlgorithm);
+        if ("PKIX".equals(originalKeyManagerFactoryAlgorithm)) {
+            Log.info(c, "SetPKIXKeyManagerFactory", "Skipping action as PKIX is already set for ssl.KeyManagerFactory.algorithm");
         }else{
+            Log.info(c, "SetPKIXKeyManagerFactory", "Setting ssl.KeyManagerFactory.algorithm to PKIX");
             Security.setProperty("ssl.KeyManagerFactory.algorithm", "PKIX");
         }
         withID(ID);
     }
 
     @Override
+    public boolean isEnabled() {
+        String algorithm = Security.getProperty("ssl.KeyManagerFactory.algorithm");
+        boolean isEnabled = !"PKIX".equals(algorithm);
+        Log.info(c, "isEnabled", "Current algorithm is: " + algorithm + " is action enabled: "+ isEnabled);
+        return isEnabled;
+    }
+
+    @Override
     public String toString() {
-        return "Set ssl.KeyManagerFactory.algorithm=PKIX";
+        return "Set ssl.KeyManagerFactory.algorithm=PKIX repeat action";
     }
 }

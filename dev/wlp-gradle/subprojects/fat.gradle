@@ -353,18 +353,6 @@ task autoFVT {
       into autoFvtDir
     }
 
-    // Copy KeyManagerFactory custom profile from the FAT's project directory if it exists,
-    // if not, then copy the common one from the build.sharedResources security directory
-    def keymanagerFactoryPKIXCustomProfile = new File(projectDir, "keymanagerFactoryPKIX.properties")
-    if (!keymanagerFactoryPKIXCustomProfile.exists()) {
-      def securitySharedResourcesDir = new File(rootProject.projectDir, 'build.sharedResources/usrShared/resources/security')
-      keymanagerFactoryPKIXCustomProfile = new File(securitySharedResourcesDir, 'keymanagerFactoryPKIX.properties')
-    }
-    copy {
-      from keymanagerFactoryPKIXCustomProfile
-      into autoFvtDir
-    }
-
     // Copy the logging libraries over for use while running FATs
     /*copy {
       from project(':com.ibm.ws.logging.core').buildDir

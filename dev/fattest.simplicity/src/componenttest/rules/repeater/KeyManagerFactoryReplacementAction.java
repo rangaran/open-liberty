@@ -47,6 +47,8 @@ public class KeyManagerFactoryReplacementAction implements RepeatTestAction {
     private final Map<File, File> optionsFileBackupMapping = new HashMap<File, File>();
     private static final String pathToAutoFVTTestServers = "publish/servers/";
     private static final String pathToAutoFVTTestClients = "publish/clients/";
+    private String originalKeyManagerFactoryAlgorithm = null;
+    private static final String DEFAULT_KEYMANAGERFACTORY_ALGORITHM = "SunX509";
 
     public KeyManagerFactoryReplacementAction() {
     }
@@ -82,11 +84,17 @@ public class KeyManagerFactoryReplacementAction implements RepeatTestAction {
 
     @Override
     public void setup() throws Exception {
-        Log.info(c, "setup", "setting up pkix");
+        Log.info(c, "setup", "Setting PKIX as the KeyManager Factory algorithm");
+        originalKeyManagerFactoryAlgorithm = Security.getProperty("ssl.KeyManagerFactory.algorithm");
+        Log.info(c, "setup", "Current KeyManager Factory algorithm: " + originalKeyManagerFactoryAlgorithm);
         setJvmOptions("PKIX");
+        Security.setProperty("ssl.KeyManagerFactory.algorithm", "PKIX");
+        Log.info(c, "setup", "Setting ssl.KeyManagerFactory.algorithm to PKIX");
         Properties envVars = new Properties();
         String JVM_ARGS = "-Djava.security.properties=" + getkeymanagerFactoryPKIX();
         envVars.setProperty("JVM_ARGS", JVM_ARGS);
+        Log.info(c, "setup", "Setting JVM_ARGS to " + JVM_ARGS);
+
     }
 
     @Override
@@ -97,6 +105,11 @@ public class KeyManagerFactoryReplacementAction implements RepeatTestAction {
      * override this method.
      */
     public void cleanup() {
+
+        String resetAlgorithm = (originalKeyManagerFactoryAlgorithm != null) ? originalKeyManagerFactoryAlgorithm : DEFAULT_KEYMANAGERFACTORY_ALGORITHM;
+        Log.info(c, "cleanup", "Resetting ssl.KeyManagerFactory.algorithm from " +
+                Security.getProperty("ssl.KeyManagerFactory.algorithm") + " to " + resetAlgorithm);
+        Security.setProperty("ssl.KeyManagerFactory.algorithm", resetAlgorithm);
         if (optionsFileBackupMapping.isEmpty()) // Nothing to clean up
             return;
         // Undo changes done to jvm.options
@@ -128,11 +141,11 @@ public class KeyManagerFactoryReplacementAction implements RepeatTestAction {
     }
 
     protected static boolean isPKIXEnabledInConfig() {
-        return Security.getProperty("ssl.KeyManagerFactory.algorithm") == "PKIX";
+        return "PKIX".equals(Security.getProperty("ssl.KeyManagerFactory.algorithm"));
     }
 
     protected static boolean isSunX509EnabledInConfig() {
-        return Security.getProperty("ssl.KeyManagerFactory.algorithm") == "SunX509";
+        return "SunX509".equals(Security.getProperty("ssl.KeyManagerFactory.algorithm"));
     }
 
     private String getkeymanagerFactoryPKIX() throws Exception {

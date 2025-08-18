@@ -134,7 +134,7 @@ public class SSLOptionsTest{
      * Test that an SSL handshake failure does get logged with the default
      * sslOptions value suppressHandshakeErrors="false".
      */
-    //@Test
+    @Test
     public void handshakeFailureGetsLogged() throws Exception {
         LOG.info("Entering handshakeFailureGetsLogged");
 
@@ -150,7 +150,7 @@ public class SSLOptionsTest{
      * Test that an SSL handshake failure does not get logged when
      * suppressHandshakeErrors="true".
      */
-    //@Test
+    @Test
     public void handshakeFailureIsNotLogged() throws Exception {
         LOG.info("Entering handshakeFailureIsNotLogged");
 
@@ -174,7 +174,7 @@ public class SSLOptionsTest{
      * Test that suppression of the SSL handshake logging setting is properly
      * updated dynamically.
      */
-    //@Test
+    @Test
     public void dynamicUpdateToSuppression() throws Exception {
         LOG.info("Entering dynamicUpdateToSuppression");
         int saveCnt = 0;
@@ -224,7 +224,7 @@ public class SSLOptionsTest{
      * Test that repeated SSL handshake failures have a log cap,
      * and that the attribute is honored.
      */
-    //@Test
+    @Test
     public void handshakeFailuresHaveLogCap() throws Exception {
         LOG.info("Entering handshakeFailuresHaveLogCap");
 

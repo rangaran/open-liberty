@@ -44,12 +44,12 @@ public class SkipKeymanagerFactoryPKIXEnabled implements TestRule {
                 if (description.getAnnotation(SkipKeymanagerFactoryPKIXEnabledRule.class) != null) {
                     if (isPkixEnabled.get()) {
                          Log.info(description.getTestClass(), description.getMethodName(),
-                                    "Test class or method is skipped because environment is ssl.KeyManagerFactory PKIX");
+                                    "Test class or method is skipped because environment PKIX is the KeyManagerFactory used");
                         ;
                         Assume.assumeTrue(false);
                     } else {
                        Log.info(description.getTestClass(), description.getMethodName(),
-                                    "Running test case: " + isPkixEnabled.get());
+                                    "Running test case with PKIX Enabled? " + isPkixEnabled.get());
                        statement.evaluate();
                     }
                 } else{
