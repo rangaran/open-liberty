@@ -40,7 +40,10 @@ encode.enterText=Enter text:
 encode.reenterText=Re-enter text:
 encode.readError=Error reading in text.
 encode.entriesDidNotMatch=Entries did not match.
-
+encode.mutuallyExclusiveArgError=Cannot specify both {0} and {1}.
+encode.xmlEncryptionAmbiguous=WARNING: XML file contains properties {0} and {1}.
+encode.xmlMissingEncryptionProperties=Cannot encode password, XML file does not contain {0} or {1}.
+encode.xmlPropertyFound=Encrypting password with xml property {0}.
 
 password.enterText=Enter password:
 password.reenterText=Re-enter password:
@@ -107,3 +110,15 @@ createLTPAKeys.fileExists=The {0} file already exists.  Unable to create a LTPA 
 createLTPAKeys.createdFile=Created LTPA keys file: {0}\n\
 Include the following configuration to your server.xml\n\
 {1}\n
+
+#------------------------------\n at 72 chars -- leading tab-----------\n\#
+generate.success=\
+Password encryption XML file successfully created.\n\
+To activate the changes, update your server.xml configuration to\n\
+reference the location of the XML file by adding the following:\n\
+\t<include location=\"{0}\" />
+generate.fail.file.exists=\
+File {0} exists and will not be overwritten. Please specify a different\n\
+file name or remove the existing file before retrying.
+generate.fail.file.is.directory=\
+File {0} is a directory, please specify the full file name.

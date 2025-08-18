@@ -81,6 +81,18 @@ encode.option-desc.key=\
 \tdecrypt the password. The key can be provided to the server by\n\
 \tdefining the variable wlp.password.encryption.key whose value is the\n\
 \tkey. If this option is not provided a default key shall be used.
+encode.option-key.base64Key=\
+\ \ \ \ --base64Key=base64Key
+encode.option-desc.base64Key=\
+\tA base64 encoded AES-256 bit key to be used to encrypt and decrypt the\n\
+\tpassword.
+encode.option-key.xmlFile=\
+\ \ \ \ --xmlFile=xmlFile
+encode.option-desc.xmlFile=\
+\tAn xml file with a variable named wlp.password.encryption.key or\n\
+\twlp.aes.encryption.key with valid values respectively. If both are\n\
+\tspecified then wlp.aes.encryption.key will be used to encode\n\
+\tthe password.
 encode.option-key.notrim=\
 \ \ \ \ --notrim
 encode.option-desc.notrim=\
@@ -287,3 +299,31 @@ tlsProfiler.option-key.verbose=\
 \ \ \ \ --verbose
 tlsProfiler.option-desc.verbose=\
 \tInclude additional information about unsafe protocols.
+
+
+# -------- Generate AES-256 KEY OPTIONS --------------------------------------#
+# List of descriptive text for options. Use "\n\" for line continuations.
+# The code provides no whitespace: begin keys with "\ \ \ \ " for leading
+# whitespace, and begin descriptions with \t 
+#------------------------------\n at 72 chars -------------------------\n\#
+#------------------------------\n at 72 chars Leading "\ \ \ \ "-------\n\#
+#------------------------------\n at 72 chars Leading "\t"-------------\n\#
+generate.desc=\
+\tGenerates an XML file containing a base64 representation of an\n\
+\tAES-256 key when encoding using AES. Once the file is created\n\
+\tit must be referenced in the server configuration.
+generate.usage.options=\
+\t{0} generate [options]
+generate.option-key.key=\
+\ \ \ \ --key=[key]
+generate.option-desc.key=\
+\tSpecify a key to be used when encoding using AES. This string is\n\
+\thashed to produce an encryption key which will be used to encrypt\n\
+\tand decrypt passwords. The encryption key is saved in base64 format\n\
+\tin a variable named wlp.aes.encryption.key. If this option is\n\
+\tomitted, a random key will be generated.
+generate.required-key.file=\
+\ \ \ \ --file=name
+generate.required-desc.file=\
+\tSpecifies the output file name for the generated XML. This must be a\n\
+\tvalid file path including the file name.
