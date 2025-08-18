@@ -24,6 +24,7 @@ import org.osgi.service.component.annotations.ReferencePolicyOption;
 import org.osgi.service.component.propertytypes.SatisfyingConditionTarget;
 import org.osgi.service.condition.Condition;
 
+import com.ibm.ws.kernel.productinfo.ProductInfo;
 import com.ibm.ws.kernel.service.util.JavaInfo;
 import com.ibm.wsspi.threading.ThreadTypeOverride;
 
@@ -39,7 +40,7 @@ import io.openliberty.threading.virtual.VirtualThreadOps;
 @SatisfyingConditionTarget("(&(" + Condition.CONDITION_ID + "=" + JavaInfo.CONDITION_ID + ")(" + JavaInfo.CONDITION_ID + ">=21))")
 public class VirtualThreadOperations implements VirtualThreadOps {
 
-    private ThreadTypeOverride overrideService;
+    private volatile ThreadTypeOverride overrideService;
 
     @Reference(
                cardinality = ReferenceCardinality.OPTIONAL,
@@ -90,6 +91,9 @@ public class VirtualThreadOperations implements VirtualThreadOps {
     @Override
     public boolean isVirtualThreadCreationEnabled() {
         ThreadTypeOverride override = overrideService;
+        if (!ProductInfo.getBetaEdition()) {
+            return true;
+        }
         return override == null ? true : override.allowVirtualThreadCreation();
     }
 }
