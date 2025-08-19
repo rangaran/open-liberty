@@ -101,7 +101,7 @@ public class SelfExtractUtilsTest {
                 }
             }
         }
-    }
+    }//
 
     /**
      * This tests that an expected error is returned when attempting to read a malformed
