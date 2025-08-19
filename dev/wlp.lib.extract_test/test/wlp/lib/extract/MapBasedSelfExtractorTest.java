@@ -86,6 +86,7 @@ public class MapBasedSelfExtractorTest {
             System.out.println("Skipping test because this is running in SLE");
             disableTestSuite = true;
             //try
+            //one more time
         }
 
         if (disableTestSuite) {
