@@ -270,7 +270,7 @@ public final class WSX509KeyManager extends X509ExtendedKeyManager implements X5
                 for (int i = 0; i < list.length && !found; i++) {
                     if (isPKIX){
                         if (list[i].toLowerCase().contains(clientAlias.toLowerCase())){
-                            Pattern r = Pattern.compile("\\d+\\.\\d+\\."+clientAlias+"$");
+                            Pattern r = Pattern.compile("\\d+\\.\\d+\\."+clientAlias+"$", Pattern.CASE_INSENSITIVE);
                             Matcher m = r.matcher(list[i]); 
                             if (m.find()){
                                 if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
@@ -419,7 +419,7 @@ public final class WSX509KeyManager extends X509ExtendedKeyManager implements X5
                     for (int i = 0; i < list.length && !found; i++) {
                         if (isPKIX){
                             if (list[i].toLowerCase().contains(serverAlias.toLowerCase())){
-                                Pattern r = Pattern.compile("\\d+\\.\\d+\\."+serverAlias+"$");
+                                Pattern r = Pattern.compile("\\d+\\.\\d+\\."+serverAlias+"$", Pattern.CASE_INSENSITIVE);
                                 Matcher m = r.matcher(list[i]); 
                                 if (m.find()){
                                     if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())

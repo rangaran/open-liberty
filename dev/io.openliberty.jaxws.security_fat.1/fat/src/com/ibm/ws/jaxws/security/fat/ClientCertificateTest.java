@@ -26,10 +26,6 @@ import componenttest.annotation.AllowedFFDC;
 import componenttest.custom.junit.runner.FATRunner;
 import componenttest.custom.junit.runner.Mode;
 
-import componenttest.rules.SkipKeymanagerFactoryPKIXEnabled;
-import componenttest.rules.SkipKeymanagerFactoryPKIXEnabled.SkipKeymanagerFactoryPKIXEnabledRule;
-import org.junit.Rule;
-
 /**
  * Test cases for client certificate on JAX-WS transport security
  */
@@ -73,11 +69,9 @@ public class ClientCertificateTest extends AbstractJaxWsTransportSecurityTest {
         dynamicUpdate = false;
     }
 
-    @Rule
-    public final SkipKeymanagerFactoryPKIXEnabled skipKeymanagerFactoryPKIXEnabled = new SkipKeymanagerFactoryPKIXEnabled();
-
     @BeforeClass
     public static void beforeAllTests() throws Exception {
+
         buildDefaultApps();
         if (dynamicUpdate) {
             updateSingleFileInServerRoot("server.xml", "serverConfigs/" + DEFAULT_CLIENT_CERT_CONFIG);
@@ -144,7 +138,7 @@ public class ClientCertificateTest extends AbstractJaxWsTransportSecurityTest {
 
     // 1 Override alias configured in ssl element with customize one
     @Test
-    @Mode(Mode.TestMode.LITE)
+    @Mode(Mode.TestMode.FULL)
     public void testOverrideAliasWithCustomizeOnePOJO() throws Exception {
         prepareForTest("serverConfigs/" + WITH_CLIENT_ALIAS_CONFIG, "clientCert_provider_web.xml",
                        "bindings/overrideCertAlias.xml");
@@ -176,7 +170,6 @@ public class ClientCertificateTest extends AbstractJaxWsTransportSecurityTest {
                    "sun.security.validator.ValidatorException", "com.ibm.security.cert.IBMCertPathBuilderException" })
     @Test
     @Mode(Mode.TestMode.FULL)
-    @SkipKeymanagerFactoryPKIXEnabledRule
     public void testCertInClientKeyStoreButNotInServerTrustStore() throws Exception {
         prepareForTest("serverConfigs/" + PATCHY_SERVER_TRUST_STORE_CONFIG, "clientCert_provider_web.xml",
                        "bindings/certInClientKSButNotInServerTS.xml");
