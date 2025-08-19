@@ -85,6 +85,7 @@ public class MapBasedSelfExtractorTest {
         if (System.getProperty("is.sle") != null) {
             System.out.println("Skipping test because this is running in SLE");
             disableTestSuite = true;
+            //try
         }
 
         if (disableTestSuite) {
