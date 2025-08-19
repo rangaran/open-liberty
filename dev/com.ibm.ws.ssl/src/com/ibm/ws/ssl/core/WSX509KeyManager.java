@@ -253,8 +253,9 @@ public final class WSX509KeyManager extends X509ExtendedKeyManager implements X5
     public String chooseClientAlias(String keyType, Principal[] issuers) {
         if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled())
             Tr.entry(tc, "chooseClientAlias", new Object[] { keyType, issuers });
+
         Map<String, Object> connectionInfo = JSSEHelper.getInstance().getOutboundConnectionInfo();
-        
+
         // if SSL client auth is disabled do not return a client alias
         if (connectionInfo != null && Constants.ENDPOINT_IIOP.equals(connectionInfo.get(Constants.CONNECTION_INFO_ENDPOINT_NAME))
             && !SSLConfigManager.getInstance().isClientAuthenticationEnabled()) {
@@ -262,27 +263,30 @@ public final class WSX509KeyManager extends X509ExtendedKeyManager implements X5
                 Tr.exit(tc, "chooseClientAlias: null");
             return null;
         } else if (clientAlias != null && !clientAlias.equals("")) {
-            String algorithm =KeyManagerFactory.getDefaultAlgorithm();
-            boolean isPKIX = algorithm.equalsIgnoreCase("PKIX") ?true:false;
+            String algorithm = KeyManagerFactory.getDefaultAlgorithm();
+            boolean isPKIX = algorithm.equalsIgnoreCase("PKIX") ? true : false;
             String[] list = km.getClientAliases(keyType, issuers);
             if (list != null) {
                 boolean found = false;
                 for (int i = 0; i < list.length && !found; i++) {
-                    if (isPKIX){
-                        if (list[i].toLowerCase().contains(clientAlias.toLowerCase())){
-                            Pattern r = Pattern.compile("\\d+\\.\\d+\\."+clientAlias+"$", Pattern.CASE_INSENSITIVE);
-                            Matcher m = r.matcher(list[i]); 
-                            if (m.find()){
+                    if (isPKIX) {
+                        if (list[i].toLowerCase().equals(serverAlias.toLowerCase())) {
+                            Tr.debug(tc, "chooseClientAlias", "Exact match, setting client alias to" + serverAlias + " because the KeyManager Factory algorithm is PKIX");
+                            break;
+                        } else if (list[i].toLowerCase().contains(clientAlias.toLowerCase())) {
+                            Pattern r = Pattern.compile("\\d+\\.\\d+\\." + clientAlias + "$", Pattern.CASE_INSENSITIVE);
+                            Matcher m = r.matcher(list[i]);
+                            if (m.find()) {
                                 if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
-                                Tr.debug(tc, "clientAlias", "Setting "+ list[i]+ " since PKIX is the KeyManagerFactory algorithm");
+                                    Tr.debug(tc, "clientAlias", "Setting client alias to " + list[i] + " because the KeyManager Factory algorithm is PKIX");
                                 clientAlias = list[i];
                                 found = true;
                             }
                         }
 
-                    }else{
-                    if (clientAlias.equalsIgnoreCase(list[i]))
-                        found = true;
+                    } else {
+                        if (clientAlias.equalsIgnoreCase(list[i]))
+                            found = true;
                     }
                 }
 
@@ -301,7 +305,7 @@ public final class WSX509KeyManager extends X509ExtendedKeyManager implements X5
                 }
             }
 
-            if (isPKIX){
+            if (isPKIX) {
                 Tr.exit(tc, "chooseClientAlias alias not found returning null");
                 return null;
             }
@@ -399,8 +403,8 @@ public final class WSX509KeyManager extends X509ExtendedKeyManager implements X5
     public String chooseServerAlias(String keyType, Principal[] issuers) {
         if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled())
             Tr.entry(tc, "chooseServerAlias", new Object[] { keyType, issuers });
-        String algorithm =KeyManagerFactory.getDefaultAlgorithm();
-        boolean isPKIX = algorithm.equalsIgnoreCase("PKIX") ?true:false;
+        String algorithm = KeyManagerFactory.getDefaultAlgorithm();
+        boolean isPKIX = algorithm.equalsIgnoreCase("PKIX") ? true : false;
         Map<String, Object> connectionInfo = JSSEHelper.getInstance().getInboundConnectionInfo();
         String certMappingFile = certMappingKeyManager.getProperty(CertMappingKeyManager.PROTOCOL_HTTPS_CERT_MAPPING_FILE);
         String mappedAlias = null;
@@ -411,27 +415,32 @@ public final class WSX509KeyManager extends X509ExtendedKeyManager implements X5
         if (webContainerInbound != null && webContainerInbound.booleanValue() && certMappingFile != null) {
             mappedAlias = certMappingKeyManager.chooseServerAlias(keyType, issuers, null);
         }
+
         if (mappedAlias == null) {
             if (serverAlias != null && !serverAlias.equals("")) {
                 String[] list = km.getServerAliases(keyType, issuers);
+
                 if (list != null) {
                     boolean found = false;
                     for (int i = 0; i < list.length && !found; i++) {
-                        if (isPKIX){
-                            if (list[i].toLowerCase().contains(serverAlias.toLowerCase())){
-                                Pattern r = Pattern.compile("\\d+\\.\\d+\\."+serverAlias+"$", Pattern.CASE_INSENSITIVE);
-                                Matcher m = r.matcher(list[i]); 
-                                if (m.find()){
+                        if (isPKIX) {
+                            if (list[i].toLowerCase().equals(serverAlias.toLowerCase())) {
+                                Tr.debug(tc, "chooseServerAlias", "Exact match, setting server alias to" + serverAlias + " because the KeyManager Factory algorithm is PKIX");
+                                break;
+                            } else if (list[i].toLowerCase().contains(serverAlias.toLowerCase())) {
+                                Pattern r = Pattern.compile("\\d+\\.\\d+\\." + serverAlias + "$", Pattern.CASE_INSENSITIVE);
+                                Matcher m = r.matcher(list[i]);
+                                if (m.find()) {
                                     if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
-                                    Tr.debug(tc, "chooseServerAlias", "Setting "+ list[i]+ " since PKIX is the KeyManagerFactory algorithm");
+                                        Tr.debug(tc, "chooseServerAlias", "Setting alias to " + list[i] + " because the KeyManager Factory algorithm is PKIX");
                                     serverAlias = list[i];
                                     found = true;
                                 }
                             }
 
-                        }else{
-                        if (serverAlias.equalsIgnoreCase(list[i]))
-                            found = true;
+                        } else {
+                            if (serverAlias.equalsIgnoreCase(list[i]))
+                                found = true;
                         }
 
                     }
