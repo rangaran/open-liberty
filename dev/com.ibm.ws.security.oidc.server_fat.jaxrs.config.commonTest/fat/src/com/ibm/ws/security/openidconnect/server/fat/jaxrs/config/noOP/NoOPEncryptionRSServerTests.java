@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2021 IBM Corporation and others.
+ * Copyright (c) 2021, 2025 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -136,28 +136,6 @@ public class NoOPEncryptionRSServerTests extends MangleJWTTestTools {
         Log.info(thisClass, _testName, jwtToken);
 
         return jwtToken;
-    }
-
-    /**
-     * TODO when issue 17485 is completed, remove setting/passing parms and update the builder configs that encrypt with ES algs
-     * with keyManagementKeyAlgorithm set to ECDH-ES
-     *
-     * Update the keyManagementKeyAlgorithm to be used in creating the JWT. This allows us to create Elliptic Curve encrypted
-     * tokens
-     *
-     * @param alg
-     *            - the algorithm to set
-     * @return - parms to pass to the builder servlet
-     * @throws Exception
-     */
-    public List<NameValuePair> setParmsForECWorkaround(String alg) throws Exception {
-
-        testOPServer.addIgnoredServerException(MessageConstants.CWWKG0032W_CONFIG_INVALID_VALUE + ".*" + "ECDH-ES");
-
-        List<NameValuePair> parms = new ArrayList<NameValuePair>();
-        parms.add(new NameValuePair(JwtConstants.PARAM_KEY_MGMT_ALG, JwtConstants.KEY_MGMT_KEY_ALG_ES));
-        parms.add(new NameValuePair(JwtConstants.PARAM_ENCRYPT_KEY, JwtKeyTools.getComplexPublicKeyForSigAlg(testOPServer.getServer(), alg)));
-        return parms;
     }
 
     /**
@@ -396,8 +374,7 @@ public class NoOPEncryptionRSServerTests extends MangleJWTTestTools {
     @Test
     public void NoOPEncryption1ServerTests_EncryptTokenES256_RSDecryptES256() throws Exception {
 
-        // TODO when issue 17485 is completed, remove setting/passing parms
-        genericEncryptTest(Constants.SIGALG_ES256, Constants.SIGALG_ES256, setParmsForECWorkaround(JwtConstants.SIGALG_ES256));
+        genericEncryptTest(Constants.SIGALG_ES256, Constants.SIGALG_ES256);
 
     }
 
@@ -409,8 +386,7 @@ public class NoOPEncryptionRSServerTests extends MangleJWTTestTools {
     @Test
     public void NoOPEncryption1ServerTests_EncryptTokenES384_RSDecryptES384() throws Exception {
 
-        // TODO when issue 17485 is completed, remove setting/passing parms
-        genericEncryptTest(Constants.SIGALG_ES384, Constants.SIGALG_ES384, setParmsForECWorkaround(Constants.SIGALG_ES384));
+        genericEncryptTest(Constants.SIGALG_ES384, Constants.SIGALG_ES384);
 
     }
 
@@ -422,8 +398,7 @@ public class NoOPEncryptionRSServerTests extends MangleJWTTestTools {
     @Test
     public void NoOPEncryption1ServerTests_EncryptTokenES512_RSDecryptES512() throws Exception {
 
-        // TODO when issue 17485 is completed, remove setting/passing parms
-        genericEncryptTest(Constants.SIGALG_ES512, Constants.SIGALG_ES512, setParmsForECWorkaround(Constants.SIGALG_ES512));
+        genericEncryptTest(Constants.SIGALG_ES512, Constants.SIGALG_ES512);
 
     }
 
@@ -443,12 +418,7 @@ public class NoOPEncryptionRSServerTests extends MangleJWTTestTools {
         for (String builderEncryptAlg : Constants.ALL_TEST_ENCRYPTALGS) {
             if (!rpDecryptAlg.equals(builderEncryptAlg)) {
                 //sign and encrypt with the same alg, RS specifies original alg for sign, but RS256 for decrypt
-                // TODO when issue 17485 is completed, remove setting/passing parms
-                if (builderEncryptAlg.startsWith("ES")) {
-                    genericEncryptTest(builderEncryptAlg, setBuilderName(builderEncryptAlg), rpDecryptAlg, setAppName(builderEncryptAlg, rpDecryptAlg), null, setParmsForECWorkaround(builderEncryptAlg));
-                } else {
-                    genericEncryptTest(builderEncryptAlg, setBuilderName(builderEncryptAlg), rpDecryptAlg, setAppName(builderEncryptAlg, rpDecryptAlg), null);
-                }
+                genericEncryptTest(builderEncryptAlg, setBuilderName(builderEncryptAlg), rpDecryptAlg, setAppName(builderEncryptAlg, rpDecryptAlg), null);
             }
         }
 
@@ -466,12 +436,7 @@ public class NoOPEncryptionRSServerTests extends MangleJWTTestTools {
         for (String builderEncryptAlg : Constants.ALL_TEST_ENCRYPTALGS) {
             if (!rpDecryptAlg.equals(builderEncryptAlg)) {
                 //sign and encrypt with the same alg, RS specifies original alg for sign, but RS384 for decrypt
-                // TODO when issue 17485 is completed, remove setting/passing parms
-                if (builderEncryptAlg.startsWith("ES")) {
-                    genericEncryptTest(builderEncryptAlg, setBuilderName(builderEncryptAlg), rpDecryptAlg, setAppName(builderEncryptAlg, rpDecryptAlg), null, setParmsForECWorkaround(builderEncryptAlg));
-                } else {
-                    genericEncryptTest(builderEncryptAlg, setBuilderName(builderEncryptAlg), rpDecryptAlg, setAppName(builderEncryptAlg, rpDecryptAlg), null);
-                }
+                genericEncryptTest(builderEncryptAlg, setBuilderName(builderEncryptAlg), rpDecryptAlg, setAppName(builderEncryptAlg, rpDecryptAlg), null);
             }
         }
 
@@ -490,12 +455,7 @@ public class NoOPEncryptionRSServerTests extends MangleJWTTestTools {
         for (String builderEncryptAlg : Constants.ALL_TEST_ENCRYPTALGS) {
             if (!rpDecryptAlg.equals(builderEncryptAlg)) {
                 //sign and encrypt with the same alg, RS specifies original alg for sign, but RS512 for decrypt
-                // TODO when issue 17485 is completed, remove setting/passing parms
-                if (builderEncryptAlg.startsWith("ES")) {
-                    genericEncryptTest(builderEncryptAlg, setBuilderName(builderEncryptAlg), rpDecryptAlg, setAppName(builderEncryptAlg, rpDecryptAlg), null, setParmsForECWorkaround(builderEncryptAlg));
-                } else {
-                    genericEncryptTest(builderEncryptAlg, setBuilderName(builderEncryptAlg), rpDecryptAlg, setAppName(builderEncryptAlg, rpDecryptAlg), null);
-                }
+                genericEncryptTest(builderEncryptAlg, setBuilderName(builderEncryptAlg), rpDecryptAlg, setAppName(builderEncryptAlg, rpDecryptAlg), null);
             }
         }
 
@@ -513,12 +473,7 @@ public class NoOPEncryptionRSServerTests extends MangleJWTTestTools {
         for (String builderEncryptAlg : Constants.ALL_TEST_ENCRYPTALGS) {
             if (!rpDecryptAlg.equals(builderEncryptAlg)) {
                 //sign and encrypt with the same alg, RS specifies original alg for sign, but ES256 for decrypt
-                // TODO when issue 17485 is completed, remove setting/passing parms
-                if (builderEncryptAlg.startsWith("ES")) {
-                    genericEncryptTest(builderEncryptAlg, setBuilderName(builderEncryptAlg), rpDecryptAlg, setAppName(builderEncryptAlg, rpDecryptAlg), null, setParmsForECWorkaround(builderEncryptAlg));
-                } else {
-                    genericEncryptTest(builderEncryptAlg, setBuilderName(builderEncryptAlg), rpDecryptAlg, setAppName(builderEncryptAlg, rpDecryptAlg), null);
-                }
+                genericEncryptTest(builderEncryptAlg, setBuilderName(builderEncryptAlg), rpDecryptAlg, setAppName(builderEncryptAlg, rpDecryptAlg), null);
             }
         }
 
@@ -536,12 +491,7 @@ public class NoOPEncryptionRSServerTests extends MangleJWTTestTools {
         for (String builderEncryptAlg : Constants.ALL_TEST_ENCRYPTALGS) {
             if (!rpDecryptAlg.equals(builderEncryptAlg)) {
                 //sign and encrypt with the same alg, RS specifies original alg for sign, but ES384 for decrypt
-                // TODO when issue 17485 is completed, remove setting/passing parms
-                if (builderEncryptAlg.startsWith("ES")) {
-                    genericEncryptTest(builderEncryptAlg, setBuilderName(builderEncryptAlg), rpDecryptAlg, setAppName(builderEncryptAlg, rpDecryptAlg), null, setParmsForECWorkaround(builderEncryptAlg));
-                } else {
-                    genericEncryptTest(builderEncryptAlg, setBuilderName(builderEncryptAlg), rpDecryptAlg, setAppName(builderEncryptAlg, rpDecryptAlg), null);
-                }
+                genericEncryptTest(builderEncryptAlg, setBuilderName(builderEncryptAlg), rpDecryptAlg, setAppName(builderEncryptAlg, rpDecryptAlg), null);
             }
         }
 
@@ -559,12 +509,7 @@ public class NoOPEncryptionRSServerTests extends MangleJWTTestTools {
         for (String builderEncryptAlg : Constants.ALL_TEST_ENCRYPTALGS) {
             if (!rpDecryptAlg.equals(builderEncryptAlg)) {
                 //sign and encrypt with the same alg, RS specifies original alg for sign, but ES512 for decrypt
-                // TODO when issue 17485 is completed, remove setting/passing parms
-                if (builderEncryptAlg.startsWith("ES")) {
-                    genericEncryptTest(builderEncryptAlg, setBuilderName(builderEncryptAlg), rpDecryptAlg, setAppName(builderEncryptAlg, rpDecryptAlg), null, setParmsForECWorkaround(builderEncryptAlg));
-                } else {
-                    genericEncryptTest(builderEncryptAlg, setBuilderName(builderEncryptAlg), rpDecryptAlg, setAppName(builderEncryptAlg, rpDecryptAlg), null);
-                }
+                genericEncryptTest(builderEncryptAlg, setBuilderName(builderEncryptAlg), rpDecryptAlg, setAppName(builderEncryptAlg, rpDecryptAlg), null);
             }
         }
 
@@ -642,7 +587,7 @@ public class NoOPEncryptionRSServerTests extends MangleJWTTestTools {
         String encryptDecryptAlg = Constants.SIGALG_ES256;
         for (String builderSigAlg : Constants.ALL_TEST_SIGALGS) {
             if (!encryptDecryptAlg.equals(builderSigAlg)) { // base tests already tested with same sign & encrypt
-                genericEncryptTest(encryptDecryptAlg, setBuilderName(builderSigAlg, encryptDecryptAlg), encryptDecryptAlg, setAppName(builderSigAlg, encryptDecryptAlg), null, setParmsForECWorkaround(encryptDecryptAlg));
+                genericEncryptTest(encryptDecryptAlg, setBuilderName(builderSigAlg, encryptDecryptAlg), encryptDecryptAlg, setAppName(builderSigAlg, encryptDecryptAlg), null);
             }
         }
 
@@ -661,7 +606,7 @@ public class NoOPEncryptionRSServerTests extends MangleJWTTestTools {
         String encryptDecryptAlg = Constants.SIGALG_ES384;
         for (String builderSigAlg : Constants.ALL_TEST_SIGALGS) {
             if (!encryptDecryptAlg.equals(builderSigAlg)) { // base tests already tested with same sign & encrypt
-                genericEncryptTest(encryptDecryptAlg, setBuilderName(builderSigAlg, encryptDecryptAlg), encryptDecryptAlg, setAppName(builderSigAlg, encryptDecryptAlg), null, setParmsForECWorkaround(encryptDecryptAlg));
+                genericEncryptTest(encryptDecryptAlg, setBuilderName(builderSigAlg, encryptDecryptAlg), encryptDecryptAlg, setAppName(builderSigAlg, encryptDecryptAlg), null);
             }
         }
     }
@@ -679,7 +624,7 @@ public class NoOPEncryptionRSServerTests extends MangleJWTTestTools {
         String encryptDecryptAlg = Constants.SIGALG_ES512;
         for (String builderSigAlg : Constants.ALL_TEST_SIGALGS) {
             if (!encryptDecryptAlg.equals(builderSigAlg)) { // base tests already tested with same sign & encrypt
-                genericEncryptTest(encryptDecryptAlg, setBuilderName(builderSigAlg, encryptDecryptAlg), encryptDecryptAlg, setAppName(builderSigAlg, encryptDecryptAlg), null, setParmsForECWorkaround(encryptDecryptAlg));
+                genericEncryptTest(encryptDecryptAlg, setBuilderName(builderSigAlg, encryptDecryptAlg), encryptDecryptAlg, setAppName(builderSigAlg, encryptDecryptAlg), null);
             }
         }
     }
@@ -814,7 +759,7 @@ public class NoOPEncryptionRSServerTests extends MangleJWTTestTools {
         String rpEncryptAlg = Constants.SIGALG_ES256;
         String rpDecryptAlg = Constants.SIGALG_NONE;
 
-        genericEncryptTest(rpEncryptAlg, setBuilderName(signAlg, rpEncryptAlg), rpDecryptAlg, setAppName(signAlg, rpDecryptAlg), getMissingDecryptionSettingsMessages(), setParmsForECWorkaround(rpEncryptAlg));
+        genericEncryptTest(rpEncryptAlg, setBuilderName(signAlg, rpEncryptAlg), rpDecryptAlg, setAppName(signAlg, rpDecryptAlg), getMissingDecryptionSettingsMessages());
     }
 
     @Test
@@ -823,7 +768,7 @@ public class NoOPEncryptionRSServerTests extends MangleJWTTestTools {
         String rpEncryptAlg = Constants.SIGALG_ES384;
         String rpDecryptAlg = Constants.SIGALG_NONE;
 
-        genericEncryptTest(rpEncryptAlg, setBuilderName(signAlg, rpEncryptAlg), rpDecryptAlg, setAppName(signAlg, rpDecryptAlg), getMissingDecryptionSettingsMessages(), setParmsForECWorkaround(rpEncryptAlg));
+        genericEncryptTest(rpEncryptAlg, setBuilderName(signAlg, rpEncryptAlg), rpDecryptAlg, setAppName(signAlg, rpDecryptAlg), getMissingDecryptionSettingsMessages());
     }
 
     @Test
@@ -832,7 +777,7 @@ public class NoOPEncryptionRSServerTests extends MangleJWTTestTools {
         String rpEncryptAlg = Constants.SIGALG_ES512;
         String rpDecryptAlg = Constants.SIGALG_NONE;
 
-        genericEncryptTest(rpEncryptAlg, setBuilderName(signAlg, rpEncryptAlg), rpDecryptAlg, setAppName(signAlg, rpDecryptAlg), getMissingDecryptionSettingsMessages(), setParmsForECWorkaround(rpEncryptAlg));
+        genericEncryptTest(rpEncryptAlg, setBuilderName(signAlg, rpEncryptAlg), rpDecryptAlg, setAppName(signAlg, rpDecryptAlg), getMissingDecryptionSettingsMessages());
     }
 
     /*************** Various JWE header content tests ***************/

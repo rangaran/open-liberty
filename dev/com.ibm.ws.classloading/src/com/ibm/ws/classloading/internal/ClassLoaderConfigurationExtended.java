@@ -14,9 +14,9 @@ import java.util.List;
 import com.ibm.wsspi.classloading.ClassLoaderConfiguration;
 
 /**
- * This is an internal until we can agree on the attribute name for patch libraries
+ * This is an internal until we can agree on the attribute name for override libraries
  */
 public interface ClassLoaderConfigurationExtended {
-    ClassLoaderConfiguration setPatchLibraries(List<String> libs);
-    List<String> getPatchLibraries();
+    ClassLoaderConfiguration setOverrideLibraries(List<String> libs);
+    List<String> getOverrideLibraries();
 }

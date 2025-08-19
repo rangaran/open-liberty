@@ -236,4 +236,14 @@ public interface DataVersionCompatibility {
      * @return the Jakarta Data defined special parameter types.
      */
     Set<Class<?>> specialParamTypes();
+
+    /**
+     * Temporary method that obtains the literal value from a constraint if the
+     * supplied value is a constraint. Otherwise, returns the original value.
+     *
+     * @param constraintOrValue a jakarta.data.constraint.Constraint subtype or a
+     *                              literal value.
+     * @return literal value.
+     */
+    Object toLiteralValue(Object constraintOrValue);
 }

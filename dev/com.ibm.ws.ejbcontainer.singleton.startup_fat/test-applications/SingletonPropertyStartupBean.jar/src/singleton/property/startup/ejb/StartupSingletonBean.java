@@ -45,7 +45,7 @@ public class StartupSingletonBean implements BasicSingleton2 {
 
         // This delay is here to allow another thread to attempt
         // work and be delayed until this finishes.
-        svLogger.info("- postConstruct : delaying for 10 secondsaiting for application");
+        svLogger.info("- postConstruct : delaying for 10 seconds waiting for application");
         try {
             Thread.sleep(STARTUP_DELAY);
         } catch (InterruptedException e) {

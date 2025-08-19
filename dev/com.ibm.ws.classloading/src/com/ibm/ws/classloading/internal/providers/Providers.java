@@ -63,9 +63,9 @@ public class Providers {
         return getLibraries(config.getId().getId(), config.getSharedLibraries());
     }
 
-    public static List<Library> getPatchLibraries(ClassLoaderConfiguration config) {
-        List<String> patchLibraries = (config instanceof ClassLoaderConfigurationExtended) ? ((ClassLoaderConfigurationExtended) config).getPatchLibraries() : Collections.emptyList();
-        return getLibraries(config.getId().getId(), patchLibraries);
+    public static List<Library> getOverrideLibraries(ClassLoaderConfiguration config) {
+        List<String> overrideLibraries = (config instanceof ClassLoaderConfigurationExtended) ? ((ClassLoaderConfigurationExtended) config).getOverrideLibraries() : Collections.emptyList();
+        return getLibraries(config.getId().getId(), overrideLibraries);
     }
 
     private static List<Library> getLibraries(String ownerId, List<String> libraryIds) {

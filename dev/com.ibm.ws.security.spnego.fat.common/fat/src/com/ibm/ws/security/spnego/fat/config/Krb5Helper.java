@@ -28,8 +28,8 @@ import org.ietf.jgss.Oid;
 import com.ibm.websphere.security.auth.callback.WSCallbackHandlerImpl;
 import com.ibm.websphere.simplicity.log.Log;
 import com.ibm.ws.common.encoder.Base64Coder;
+import com.ibm.ws.kernel.service.util.JavaInfo;
 
-import componenttest.topology.impl.JavaInfo;
 import componenttest.topology.impl.LibertyServer;
 
 public class Krb5Helper {

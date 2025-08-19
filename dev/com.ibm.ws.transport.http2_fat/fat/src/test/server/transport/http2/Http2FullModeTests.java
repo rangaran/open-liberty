@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018, 2023 IBM Corporation and others.
+ * Copyright (c) 2018, 2025 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -1863,6 +1863,31 @@ public class Http2FullModeTests extends FATServletClient {
      */
     @Test
     public void testMaxStreamsRefused() throws Exception {
+        runTest(defaultServletPath, testName.getMethodName());
+    }
+
+    /**
+     * Test Coverage: Create streams on the server, with malformed headers making
+     * the server to send reset frames to each stream.
+     * Test Outcome: GOAWAY received from server
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testOutboundResetLimits() throws Exception {
+        runTest(defaultServletPath, testName.getMethodName());
+    }
+
+    /**
+     * Test Coverage: Create streams on the server, and send combination of reset
+     * frames and malformed headers making the server to send reset frames to each
+     * stream.
+     * Test Outcome: GOAWAY received from server
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testInboundAndOutboundResetLimits() throws Exception {
         runTest(defaultServletPath, testName.getMethodName());
     }
 }

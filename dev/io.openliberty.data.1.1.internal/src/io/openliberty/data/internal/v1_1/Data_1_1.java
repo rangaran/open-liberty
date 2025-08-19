@@ -37,7 +37,6 @@ import io.openliberty.data.internal.version.DataVersionCompatibility;
 import io.openliberty.data.repository.Count;
 import io.openliberty.data.repository.Exists;
 import io.openliberty.data.repository.IgnoreCase;
-import io.openliberty.data.repository.Is.Op;
 import io.openliberty.data.repository.function.AbsoluteValue;
 import io.openliberty.data.repository.function.CharCount;
 import io.openliberty.data.repository.function.ElementCount;
@@ -67,6 +66,7 @@ import jakarta.data.constraint.NotIn;
 import jakarta.data.constraint.NotLike;
 import jakarta.data.constraint.NotNull;
 import jakarta.data.constraint.Null;
+import jakarta.data.expression.Expression;
 import jakarta.data.page.PageRequest;
 import jakarta.data.repository.By;
 import jakarta.data.repository.Delete;
@@ -77,6 +77,7 @@ import jakarta.data.repository.Query;
 import jakarta.data.repository.Save;
 import jakarta.data.repository.Select;
 import jakarta.data.repository.Update;
+import jakarta.data.spi.expression.literal.Literal;
 import jakarta.persistence.EntityManager;
 
 /**
@@ -390,8 +391,6 @@ public class Data_1_1 implements DataVersionCompatibility {
         for (Annotation anno : paramAnnos)
             if (anno instanceof Is) {
                 constraints[p] = toAttributeConstraint(((Is) anno).value());
-            } else if (anno instanceof io.openliberty.data.repository.Is) {
-                constraints[p] = toAttributeConstraint(((io.openliberty.data.repository.Is) anno).value());
             } else if (anno instanceof Assign) {
                 attrNames[p] = ((Assign) anno).value();
                 updateOps[p] = '=';
@@ -551,24 +550,54 @@ public class Data_1_1 implements DataVersionCompatibility {
         return constraint;
     }
 
-    private static final AttributeConstraint toAttributeConstraint(Op op) {
-        return switch (op) {
-            case Equal -> AttributeConstraint.Equal;
-            case GreaterThan -> AttributeConstraint.GreaterThan;
-            case GreaterThanEqual -> AttributeConstraint.GreaterThanEqual;
-            case In -> AttributeConstraint.In;
-            case LessThan -> AttributeConstraint.LessThan;
-            case LessThanEqual -> AttributeConstraint.LessThanEqual;
-            case Like -> AttributeConstraint.Like;
-            case Not -> AttributeConstraint.Not;
-            case NotIn -> AttributeConstraint.NotIn;
-            case NotLike -> AttributeConstraint.NotLike;
-            case NotPrefixed -> AttributeConstraint.NotStartsWith;
-            case NotSubstringed -> AttributeConstraint.NotContains;
-            case NotSuffixed -> AttributeConstraint.NotEndsWith;
-            case Prefixed -> AttributeConstraint.StartsWith;
-            case Substringed -> AttributeConstraint.Contains;
-            case Suffixed -> AttributeConstraint.EndsWith;
-        };
+    @Override
+    @Trivial
+    public Object toLiteralValue(Object constraintOrValue) {
+        // TODO 1.1 this is not the correct implementation (doesn't account for
+        // other types of expressions than literals) and is only here temporarily
+        // so that we can complete remove some experimental code elsewhere without
+        // breaking tests.
+        Expression<?, ?> exp = null;
+        if (constraintOrValue instanceof AtLeast c)
+            exp = c.bound();
+        else if (constraintOrValue instanceof AtMost c)
+            exp = c.bound();
+        else if (constraintOrValue instanceof EqualTo c)
+            exp = c.expression();
+        else if (constraintOrValue instanceof GreaterThan c)
+            exp = c.bound();
+        else if (constraintOrValue instanceof In c)
+            return toLiteralValues(c.expressions());
+        else if (constraintOrValue instanceof LessThan c)
+            exp = c.bound();
+        else if (constraintOrValue instanceof Like c)
+            exp = c.pattern();
+        else if (constraintOrValue instanceof NotEqualTo c)
+            exp = c.expression();
+        else if (constraintOrValue instanceof NotIn c)
+            return toLiteralValues(c.expressions());
+        else if (constraintOrValue instanceof NotLike c)
+            exp = c.pattern();
+        else if (constraintOrValue instanceof Constraint)
+            throw new UnsupportedOperationException("Constraint: " +
+                                                    constraintOrValue.getClass().getName());
+        else
+            return constraintOrValue;
+
+        if (exp instanceof Literal)
+            return ((Literal) exp).value();
+        else
+            throw new UnsupportedOperationException(exp.getClass().getName());
+    }
+
+    @Trivial
+    private List<Object> toLiteralValues(List<Expression<?, ?>> exps) {
+        List<Object> list = new ArrayList<>(exps.size());
+        for (Expression<?, ?> exp : exps)
+            if (exp instanceof Literal)
+                list.add(((Literal) exp).value());
+            else
+                throw new UnsupportedOperationException(exp.getClass().getName());
+        return list;
     }
 }

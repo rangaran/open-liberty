@@ -22,7 +22,7 @@ src: \
 	test-applications/testParentLastLibraryFeature.war/src, \
 	test-applications/testParentLibraryInconsistent.war/src, \
 	test-applications/testLibPrecedence.war/src, \
-	test-applications/testPatchLib.war/src, \
+	test-applications/testOverrideLib.war/src, \
 	test-applications/testClient1.jar/src, \
 	test-applications/testEjb1.jar/src, \
 	test-applications/testEjb2.jar/src, \

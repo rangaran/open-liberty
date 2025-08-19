@@ -5361,9 +5361,10 @@ public class QueryInfo {
     void setParameters(jakarta.persistence.Query query, Object... args) throws Exception {
         final boolean trace = TraceComponent.isAnyTracingEnabled();
 
+        DataVersionCompatibility compat = producer.provider().compat;
         Iterator<String> namedParams = jpqlParamNames.iterator();
         for (int i = 0, p = 0; i < jpqlParamCount; i++) {
-            Object arg = args[i];
+            Object arg = compat.toLiteralValue(args[i]);
 
             if (namedParams.hasNext()) {
                 String paramName = namedParams.next();

@@ -33,6 +33,7 @@ src: \
 # Ref: https://bndtools.org/manual/packageexplorer.html
 
 -testpath: \
+  org.slf4j:slf4j-api;version=1.7.36, \
   org.springframework.boot:spring-boot;${springBootVersion20}, \
   org.springframework.boot:spring-boot-autoconfigure;${springBootVersion20}, \
 \

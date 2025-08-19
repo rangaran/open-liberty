@@ -4756,7 +4756,7 @@ public class H2FATDriverServlet extends FATServlet {
         CountDownLatch blockUntilConnectionIsDone = new CountDownLatch(1);
         Http2Client h2Client = getDefaultH2Client(request, response, blockUntilConnectionIsDone);
 
-        FrameGoAway errorFrame = new FrameGoAway(0, "too many reset frames received".getBytes(), ENHANCE_YOUR_CALM_ERROR, 1, false);
+        FrameGoAway errorFrame = new FrameGoAway(0, "too many reset frames processed".getBytes(), ENHANCE_YOUR_CALM_ERROR, 1, false);
         h2Client.addExpectedFrame(errorFrame);
 
         setupDefaultUpgradedConnection(h2Client, HEADERS_ONLY_URI);
@@ -4796,7 +4796,7 @@ public class H2FATDriverServlet extends FATServlet {
                         "Connecting to = " + request.getParameter("hostName") + ":" + request.getParameter("port"));
         }
 
-        final int server_max_streams = 201; // 100 maxConcurrent plus 100 maxRefusedStreams, +1
+        final int server_max_streams = 151; // 100 maxConcurrent plus 50 maxRefusedStreams, +1
         String testName = "testStreamsRefused";
         CountDownLatch blockUntilConnectionIsDone = new CountDownLatch(1);
         Http2Client h2Client = getDefaultH2Client(request, response, blockUntilConnectionIsDone);
@@ -4847,6 +4847,132 @@ public class H2FATDriverServlet extends FATServlet {
         setupDefaultUpgradedConnection(h2Client, "/H2TestModule/GetRequestSocketServlet");
 
         blockUntilConnectionIsDone.await();
+        handleErrors(h2Client, testName);
+
+    }
+    
+    /*
+     * Client sends malformed headers prompting the server to send back resets,
+     * server should tolerate to a point, then send goaway
+     */
+
+    public void testOutboundResetLimits(HttpServletRequest request, HttpServletResponse response)
+            throws InterruptedException, Exception {
+        if (LOGGER.isLoggable(Level.INFO)) {
+            LOGGER.logp(Level.INFO, this.getClass().getName(), "testOutboundResetLimits", "Started!");
+            LOGGER.logp(Level.INFO, this.getClass().getName(), "testOutboundResetLimits",
+                    "Connecting to = " + request.getParameter("hostName") + ":" + request.getParameter("port"));
+        }
+        final int server_max_streams = 100;
+        String testName = "testOutboundResetLimits";
+        CountDownLatch blockUntilConnectionIsDone = new CountDownLatch(1);
+        Http2Client h2Client = getDefaultH2Client(request, response, blockUntilConnectionIsDone);
+
+        FrameGoAway errorFrame = new FrameGoAway(0, "too many reset frames processed".getBytes(),
+                ENHANCE_YOUR_CALM_ERROR, 1, false);
+        h2Client.addExpectedFrame(errorFrame);
+
+        setupDefaultUpgradedConnection(h2Client, HEADERS_ONLY_URI);
+        if (LOGGER.isLoggable(Level.INFO)) {
+            LOGGER.logp(Level.INFO, this.getClass().getName(), "testOutboundResetLimits",
+                    "Starting to send malformed HEADERS, that will force server RST_STREAM responses");
+        }
+        // Malformed Headers frame without the method header to send for "second"
+        // request
+        List<HeaderEntry> firstHeadersToSend = new ArrayList<HeaderEntry>();
+        firstHeadersToSend.add(new HeaderEntry(new H2HeaderField(":scheme", "http"),
+                HpackConstants.LiteralIndexType.NEVERINDEX, false));
+        firstHeadersToSend.add(new HeaderEntry(new H2HeaderField(":path", HEADERS_ONLY_URI),
+                HpackConstants.LiteralIndexType.NEVERINDEX, false));
+
+        int currentStream = 1;
+        // create 100 malformed streams
+        for (int i = 0; i < server_max_streams + 1; i++) {
+            currentStream += 2;
+            FrameHeadersClient frameHeadersToSend = new FrameHeadersClient(currentStream, null, 0, 0, 0, false, true,
+                    false, false, false, false);
+            frameHeadersToSend.setHeaderEntries(firstHeadersToSend);
+            h2Client.sendFrame(frameHeadersToSend);
+        }
+
+        blockUntilConnectionIsDone.await(10000, TimeUnit.MILLISECONDS);
+        handleErrors(h2Client, testName);
+
+    }
+
+    /*
+     * Client sends a combination of frames with malformed headers and reset frames,
+     * server should tolerate to a point, then send goaway
+     */
+
+    public void testInboundAndOutboundResetLimits(HttpServletRequest request, HttpServletResponse response)
+            throws InterruptedException, Exception {
+        if (LOGGER.isLoggable(Level.INFO)) {
+            LOGGER.logp(Level.INFO, this.getClass().getName(), "testInboundAndOutboundResetLimits", "Started!");
+            LOGGER.logp(Level.INFO, this.getClass().getName(), "testInboundAndOutboundResetLimits",
+                    "Connecting to = " + request.getParameter("hostName") + ":" + request.getParameter("port"));
+        }
+        final int server_max_streams = 100;
+        String testName = "testInboundAndOutboundResetLimits";
+        CountDownLatch blockUntilConnectionIsDone = new CountDownLatch(1);
+        Http2Client h2Client = getDefaultH2Client(request, response, blockUntilConnectionIsDone);
+
+        FrameGoAway errorFrame = new FrameGoAway(0, "too many reset frames processed".getBytes(),
+                ENHANCE_YOUR_CALM_ERROR, 1, false);
+        h2Client.addExpectedFrame(errorFrame);
+
+        setupDefaultUpgradedConnection(h2Client, HEADERS_ONLY_URI);
+        if (LOGGER.isLoggable(Level.INFO)) {
+            LOGGER.logp(Level.INFO, this.getClass().getName(), "testInboundAndOutboundResetLimits",
+                    "Starting to send malformed HEADERS and RST FRAMES alternatively");
+        }
+        // Malformed Headers frame without the method header to send for "second"
+        // request
+        List<HeaderEntry> malformedHeadersToSend = new ArrayList<HeaderEntry>();
+        malformedHeadersToSend.add(new HeaderEntry(new H2HeaderField(":scheme", "http"),
+                HpackConstants.LiteralIndexType.NEVERINDEX, false));
+        malformedHeadersToSend.add(new HeaderEntry(new H2HeaderField(":path", HEADERS_ONLY_URI),
+                HpackConstants.LiteralIndexType.NEVERINDEX, false));
+
+        // Headers frame to send for "second" request along with the Reset frame
+        List<HeaderEntry> validHeadersToSend = new ArrayList<HeaderEntry>();
+        validHeadersToSend.add(new HeaderEntry(new H2HeaderField(":method", "GET"),
+                HpackConstants.LiteralIndexType.NEVERINDEX, false));
+        validHeadersToSend.add(new HeaderEntry(new H2HeaderField(":scheme", "http"),
+                HpackConstants.LiteralIndexType.NEVERINDEX, false));
+        validHeadersToSend.add(new HeaderEntry(new H2HeaderField(":path", HEADERS_ONLY_URI),
+                HpackConstants.LiteralIndexType.NEVERINDEX, false));
+
+        int currentStream = 1;
+        // create another 100 streams
+        for (int i = 0; i < server_max_streams + 1; i++) {
+            currentStream += 2;
+            if (i % 2 == 0) {
+                if (LOGGER.isLoggable(Level.INFO)) {
+                    LOGGER.logp(Level.INFO, this.getClass().getName(), "testInboundAndOutboundResetLimits",
+                            "Sending the RST FRAME on stream: " + currentStream);
+                }
+                FrameHeadersClient frameHeadersToSend = new FrameHeadersClient(currentStream, null, 0, 0, 0, false,
+                        true, false, false, false, false);
+                frameHeadersToSend.setHeaderEntries(validHeadersToSend);
+                h2Client.sendFrame(frameHeadersToSend);
+                h2Client.sendFrame(new FrameRstStream(currentStream, 0, false));
+
+            } else {
+                if (LOGGER.isLoggable(Level.INFO)) {
+                    LOGGER.logp(Level.INFO, this.getClass().getName(), "testInboundAndOutboundResetLimits",
+                            "Sending the frame with malformed headers: " + currentStream);
+                }
+                FrameHeadersClient frameHeadersToSend = new FrameHeadersClient(currentStream, null, 0, 0, 0, false,
+                        true, false, false, false, false);
+                frameHeadersToSend.setHeaderEntries(malformedHeadersToSend);
+                h2Client.sendFrame(frameHeadersToSend);
+
+            }
+
+        }
+
+        blockUntilConnectionIsDone.await(10000, TimeUnit.MILLISECONDS);
         handleErrors(h2Client, testName);
 
     }

@@ -232,4 +232,11 @@ public class Data_1_0 implements DataVersionCompatibility {
     public Set<Class<?>> specialParamTypes() {
         return SPECIAL_PARAM_TYPES;
     }
+
+    @Override
+    @Trivial
+    public Object toLiteralValue(Object value) {
+        return value;
+    }
+
 }

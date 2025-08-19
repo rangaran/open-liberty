@@ -1543,8 +1543,12 @@ public class PolicyExecutorImpl implements PolicyExecutor {
         boolean useVirtualThreads = null == (v = props.get("virtual")) ? false : (Boolean) v;
 
         // Validation that cannot be performed by metatype:
-        if (useVirtualThreads && !virtualThreadOps.isSupported()) {
-            throw new IllegalArgumentException("virtual: true");
+        if (useVirtualThreads) {
+            if (!virtualThreadOps.isSupported()) {
+                throw new IllegalArgumentException("virtual: true");
+            } else if (!virtualThreadOps.isVirtualThreadCreationEnabled()) {
+                useVirtualThreads = false;
+            }
         }
 
         if (u_expedite > u_max)

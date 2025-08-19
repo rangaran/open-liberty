@@ -16,7 +16,7 @@ import static com.ibm.ws.classloading.ClassLoaderConfigHelper.Attribute.apiTypeV
 import static com.ibm.ws.classloading.ClassLoaderConfigHelper.Attribute.classProviderRef;
 import static com.ibm.ws.classloading.ClassLoaderConfigHelper.Attribute.commonLibraryRef;
 import static com.ibm.ws.classloading.ClassLoaderConfigHelper.Attribute.delegation;
-import static com.ibm.ws.classloading.ClassLoaderConfigHelper.Attribute.patchLibraryRef;
+import static com.ibm.ws.classloading.ClassLoaderConfigHelper.Attribute.overrideLibraryRef;
 import static com.ibm.ws.classloading.ClassLoaderConfigHelper.Attribute.privateLibraryRef;
 import static com.ibm.wsspi.classloading.ApiType.API;
 import static com.ibm.wsspi.classloading.ApiType.IBMAPI;
@@ -68,7 +68,7 @@ public class ClassLoaderConfigHelper {
 
     @com.ibm.websphere.ras.annotation.Trivial
     enum Attribute {
-        apiTypeVisibility, delegation, patchLibraryRef, privateLibraryRef, commonLibraryRef, classProviderRef
+        apiTypeVisibility, delegation, overrideLibraryRef, privateLibraryRef, commonLibraryRef, classProviderRef
     };
 
     @SuppressWarnings("serial")
@@ -81,7 +81,7 @@ public class ClassLoaderConfigHelper {
 
     private static final EnumSet<ApiType> DEFAULT_API_TYPES = EnumSet.of(SPEC, IBMAPI, API, STABLE);
 
-    private final List<String> patchLibraries;
+    private final List<String> overrideLibraries;
     private final List<String> sharedLibraries;
     private final List<String> commonLibraries;
     private final List<String> classProviders;
@@ -108,7 +108,7 @@ public class ClassLoaderConfigHelper {
             this.classLoaderConfigProps = null;
             this.apiTypes = DEFAULT_API_TYPES;
             this.isDelegateLast = false;
-            this.patchLibraries = Collections.emptyList();
+            this.overrideLibraries = Collections.emptyList();
             this.sharedLibraries = Collections.emptyList();
             this.commonLibraries = Collections.emptyList();
             this.classProviders = Collections.emptyList();
@@ -129,7 +129,7 @@ public class ClassLoaderConfigHelper {
         this.sharedLibrariesPids = (String[]) values.remove(privateLibraryRef);
         this.commonLibrariesPids = (String[]) values.remove(commonLibraryRef);
 
-        this.patchLibraries = getIds(configAdmin, (String[]) values.remove(patchLibraryRef));
+        this.overrideLibraries = getIds(configAdmin, (String[]) values.remove(overrideLibraryRef));
         this.sharedLibraries = getIds(configAdmin, sharedLibrariesPids);
         this.commonLibraries = getIds(configAdmin, commonLibrariesPids);
         this.classProviders = getIds(configAdmin, (String[]) values.remove(classProviderRef));
@@ -261,9 +261,9 @@ public class ClassLoaderConfigHelper {
         gwConfig.setApiTypeVisibility(apiTypes);
         if (classLoaderConfigProps != null) {
             // if there is some <classloader> config, we need to read it out of the helper into the gateway and classloader configuration objects
-            if (!patchLibraries.isEmpty()) {
+            if (!overrideLibraries.isEmpty()) {
                 try {
-                    ((ClassLoaderConfigurationExtended) config).setPatchLibraries(patchLibraries);
+                    ((ClassLoaderConfigurationExtended) config).setOverrideLibraries(overrideLibraries);
                 } catch (ClassCastException e) {
                     // auto-ffdc; nobody should be doing this
                 }

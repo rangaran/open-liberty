@@ -13,9 +13,9 @@
 
 package com.ibm.ws.security.token.ltpa.fat;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.BufferedReader;
@@ -154,17 +154,27 @@ public class LTPAKeyRotationTests {
 
     // Define fipsEnabled
     private static final boolean fips140_3Enabled;
+    private static final boolean ibmJdk8Fips140_3Enabled;
+    private static final boolean semeruFips140_3Enabled;
     private static final boolean fips140_2Enabled;
 
     static {
         boolean isFips140_3Enabled = false;
+        boolean isSemeruFips140_3Enabled = false;
+        boolean isIbmJdk8Fips140_3Enabled = false;
         try {
             isFips140_3Enabled = server.isFIPS140_3EnabledAndSupported();
+            isIbmJdk8Fips140_3Enabled = server.isIbmJdk8FIPS140_3EnabledAndSupported();
+            isSemeruFips140_3Enabled = server.isSemeruFIPS140_3EnabledAndSupported();
         } catch (Exception e) {
             e.printStackTrace();
         }
         fips140_3Enabled = isFips140_3Enabled;
         Log.info(thisClass, "static", "fips140_3Enabled: " + fips140_3Enabled);
+        ibmJdk8Fips140_3Enabled = isIbmJdk8Fips140_3Enabled;
+        Log.info(thisClass, "static", "ibmJdk8Fips140_3Enabled: " + ibmJdk8Fips140_3Enabled);
+        semeruFips140_3Enabled = isSemeruFips140_3Enabled;
+        Log.info(thisClass, "static", "semeruFips140_3Enabled: " + semeruFips140_3Enabled);
 
         boolean isFips140_2Enabled = false;
         try {
@@ -241,9 +251,19 @@ public class LTPAKeyRotationTests {
 
     private static void checkFipsEnabledMessages() {
         assertFalse("Expected neither or one of FIPS 140-3 or FIPS 140-2 to be enabled, but both are enabled.", fips140_3Enabled && fips140_2Enabled);
+        assertFalse("Expected neither or one of IBM JDK 8 or Semeru FIPS 140-3 to be enabled, but both are enabled.", ibmJdk8Fips140_3Enabled && semeruFips140_3Enabled);
 
-        assertEquals("Expected FIPS 140-3 enabled message to be " + (fips140_3Enabled ? "found, but was not found." : "not found, but was found."),
-                fips140_3Enabled, server.waitForStringInLog("CWWKS5903I") != null);
+        if (fips140_3Enabled) {
+            assertTrue("Expected one of IBM JDK 8 or Semeru FIPS 140-3 to be enabled, but neither are enabled.", ibmJdk8Fips140_3Enabled || semeruFips140_3Enabled);
+            if (ibmJdk8Fips140_3Enabled) {
+                assertNotNull("Expected FIPS 140-3 enabled message to be found, but was not found.", server.waitForStringInLog("CWWKS5903I:.*IBMJCEPlusFIPS"));
+            } else {
+                assertNotNull("Expected FIPS 140-3 enabled message to be found, but was not found.", server.waitForStringInLog("CWWKS5903I:.*OpenJCEPlusFIPS"));
+            }
+        } else {
+            assertFalse("Expected neither of IBM JDK 8 or Semeru FIPS 140-3 to be enabled, but at least one is enabled.", ibmJdk8Fips140_3Enabled || semeruFips140_3Enabled);
+            assertNull("Expected FIPS 140-3 enabled message to be not found, but was found.", server.waitForStringInLog("CWWKS5903I:"));
+        }
 
         // let's not worry about non-fips case for getFipsLevel for now since some JDK's might use 140-2 as default
         // while some might use disabled. so let's just focus on making sure it's correct for fips enabled.
@@ -253,6 +273,8 @@ public class LTPAKeyRotationTests {
         }
 
         assertNotNull("Expected \"isFips140_3Enabled: " + fips140_3Enabled + "\" trace was not found.", server.waitForStringInTrace("isFips140_3Enabled: " + fips140_3Enabled));
+        assertNotNull("Expected \"isIbmJdk8Fips140_3Enabled: " + ibmJdk8Fips140_3Enabled + "\" trace was not found.", server.waitForStringInTrace("isIbmJdk8Fips140_3Enabled: " + ibmJdk8Fips140_3Enabled));
+        assertNotNull("Expected \"isSemeruFips140_3Enabled: " + semeruFips140_3Enabled + "\" trace was not found.", server.waitForStringInTrace("isSemeruFips140_3Enabled: " + semeruFips140_3Enabled));
         assertNotNull("Expected \"isFips140_2Enabled: " + fips140_2Enabled + "\" trace was not found.", server.waitForStringInTrace("isFips140_2Enabled: " + fips140_2Enabled));
     }
 

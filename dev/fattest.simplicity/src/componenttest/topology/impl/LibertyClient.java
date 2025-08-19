@@ -2415,17 +2415,12 @@ public class LibertyClient {
     }
 
     private void waitIfNeeded() throws Exception {
-        String osName = System.getProperty("os.name");
-        boolean isUnix = !(osName.startsWith("win") || osName.startsWith("Win"));
         boolean lastConfigLessThanOneSecAgo = (System.currentTimeMillis() - lastConfigUpdate) < 1000;
 
-        Log.finer(c, "replaceClientConfiguration", "isUnix=" + isUnix + " lastConfigLessThanOneSecAgo=" + lastConfigLessThanOneSecAgo);
-        if (lastConfigLessThanOneSecAgo && isUnix) {
-            // Due to a java limitation on Unix, we need to wait at least
-            // 1 second between config updates so the client can see it.
-            // See https://www-01.ibm.com/support/docview.wss?uid=swg21446506
-            // Note that the above page says that it affects versions up to 1.6, but if you look at the sun bug it is not fixed until java 8.
-            Log.finer(c, "replaceClientConfiguration", "Sleeping for 1 second to work around Unix / JDK limitation fixed in Java 8");
+        Log.finer(c, "replaceClientConfiguration", "lastConfigLessThanOneSecAgo=" + lastConfigLessThanOneSecAgo);
+        if (lastConfigLessThanOneSecAgo) {
+            // Sleeping 1 second to ensure config is processed properly
+            Log.finer(c, "replaceClientConfiguration", "Sleeping for 1 second to ensure config is processed.");
             Thread.sleep(1000);
         }
     }

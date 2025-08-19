@@ -35,8 +35,8 @@
         ibm:reference="com.ibm.ws.classloading.sharedlibrary"
     />
 
-    <AD name="internal" description="internal use only"
-        id="patchLibraryRef"
+    <AD name="%classloader.override.library.ref" description="%classloader.override.library.ref.desc"
+        id="overrideLibraryRef"
         ibm:beta="true"
         required="false"
         type="String"

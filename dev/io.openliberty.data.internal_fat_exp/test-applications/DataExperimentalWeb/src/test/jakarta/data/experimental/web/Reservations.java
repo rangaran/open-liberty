@@ -12,11 +12,6 @@
  *******************************************************************************/
 package test.jakarta.data.experimental.web;
 
-import static io.openliberty.data.repository.Is.Op.GreaterThanEqual;
-import static io.openliberty.data.repository.Is.Op.In;
-import static io.openliberty.data.repository.Is.Op.LessThanEqual;
-import static io.openliberty.data.repository.Is.Op.Not;
-import static io.openliberty.data.repository.Is.Op.Prefixed;
 import static io.openliberty.data.repository.function.Extract.Field.DAY;
 import static io.openliberty.data.repository.function.Extract.Field.HOUR;
 import static io.openliberty.data.repository.function.Extract.Field.MINUTE;
@@ -44,6 +39,11 @@ import java.util.stream.Stream;
 
 import jakarta.data.Limit;
 import jakarta.data.Sort;
+import jakarta.data.constraint.AtLeast;
+import jakarta.data.constraint.AtMost;
+import jakarta.data.constraint.In;
+import jakarta.data.constraint.Like;
+import jakarta.data.constraint.NotEqualTo;
 import jakarta.data.page.Page;
 import jakarta.data.page.PageRequest;
 import jakarta.data.repository.BasicRepository;
@@ -81,13 +81,13 @@ public interface Reservations extends BasicRepository<Reservation, Long> {
     @Find
     @Select("meetingID")
     @OrderBy("meetingID")
-    List<Long> endsInMonth(@By("stop") @Extract(MONTH) @io.openliberty.data.repository.Is(In) Iterable<Integer> months);
+    List<Long> endsInMonth(@By("stop") @Extract(MONTH) @Is(In.class) Iterable<Integer> months);
 
     @Find
     @Select("meetingID")
     @OrderBy("meetingID")
-    long[] endsWithinDays(@By("stop") @Extract(DAY) @io.openliberty.data.repository.Is(GreaterThanEqual) int minDayOfMonth,
-                          @By("stop") @Extract(DAY) @io.openliberty.data.repository.Is(LessThanEqual) int maxDayOfMonth);
+    long[] endsWithinDays(@By("stop") @Extract(DAY) @Is(AtLeast.class) int minDayOfMonth,
+                          @By("stop") @Extract(DAY) @Is(AtMost.class) int maxDayOfMonth);
 
     @Find
     @Select("meetingId")
@@ -162,8 +162,8 @@ public interface Reservations extends BasicRepository<Reservation, Long> {
     @Select("stop")
     @OrderBy("start")
     ReservedTimeSlot[] findTimeSlotWithin(String location,
-                                          @By("start") @io.openliberty.data.repository.Is(GreaterThanEqual) OffsetDateTime startAfter,
-                                          @By("start") @io.openliberty.data.repository.Is(LessThanEqual) OffsetDateTime startBefore);
+                                          @By("start") @Is(AtLeast.class) OffsetDateTime startAfter,
+                                          @By("start") @Is(AtMost.class) OffsetDateTime startBefore);
 
     ArrayDeque<Reservation> findByLocationStartsWith(String locationPrefix);
 
@@ -176,21 +176,21 @@ public interface Reservations extends BasicRepository<Reservation, Long> {
     @Find
     @Select("location")
     @OrderBy("location")
-    List<String> locationsThatStartWith(@By("location") @io.openliberty.data.repository.Is(Prefixed) String beginningOfLocationName);
+    List<String> locations(@By("location") Like locationNamePrefix);
 
     int removeByHostNotIn(Collection<String> hosts);
 
     @Find
     @Select("meetingId")
     @OrderBy("host")
-    List<Long> startingWithin(@By("start") @Extract(HOUR) @io.openliberty.data.repository.Is(GreaterThanEqual) int minHour,
-                              @By("start") @Extract(HOUR) @io.openliberty.data.repository.Is(LessThanEqual) int maxHour,
+    List<Long> startingWithin(@By("start") @Extract(HOUR) @Is(AtLeast.class) int minHour,
+                              @By("start") @Extract(HOUR) @Is(AtMost.class) int maxHour,
                               @By("start") @Extract(MINUTE) @Is int minute);
 
     @Find
     @Select("meetingID")
     @OrderBy("meetingID")
-    List<Long> startsInQuarterOtherThan(@By("start") @Extract(QUARTER) @io.openliberty.data.repository.Is(Not) int quarterToExclude);
+    List<Long> startsInQuarterOtherThan(@By("start") @Extract(QUARTER) @Is(NotEqualTo.class) int quarterToExclude);
 
     @Find
     @Select("meetingID")
@@ -200,8 +200,8 @@ public interface Reservations extends BasicRepository<Reservation, Long> {
     @Find
     @Select("meetingId")
     @OrderBy("host")
-    List<Long> startsWithinHoursWithMinute(@By("start") @Extract(HOUR) @io.openliberty.data.repository.Is(GreaterThanEqual) int minHour,
-                                           @By("start") @Extract(HOUR) @io.openliberty.data.repository.Is(LessThanEqual) int maxHour,
+    List<Long> startsWithinHoursWithMinute(@By("start") @Extract(HOUR) @Is(AtLeast.class) int minHour,
+                                           @By("start") @Extract(HOUR) @Is(AtMost.class) int maxHour,
                                            @By("start") @Extract(MINUTE) int minute);
 
     int updateByHostAndLocationSetLocation(String host, String currentLocation, String newLocation);

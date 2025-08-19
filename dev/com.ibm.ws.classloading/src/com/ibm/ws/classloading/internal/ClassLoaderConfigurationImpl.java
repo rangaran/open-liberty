@@ -32,7 +32,7 @@ class ClassLoaderConfigurationImpl implements ClassLoaderConfiguration, ClassLoa
     private boolean includeAppExtensions;
     private ClassLoaderIdentity id;
     private ClassLoaderIdentity parentId;
-    private List<String> patchLibraries = Collections.emptyList();
+    private List<String> overrideLibraries = Collections.emptyList();
     private List<String> sharedLibraries = new ArrayList<String>();
     private List<String> commonLibraries = Collections.emptyList();
     private List<String> providers = Collections.emptyList();
@@ -64,8 +64,8 @@ class ClassLoaderConfigurationImpl implements ClassLoaderConfiguration, ClassLoa
     }
 
     @Override
-    public ClassLoaderConfiguration setPatchLibraries(List<String> libs) {
-        this.patchLibraries = libs == null ? Collections.<String> emptyList() : libs;
+    public ClassLoaderConfiguration setOverrideLibraries(List<String> libs) {
+        this.overrideLibraries = libs == null ? Collections.<String> emptyList() : libs;
         return this;
     }
 
@@ -139,8 +139,8 @@ class ClassLoaderConfigurationImpl implements ClassLoaderConfiguration, ClassLoa
     }
 
     @Override
-    public List<String> getPatchLibraries() {
-        return Collections.unmodifiableList(patchLibraries);
+    public List<String> getOverrideLibraries() {
+        return Collections.unmodifiableList(overrideLibraries);
     }
 
     @Override
@@ -171,7 +171,7 @@ class ClassLoaderConfigurationImpl implements ClassLoaderConfiguration, ClassLoa
         StringBuilder sb = new StringBuilder();
         sb.append(id)
           .append(" [child of ").append(parentId).append("]")
-          .append(" patchLibraries = ").append(patchLibraries)
+          .append(" overrideLibraries = ").append(overrideLibraries)
           .append(" privateLibraries = ").append(sharedLibraries)
           .append(" commonLibraries = ").append(commonLibraries)
           .append(" providers = ").append(providers)

@@ -84,7 +84,7 @@ import com.ibm.wsspi.library.Library;
  */
 public class AppClassLoader extends ContainerClassLoader implements SpringLoader {
     static final TraceComponent tc = Tr.register(AppClassLoader.class);
-    private static final AtomicBoolean issuedPatchBetaMessage = new AtomicBoolean(false);
+    private static final AtomicBoolean issuedOverrideBetaMessage = new AtomicBoolean(false);
 
     private static final Set<String> forbiddenClassNames = Collections.unmodifiableSet( loadForbidden() );
 
@@ -164,7 +164,7 @@ public class AppClassLoader extends ContainerClassLoader implements SpringLoader
     }
 
     protected final ClassLoaderConfiguration config;
-    private final AtomicReference<List<Library>> patchLibraries;
+    private final AtomicReference<List<Library>> overrideLibraries;
     private final AtomicReference<List<Library>> privateLibraries;
     private final Iterable<LibertyLoader> beforeAppDelegateLoaders;
     private final Iterable<LibertyLoader> afterAppDelegateLoaders;
@@ -185,21 +185,21 @@ public class AppClassLoader extends ContainerClassLoader implements SpringLoader
         for (Container container : config.getNativeLibraryContainers())
             addNativeLibraryContainer(container);
 
-        List<Library> foundPatchLibraries = Providers.getPatchLibraries(config);
-        if (foundPatchLibraries != null && !foundPatchLibraries.isEmpty()) {
+        List<Library> foundOverrideLibraries = Providers.getOverrideLibraries(config);
+        if (foundOverrideLibraries != null && !foundOverrideLibraries.isEmpty()) {
             // beta guard check
             if (!ProductInfo.getBetaEdition()) {
-                foundPatchLibraries  = Collections.emptyList();
-                if (issuedPatchBetaMessage.compareAndSet(false, true)) {
-                    Tr.info(tc, "BETA: Patch libraries can only be used with the Open Liberty BETA.");
+                foundOverrideLibraries  = Collections.emptyList();
+                if (issuedOverrideBetaMessage.compareAndSet(false, true)) {
+                    Tr.info(tc, "BETA: Override libraries can only be used with the Open Liberty BETA.");
                 }
             } else {
-                if (issuedPatchBetaMessage.compareAndSet(false, true)) {
-                    Tr.info(tc, "BETA: Patch libraries are being used.");
+                if (issuedOverrideBetaMessage.compareAndSet(false, true)) {
+                    Tr.info(tc, "BETA: Override libraries are being used.");
                 }
             }
         }
-        this.patchLibraries = new AtomicReference<>(foundPatchLibraries);
+        this.overrideLibraries = new AtomicReference<>(foundOverrideLibraries);
         this.privateLibraries = new AtomicReference<>(Providers.getPrivateLibraries(config));
 
         List<LibertyLoader> tmpBeforeApp = new ArrayList<>();
@@ -835,11 +835,11 @@ public class AppClassLoader extends ContainerClassLoader implements SpringLoader
 
     @Override
     protected void lazyInit() {
-        // process all the patch and private libraries
+        // process all the override and private libraries
 
-        List<Library> curPatchLibraries = patchLibraries.getAndSet(null);
-        if (curPatchLibraries != null) {
-            for (Library lib : curPatchLibraries) {
+        List<Library> curOverrideLibraries = overrideLibraries.getAndSet(null);
+        if (curOverrideLibraries != null) {
+            for (Library lib : curOverrideLibraries) {
                 copyLibraryElementsToClasspath(lib, true);
             }
         }
