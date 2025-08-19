@@ -91,6 +91,7 @@ public class MapBasedSelfExtractorTest {
         if (disableTestSuite) {
             return null;
         }
+        //try again
 
         File wlpJar = null;
         File[] files = outputUploadDir.listFiles();
