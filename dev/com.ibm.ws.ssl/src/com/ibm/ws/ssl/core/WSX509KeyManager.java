@@ -270,20 +270,7 @@ public final class WSX509KeyManager extends X509ExtendedKeyManager implements X5
                 boolean found = false;
                 for (int i = 0; i < list.length && !found; i++) {
                     if (isPKIX) {
-                        if (list[i].toLowerCase().equals(serverAlias.toLowerCase())) {
-                            Tr.debug(tc, "chooseClientAlias", "Exact match, setting client alias to" + serverAlias + " because the KeyManager Factory algorithm is PKIX");
-                            break;
-                        } else if (list[i].toLowerCase().contains(clientAlias.toLowerCase())) {
-                            Pattern r = Pattern.compile("\\d+\\.\\d+\\." + clientAlias + "$", Pattern.CASE_INSENSITIVE);
-                            Matcher m = r.matcher(list[i]);
-                            if (m.find()) {
-                                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
-                                    Tr.debug(tc, "clientAlias", "Setting client alias to " + list[i] + " because the KeyManager Factory algorithm is PKIX");
-                                clientAlias = list[i];
-                                found = true;
-                            }
-                        }
-
+                        found = setClientServerAliasPKIXAlias(clientAlias, list[i]);
                     } else {
                         if (clientAlias.equalsIgnoreCase(list[i]))
                             found = true;
@@ -424,25 +411,11 @@ public final class WSX509KeyManager extends X509ExtendedKeyManager implements X5
                     boolean found = false;
                     for (int i = 0; i < list.length && !found; i++) {
                         if (isPKIX) {
-                            if (list[i].toLowerCase().equals(serverAlias.toLowerCase())) {
-                                Tr.debug(tc, "chooseServerAlias", "Exact match, setting server alias to" + serverAlias + " because the KeyManager Factory algorithm is PKIX");
-                                break;
-                            } else if (list[i].toLowerCase().contains(serverAlias.toLowerCase())) {
-                                Pattern r = Pattern.compile("\\d+\\.\\d+\\." + serverAlias + "$", Pattern.CASE_INSENSITIVE);
-                                Matcher m = r.matcher(list[i]);
-                                if (m.find()) {
-                                    if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
-                                        Tr.debug(tc, "chooseServerAlias", "Setting alias to " + list[i] + " because the KeyManager Factory algorithm is PKIX");
-                                    serverAlias = list[i];
-                                    found = true;
-                                }
-                            }
-
+                           found = setClientServerAliasPKIXAlias(serverAlias, list[i]);
                         } else {
                             if (serverAlias.equalsIgnoreCase(list[i]))
                                 found = true;
                         }
-
                     }
 
                     if (found) {
@@ -484,6 +457,22 @@ public final class WSX509KeyManager extends X509ExtendedKeyManager implements X5
         if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled())
             Tr.exit(tc, "chooseServerAlias", new Object[] { mappedAlias });
         return mappedAlias;
+    }
+
+    private boolean setClientServerAliasPKIXAlias(String clientServerAlias, String keyManagerAlias) {
+        if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
+            Tr.debug(tc, "setClientServerAliasPKIXAlias", "KeyManager Factory algorithm is PKIX");
+        if (keyManagerAlias.toLowerCase().contains(clientServerAlias.toLowerCase())) {
+            Pattern r = Pattern.compile("\\d+\\.\\d+\\." + clientServerAlias + "$", Pattern.CASE_INSENSITIVE);
+            Matcher m = r.matcher(keyManagerAlias);
+            if (m.find()) {
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
+                    Tr.debug(tc, "setClientServerAliasPKIXAlias", "Should use alias:" + keyManagerAlias);
+                    clientServerAlias = keyManagerAlias;
+                    return true;
+            }
+        }
+        return false;
     }
 
     /*
