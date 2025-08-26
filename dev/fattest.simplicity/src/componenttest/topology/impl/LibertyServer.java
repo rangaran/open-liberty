@@ -7888,7 +7888,7 @@ public class LibertyServer implements LogMonitorClient {
 
     public boolean isSemeruFIPS140_3EnabledAndSupported() throws IOException {
         JavaInfo serverJavaInfo = JavaInfo.forServer(this);
-        return GLOBAL_FIPS_140_3 && (serverJavaInfo.majorVersion() >= 11) && (serverJavaInfo.VENDOR == Vendor.IBM) && serverLevelFipsEnabled;
+        return GLOBAL_FIPS_140_3 && (serverJavaInfo.majorVersion() >= 11) && (serverJavaInfo.VENDOR == Vendor.OPENJ9) && serverLevelFipsEnabled;
     }
 
     public void setServerLevelFips(boolean enabled) {
