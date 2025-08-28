@@ -18,9 +18,22 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.HashMap;
+import java.util.Map;
+
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
 
 import org.junit.Test;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
+
+import com.ibm.ws.common.crypto.CryptoUtils;
+import com.ibm.ws.crypto.util.AESKeyManager;
+import com.ibm.ws.crypto.util.AESKeyManager.KeyVersion;
 
 import test.common.SharedOutputManager;
 
@@ -177,5 +190,38 @@ public class PasswordUtilTest {
             fail();
         }
 
+    }
+
+    @Test
+    public void testBYOAesKey() throws Exception {
+        Map<String, String> props = new HashMap<>();
+        byte[] keyBytes = generateRandomAes256Key();
+        String keyString = Base64.getEncoder().encodeToString(keyBytes);
+        props.put(PasswordUtil.PROPERTY_AES_KEY, keyString);
+        String decoded_string = "pass1233";
+        String encodedPassword = PasswordUtil.encode(decoded_string, "aes", props);
+
+        try (MockedStatic<AESKeyManager> mock = Mockito.mockStatic(AESKeyManager.class, Mockito.CALLS_REAL_METHODS)) {
+            mock.when(() -> AESKeyManager.getKeyCharsUsingResolver(KeyVersion.AES_V2, null)).thenReturn(keyString.toCharArray());
+            assertEquals("Decoded value does not match original value", decoded_string, PasswordUtil.decode(encodedPassword));
+        }
+    }
+
+    private byte[] generateRandomAes256Key() {
+        byte[] keyBytes;
+        SecureRandom secureRandom = new SecureRandom();
+
+        try {
+            KeyGenerator keyGenerator = KeyGenerator.getInstance(CryptoUtils.ENCRYPT_ALGORITHM_AES);
+            keyGenerator.init(CryptoUtils.AES_256_KEY_LENGTH_BITS, secureRandom);
+            SecretKey secretKey = keyGenerator.generateKey();
+            keyBytes = secretKey.getEncoded();
+        } catch (NoSuchAlgorithmException e) {
+            // Fallback to SecureRandom if KeyGenerator is not available
+            keyBytes = new byte[CryptoUtils.AES_256_KEY_LENGTH_BYTES];
+            secureRandom.nextBytes(keyBytes);
+        }
+
+        return keyBytes;
     }
 }

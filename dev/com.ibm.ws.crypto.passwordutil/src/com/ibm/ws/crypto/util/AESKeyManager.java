@@ -154,8 +154,18 @@ public class AESKeyManager {
      * @return
      */
     private static KeyHolder getHolder(KeyVersion version, String key) throws NoSuchAlgorithmException, InvalidKeySpecException {
-        char[] keyChars = _resolver.get().getKey(key == null ? version.resolverProperty : key);
+        char[] keyChars = getKeyCharsUsingResolver(version, key);
         return version.get(keyChars);
+    }
+
+    /**
+     * @param version
+     * @param key
+     * @return
+     */
+    public static char[] getKeyCharsUsingResolver(KeyVersion version, String key) {
+        char[] keyChars = _resolver.get().getKey(key == null ? version.resolverProperty : key);
+        return keyChars;
     }
 
     /**
