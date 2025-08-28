@@ -40,10 +40,10 @@ encode.enterText=Enter text:
 encode.reenterText=Re-enter text:
 encode.readError=Error reading in text.
 encode.entriesDidNotMatch=Entries did not match.
-encode.mutuallyExclusiveArgError=Cannot specify both {0} and {1}.
-encode.xmlEncryptionAmbiguous=WARNING: XML file contains properties {0} and {1}.
-encode.xmlMissingEncryptionProperties=Cannot encode password, XML file does not contain {0} or {1}.
-encode.xmlPropertyFound=Encrypting password with xml property {0}.
+encode.mutuallyExclusiveArgError=The XML file cannot specify both the {0} and {1} properties.
+encode.xmlEncryptionAmbiguous=WARNING: XML file contains both the {0} and {1} variables.
+encode.xmlMissingEncryptionVariables=Cannot encode password, the XML file does not contain the {0} or {1} variables.
+encode.xmlVariableFound=Encrypting password with the XML variable {0}.
 
 password.enterText=Enter password:
 password.reenterText=Re-enter password:
@@ -114,11 +114,11 @@ Include the following configuration to your server.xml\n\
 #------------------------------\n at 72 chars -- leading tab-----------\n\#
 generate.success=\
 Password encryption XML file successfully created.\n\
-To activate the changes, update your server.xml configuration to\n\
-reference the location of the XML file by adding the following:\n\
+To activate the changes, add a reference to the location of the XML file\n\
+to your server.xml file:\n\
 \t<include location=\"{0}\" />
 generate.fail.file.exists=\
-File {0} exists and will not be overwritten. Please specify a different\n\
-file name or remove the existing file before retrying.
+The {0} file exists and will not be overwritten. Either specify a different\n\
+file name, or remove the existing file before you try again.
 generate.fail.file.is.directory=\
-File {0} is a directory, please specify the full file name.
+The {0} value specified for the file name is a directory. Specify the full file name and try again.

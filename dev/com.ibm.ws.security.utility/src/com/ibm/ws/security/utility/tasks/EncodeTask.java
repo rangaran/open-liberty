@@ -384,10 +384,10 @@ public class EncodeTask extends BaseCommandTask {
                 props.put(PasswordUtil.PROPERTY_CRYPTO_KEY, key);
                 propertyFound = AESKeyManager.NAME_WLP_PASSWORD_ENCRYPTION_KEY;
             } else {
-                throw new IllegalArgumentException(getMessage("encode.xmlMissingEncryptionProperties", AESKeyManager.NAME_WLP_BASE64_AES_ENCRYPTION_KEY,
+                throw new IllegalArgumentException(getMessage("encode.xmlMissingEncryptionVariables", AESKeyManager.NAME_WLP_BASE64_AES_ENCRYPTION_KEY,
                                                               AESKeyManager.NAME_WLP_PASSWORD_ENCRYPTION_KEY));
             }
-            stdout.println(getMessage("encode.xmlPropertyFound", propertyFound));
+            stdout.println(getMessage("encode.xmlVariableFound", propertyFound));
 
         }
         return props;
