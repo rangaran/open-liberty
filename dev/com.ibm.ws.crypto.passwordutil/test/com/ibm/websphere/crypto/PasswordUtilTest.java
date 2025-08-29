@@ -18,6 +18,9 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Base64;
@@ -26,10 +29,12 @@ import java.util.Map;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
+import javax.xml.parsers.ParserConfigurationException;
 
 import org.junit.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
+import org.xml.sax.SAXException;
 
 import com.ibm.ws.common.crypto.CryptoUtils;
 import com.ibm.ws.crypto.util.AESKeyManager;
@@ -189,24 +194,31 @@ public class PasswordUtilTest {
         } catch (InvalidPasswordDecodingException e) {
             fail();
         }
-
     }
 
+    /**
+     * Test bringing your own AES key for encoding and decoding.
+     */
     @Test
     public void testBYOAesKey() throws Exception {
         Map<String, String> props = new HashMap<>();
         byte[] keyBytes = generateRandomAes256Key();
         String keyString = Base64.getEncoder().encodeToString(keyBytes);
         props.put(PasswordUtil.PROPERTY_AES_KEY, keyString);
-        String decoded_string = "pass1233";
-        String encodedPassword = PasswordUtil.encode(decoded_string, "aes", props);
+        String testValue = "test123";
+        String encodedValue = PasswordUtil.encode(testValue, "aes", props);
 
         try (MockedStatic<AESKeyManager> mock = Mockito.mockStatic(AESKeyManager.class, Mockito.CALLS_REAL_METHODS)) {
             mock.when(() -> AESKeyManager.getKeyCharsUsingResolver(KeyVersion.AES_V2, null)).thenReturn(keyString.toCharArray());
-            assertEquals("Decoded value does not match original value", decoded_string, PasswordUtil.decode(encodedPassword));
+            assertEquals("Decoded value does not match original value", testValue, PasswordUtil.decode(encodedValue));
         }
     }
 
+    /**
+     * Helper method to generate a random AES-256 key.
+     *
+     * @return A byte array containing a random 256-bit AES key
+     */
     private byte[] generateRandomAes256Key() {
         byte[] keyBytes;
         SecureRandom secureRandom = new SecureRandom();
@@ -223,5 +235,74 @@ public class PasswordUtilTest {
         }
 
         return keyBytes;
+    }
+
+    /**
+     * Test that providing an invalid Base64 string as an AES key fails appropriately.
+     */
+    @Test
+    public void testInvalidBase64KeyFails() {
+        Map<String, String> props = new HashMap<>();
+        // Invalid base64 string: contains characters not valid in Base64 encoding
+        String invalidKey = "Not@Valid*Base64==";
+        props.put(PasswordUtil.PROPERTY_AES_KEY, invalidKey);
+
+        String testPassword = "badKeyTest";
+
+        try {
+            PasswordUtil.encode(testPassword, "aes", props);
+            fail("Encoding with an invalid Base64 key should have failed");
+        } catch (Exception e) {
+            // Verify we get the expected exception type
+            assertTrue("Exception should be InvalidPasswordEncodingException",
+                       e instanceof InvalidPasswordEncodingException);
+
+        }
+    }
+
+    /**
+     * Test that attempting to parse an AES encryption XML file with a non-existent path
+     * results in an appropriate exception.
+     */
+    @Test
+    public void testParseAesEncryptionXmlFileWithInvalidPath() {
+        // Use a path that definitely doesn't exist
+        String invalidPath = "/non/existent/path/to/aeskey.xml";
+
+        try {
+            PasswordUtil.parseAesEncryptionXmlFile(invalidPath);
+            fail("Expected IOException for non-existent XML file path");
+        } catch (Exception e) {
+            // We expect some kind of IOException or parsing failure
+            assertTrue(
+                       "Unexpected exception type: " + e,
+                       e instanceof IOException);
+        }
+    }
+
+    /**
+     * Test that attempting to parse an AES encryption XML file which is malformed
+     * results in an appropriate exception.
+     */
+    @Test
+    public void testParseAesEncryptionXmlFileWithMalformedXml() throws IOException {
+        // Create a temporary file with invalid XML content
+        File badXml = File.createTempFile("bad-xml", ".xml");
+        try (FileWriter writer = new FileWriter(badXml)) {
+            // Write intentionally malformed XML content
+            writer.write("<variable name=\"wlp.aes.encryption.key\" value=\"someValue\" >"); // Missing closing tag
+        }
+
+        try {
+            PasswordUtil.parseAesEncryptionXmlFile(badXml.getAbsolutePath());
+            fail("Expected SAXException or ParserConfigurationException for malformed XML content");
+        } catch (Exception e) {
+            assertTrue(
+                       "Unexpected exception type: " + e,
+                       e instanceof SAXException || e instanceof ParserConfigurationException);
+        } finally {
+            // Clean up the temporary file
+            badXml.delete();
+        }
     }
 }
