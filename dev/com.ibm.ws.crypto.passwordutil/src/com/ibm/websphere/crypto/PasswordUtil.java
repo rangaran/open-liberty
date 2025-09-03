@@ -49,14 +49,14 @@ public class PasswordUtil {
 
     /**
      * <p>
-     * Constant that holds a literal AES-256 key for encode and encode_password methods.
-     * PROPERTY_CRYPTO_KEY and PROPERTY_AES_KEY are mutually exclusive properties.
+     * Constant that holds a raw base64 AES-256 key for encode and encode_password methods.
+     * If both PROPERTY_CRYPTO_KEY and PROPERTY_AES_KEY are set during encode, PROPERTY_AES_KEY will be used.
      */
     public final static String PROPERTY_AES_KEY = "aes.key";
     /**
      * <p>
      * Constant that holds the name of the property for specifying the encryption algorithm for the encode and encode_password method.
-     * PROPERTY_CRYPTO_KEY and PROPERTY_AES_KEY are mutually exclusive properties.
+     * If both PROPERTY_CRYPTO_KEY and PROPERTY_AES_KEY are set during encode, PROPERTY_AES_KEY will be used.
      * </p>
      **/
     public final static String PROPERTY_CRYPTO_KEY = "crypto.key";
@@ -786,12 +786,19 @@ public class PasswordUtil {
         return buffer.toString();
     }
 
-    public static Map<String, String> parseAesEncryptionXmlFile(String value) throws Exception {
+    /**
+     *
+     * @param xmlFilePath the path of the XML file to be parsed.
+     * @return a Map containing keysPasswordUtil.PROPERTY_AES_KEY and/or PasswordUtil.PROPERTY_CRYPTO_KEY
+     *         if they are found within the parsed file.
+     * @throws Exception if an exception occurs while parsing the XML file.
+     */
+    public static Map<String, String> parseAesEncryptionXmlFile(String xmlFilePath) throws Exception {
         String base64variableName = AESKeyManager.NAME_WLP_BASE64_AES_ENCRYPTION_KEY;
         String passKeyVariableName = AESKeyManager.NAME_WLP_PASSWORD_ENCRYPTION_KEY;
         Map<String, String> props = new HashMap<>();
         try {
-            Map<String, String> xmlVariables = extractXmlVariables(value);
+            Map<String, String> xmlVariables = extractXmlVariables(xmlFilePath);
 
             String base64Key = xmlVariables.get(base64variableName);
             String passKey = xmlVariables.get(passKeyVariableName);
@@ -808,6 +815,14 @@ public class PasswordUtil {
         }
     }
 
+    /**
+     *
+     * @param xmlFilePath the xml file's path
+     * @return a map containing all 'variables' defined in the file specified in xmlFilePath
+     * @throws IOException
+     * @throws SAXException
+     * @throws ParserConfigurationException
+     */
     private static Map<String, String> extractXmlVariables(String xmlFilePath) throws IOException, SAXException, ParserConfigurationException {
         Map<String, String> variables = new HashMap<>();
         try (InputStream is = Files.newInputStream(Paths.get(xmlFilePath))) {
