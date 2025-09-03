@@ -140,7 +140,7 @@ public class EncodeTask extends BaseCommandTask {
             stdout.println(output);
         } else {
             String encoding = argMap.get(ARG_ENCODING);
-            Map<String, String> props = convertToProperties(argMap, stdout, stderr);
+            Map<String, String> props = convertToProperties(argMap, stdout);
             // need to add the key if this is AES/SAF and keyring parameters are provided
             if (isZOS()) {
                 props = getKeyIfSAF(encoding, props);
@@ -257,6 +257,12 @@ public class EncodeTask extends BaseCommandTask {
         return result;
     }
 
+    /**
+     * Validates whether adding a new argument would violate any mutually exclusive constraints.
+     *
+     * @param arg      the argument we are testing
+     * @param inputMap the inputMap of arguments already parsed.
+     */
     private void validateMutuallyExclusiveKeys(String arg, Map<String, String> inputMap) {
         for (Set<String> group : EXCLUSIVE_ARGUMENTS) {
             if (group.contains(arg)) {
@@ -321,10 +327,10 @@ public class EncodeTask extends BaseCommandTask {
     /**
      * Convert the properties for encoding from the command line parameters.
      *
-     * @param stderr
+     * @param stdout a PrintStream to write informational messages.
      * @throws Exception
      */
-    protected Map<String, String> convertToProperties(Map<String, String> argMap, PrintStream stdout, PrintStream stderr) throws Exception {
+    protected Map<String, String> convertToProperties(Map<String, String> argMap, PrintStream stdout) throws Exception {
         HashMap<String, String> props = new HashMap<String, String>();
 
         String value = argMap.get(ARG_KEY);

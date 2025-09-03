@@ -44,6 +44,7 @@ public class AESKeyManager {
         // FIPS 140-3: Algorithm assessment complete; no changes required.
         // AES_V0 is only used for backward compatibility, newly created passwords will use AES_V1. If FIPS is enabled, AES_V0 will not be tolerated
         // and users must recreate their password
+        // AES_V2 allows users to specify a raw AES-256 key to encrypt / decrypt. This is specified in base64 format in property PROPERTY_WLP_BASE64_AES_ENCRYPTION_KEY.
         AES_V0(CryptoUtils.PBKDF2_WITH_HMAC_SHA1, CryptoUtils.PBKDF2HMACSHA1_ITERATIONS, CryptoUtils.AES_128_KEY_LENGTH_BITS, CryptoUtils.AES_V0_SALT, PROPERTY_WLP_PASSWORD_ENCRYPTION_KEY),
         AES_V1(CryptoUtils.PBKDF2_WITH_HMAC_SHA512, CryptoUtils.PBKDF2HMACSHA512_ITERATIONS, CryptoUtils.AES_256_KEY_LENGTH_BITS, CryptoUtils.AES_V1_SALT, PROPERTY_WLP_PASSWORD_ENCRYPTION_KEY),
         AES_V2(CryptoUtils.ENCRYPT_ALGORITHM_AES, 0, CryptoUtils.AES_256_KEY_LENGTH_BITS, null, PROPERTY_WLP_BASE64_AES_ENCRYPTION_KEY);
@@ -65,9 +66,9 @@ public class AESKeyManager {
         }
 
         /**
-         * If key is already in memory, return the holder containing the key. Otherwise, build the key and store it in the KeyHolder and then return the holder.
+         * If key is already in memory, return the holder containing the key. Otherwise, build the key and update the holder.
          *
-         * @param keyChars an array containing either a raw key in Base64 if alg == ENCRYPT_ALGORITHM_AES, a keyphrase used to build a key otherwise.
+         * @param keyChars an array containing either a raw key in Base64 if alg == ENCRYPT_ALGORITHM_AES, a keyphrase used to derive a key otherwise.
          * @return a KeyHolder object containing the AES key specified in keyChars
          * @throws NoSuchAlgorithmException
          * @throws InvalidKeySpecException
@@ -78,7 +79,7 @@ public class AESKeyManager {
                 byte[] data;
                 byte[] iv;
                 if (CryptoUtils.ENCRYPT_ALGORITHM_AES.equals(alg)) {
-                    data = Base64.getDecoder().decode(new String(keyChars));
+                    data = decodeBase64Key(keyChars);
                     int keyBitLength = data.length * 8;
                     if (keyBitLength != this.keyLength) {
                         //TODO do we need an NLS message for this exception?
@@ -96,7 +97,22 @@ public class AESKeyManager {
             return holder;
         }
 
-        //TODO do we need to annotate this to prevent the key from leaking into logs?
+        /**
+         * @param keyChars a char array to be base64 decoded into a byte array
+         * @return keyChars as a base64 decoded byte array.
+         * @throws InvalidKeySpecException if keyChars does not represent a valid base64 value.
+         */
+        private byte[] decodeBase64Key(char[] keyChars) throws InvalidKeySpecException {
+            byte[] data;
+            try {
+                data = Base64.getDecoder().decode(new String(keyChars));
+            } catch (IllegalArgumentException iae) {
+                // TODO do we need an NLS message?
+                throw new InvalidKeySpecException("Key was not in base64 format", iae);
+            }
+            return data;
+        }
+
         public byte[] buildAesKeyWithPbkdf2(char[] keyChars) throws NoSuchAlgorithmException, InvalidKeySpecException {
 
             SecretKeyFactory keyFactory = SecretKeyFactory.getInstance(alg);
@@ -148,20 +164,15 @@ public class AESKeyManager {
         return holder.getKey();
     }
 
-    /**
-     * @param holder
-     * @param keyChars
-     * @return
-     */
     private static KeyHolder getHolder(KeyVersion version, String key) throws NoSuchAlgorithmException, InvalidKeySpecException {
         char[] keyChars = getKeyCharsUsingResolver(version, key);
         return version.get(keyChars);
     }
 
     /**
-     * @param version
-     * @param key
-     * @return
+     * @param version the KeyVersion for 'key'
+     * @param key     the provided key, if null the KeyVersion.resolveProperty is used to resolve the key.
+     * @return the resolved Key as char[]
      */
     public static char[] getKeyCharsUsingResolver(KeyVersion version, String key) {
         char[] keyChars = _resolver.get().getKey(key == null ? version.resolverProperty : key);
