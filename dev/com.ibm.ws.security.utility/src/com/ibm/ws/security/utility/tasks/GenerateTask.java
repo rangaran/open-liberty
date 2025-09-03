@@ -24,7 +24,6 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
@@ -37,7 +36,7 @@ import com.ibm.ws.security.utility.utils.ConsoleWrapper;
 
 /**
  * GenerateTask handles the generation of encryption keys for Liberty server configuration.
- * It can create either a random AES-256 key or use a provided passphrase, and writes
+ * It can create either a random AES-256 key or use a provided passphrase to derive a key, and then writes
  * the result to an XML configuration file.
  */
 public class GenerateTask extends BaseCommandTask {
@@ -61,7 +60,20 @@ public class GenerateTask extends BaseCommandTask {
 
     @Override
     void checkRequiredArguments(String[] args) throws IllegalArgumentException {
-        // No required arguments for generate task
+        boolean fileFound = false;
+
+        for (String arg : args) {
+            String key = arg.split("=")[0];
+
+            if (ARG_FILE.equals(key)) {
+                fileFound = true;
+            }
+        }
+
+        if (!fileFound) {
+            throw new IllegalArgumentException(getMessage("missingArg", ARG_FILE));
+        }
+
     }
 
     @Override
@@ -92,12 +104,8 @@ public class GenerateTask extends BaseCommandTask {
         // Create XML builder and generate the key file
         PasswordEncryptionConfigXMLBuilder builder = new PasswordEncryptionConfigXMLBuilder(parsedArgs.keyPhrase, parsedArgs.filePath);
 
-        // Write the key to file
         builder.generateXML();
-
-        // Provide feedback to the user
         stdout.println(getMessage("generate.success", new File(builder.getFilePath()).getAbsolutePath()));
-
         return SecurityUtilityReturnCodes.OK;
 
     }
@@ -153,9 +161,9 @@ public class GenerateTask extends BaseCommandTask {
                 keyPhrase = value;
             } else if (ARG_FILE.equals(option)) {
                 if (new File(value).isDirectory()) {
-                    throw new IllegalArgumentException(getMessage("generate.fail.file.is.directory", value));
+                    throw new IllegalArgumentException(getMessage("generate.failFileIsDirectory", value));
                 } else if (new File(value).exists()) {
-                    throw new IllegalArgumentException(getMessage("generate.fail.file.exists", value));
+                    throw new IllegalArgumentException(getMessage("generate.failFileExists", value));
                 }
                 filePath = value;
 
@@ -198,14 +206,11 @@ public class GenerateTask extends BaseCommandTask {
         /**
          * Formats the property name and value as an XML server configuration.
          *
-         * @param name  The property name
-         * @param value The property value
+         * @param name  The property name, not null
+         * @param value The property value, not null
          * @return Formatted XML string
          */
         private String formatXml(String name, String value) {
-            Objects.requireNonNull(name, "Property name cannot be null");
-            Objects.requireNonNull(value, "Property value cannot be null");
-
             StringBuilder xml = new StringBuilder();
             xml.append("<server>\n");
             xml.append("    <variable name=\"").append(name).append("\" value=\"").append(value).append("\" />\n");
@@ -236,27 +241,6 @@ public class GenerateTask extends BaseCommandTask {
             return Base64.getEncoder().encodeToString(keyBytes);
         }
 
-        /**
-         * Generates the XML content based on the passphrase.
-         *
-         * @param passphrase The passphrase to use, or null to generate a random key
-         * @return XML content as a string
-         * @throws InvalidKeySpecException
-         * @throws NoSuchAlgorithmException
-         */
-        private String getXMLContent(String passphrase) throws NoSuchAlgorithmException, InvalidKeySpecException {
-            String propertyName = AESKeyManager.NAME_WLP_BASE64_AES_ENCRYPTION_KEY;
-
-            String keyValue;
-            if (passphrase == null) {
-                keyValue = generateRandomAes256Key();
-            } else {
-                keyValue = generateAes256KeyWithPBKDF2(passphrase);
-            }
-
-            return formatXml(propertyName, keyValue);
-        }
-
         private String generateAes256KeyWithPBKDF2(String phrase) throws NoSuchAlgorithmException, InvalidKeySpecException {
             byte[] data = KeyVersion.AES_V1.buildAesKeyWithPbkdf2(phrase.toCharArray());
             return Base64.getEncoder().encodeToString(data);
@@ -284,9 +268,16 @@ public class GenerateTask extends BaseCommandTask {
          * @throws NoSuchAlgorithmException
          */
         private void generateXML(String keyPhrase, String filePath) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+            String propertyName = AESKeyManager.NAME_WLP_BASE64_AES_ENCRYPTION_KEY;
+            String keyValue;
+            if (keyPhrase == null) {
+                keyValue = generateRandomAes256Key();
+            } else {
+                keyValue = generateAes256KeyWithPBKDF2(keyPhrase);
+            }
 
             // Generate XML content
-            String xmlContent = getXMLContent(keyPhrase);
+            String xmlContent = formatXml(propertyName, keyValue);
             Path path = Paths.get(filePath);
 
             try {
@@ -301,7 +292,6 @@ public class GenerateTask extends BaseCommandTask {
                             path,
                             xmlContent.getBytes(StandardCharsets.UTF_8),
                             StandardOpenOption.CREATE,
-                            StandardOpenOption.TRUNCATE_EXISTING,
                             StandardOpenOption.WRITE);
             } catch (IOException e) {
                 throw new IOException("Failed to write encryption key to file: " + filePath, e);

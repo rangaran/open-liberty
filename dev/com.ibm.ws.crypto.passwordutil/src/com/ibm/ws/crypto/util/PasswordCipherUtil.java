@@ -56,6 +56,7 @@ import com.ibm.ws.common.crypto.CryptoUtils;
 import com.ibm.ws.common.encoder.Base64Coder;
 import com.ibm.ws.crypto.util.custom.CustomManifest;
 import com.ibm.ws.crypto.util.custom.CustomUtils;
+import com.ibm.ws.kernel.productinfo.ProductInfo;
 import com.ibm.wsspi.kernel.service.utils.AtomicServiceReference;
 import com.ibm.wsspi.security.crypto.CustomPasswordEncryption;
 import com.ibm.wsspi.security.crypto.EncryptedInfo;
@@ -70,7 +71,6 @@ import com.ibm.wsspi.security.crypto.EncryptedInfo;
            property = "service.vendor=IBM")
 public class PasswordCipherUtil {
 
-    private static final int GCM_TAG_LENGTH = 128;
     private static final Class<?> CLASS_NAME = PasswordCipherUtil.class;
     private final static Logger logger = Logger.getLogger(CLASS_NAME.getCanonicalName(), MessageUtils.RB);
 
@@ -281,7 +281,7 @@ public class PasswordCipherUtil {
             return aesDecipherV0(encrypted_bytes);
         } else if (encrypted_bytes[0] == 1) {
             return aesDecipherV1(encrypted_bytes);
-        } else if (encrypted_bytes[0] == 2) {
+        } else if (encrypted_bytes[0] == 2 && ProductInfo.getBetaEdition()) {
             return aesDecipherV2(encrypted_bytes);
         } else {
             throw new InvalidPasswordCipherException();
@@ -298,7 +298,7 @@ public class PasswordCipherUtil {
         int ivLen = encrypted_bytes[1];
         int cipherBytesStart = ivLen + 2;
 
-        GCMParameterSpec iv = new GCMParameterSpec(GCM_TAG_LENGTH, encrypted_bytes, 2, ivLen);
+        GCMParameterSpec iv = new GCMParameterSpec(CryptoUtils.GCM_TAG_LENGTH, encrypted_bytes, 2, ivLen);
 
         byte[] decrypted = aesDecipherCommon(CryptoUtils.AES_GCM_CIPHER, AESKeyManager.KeyVersion.AES_V1, iv, encrypted_bytes, cipherBytesStart,
                                              encrypted_bytes.length - cipherBytesStart);
@@ -366,7 +366,9 @@ public class PasswordCipherUtil {
             String base64Key = null;
             if (properties != null) {
                 cryptoKey = properties.get(PasswordUtil.PROPERTY_CRYPTO_KEY);
-                base64Key = properties.get(PasswordUtil.PROPERTY_AES_KEY);
+                if (ProductInfo.getBetaEdition()) {
+                    base64Key = properties.get(PasswordUtil.PROPERTY_AES_KEY);
+                }
             }
             if (base64Key != null) {
                 info = aesEncipherV2(decrypted_bytes, base64Key);
@@ -608,7 +610,7 @@ public class PasswordCipherUtil {
         try {
             Cipher c = Cipher.getInstance(CryptoUtils.AES_GCM_CIPHER);
             // 128 is the GCM tag length. 128 is the MAX.
-            GCMParameterSpec ps = new GCMParameterSpec(GCM_TAG_LENGTH, getIvSourceBuffer(rand, c));
+            GCMParameterSpec ps = new GCMParameterSpec(CryptoUtils.GCM_TAG_LENGTH, getIvSourceBuffer(rand, c));
             c.init(Cipher.ENCRYPT_MODE, AESKeyManager.getKey(AESKeyManager.KeyVersion.AES_V1, cryptoKey), ps);
             byte[] encrypted_bytes = c.doFinal(preEncrypted);
             if (encrypted_bytes != null) {
@@ -714,7 +716,7 @@ public class PasswordCipherUtil {
         try {
             Cipher c = Cipher.getInstance(CryptoUtils.AES_GCM_CIPHER);
             // 128 is the GCM tag length. 128 is the MAX.
-            GCMParameterSpec ps = new GCMParameterSpec(GCM_TAG_LENGTH, getIvSourceBuffer(rand, c));
+            GCMParameterSpec ps = new GCMParameterSpec(CryptoUtils.GCM_TAG_LENGTH, getIvSourceBuffer(rand, c));
             c.init(Cipher.ENCRYPT_MODE, AESKeyManager.getKey(AESKeyManager.KeyVersion.AES_V2, base64Key), ps);
             byte[] encrypted_bytes = c.doFinal(preEncrypted);
             if (encrypted_bytes != null) {
@@ -787,7 +789,7 @@ public class PasswordCipherUtil {
         byte[] transformationBytes = new byte[transformationLen];
         System.arraycopy(encrypted_bytes, transformationStart, transformationBytes, 0, transformationLen);
         String transformation = new String(transformationBytes, StandardCharsets.UTF_8);
-        GCMParameterSpec iv = new GCMParameterSpec(GCM_TAG_LENGTH, encrypted_bytes, 3, ivLen);
+        GCMParameterSpec iv = new GCMParameterSpec(CryptoUtils.GCM_TAG_LENGTH, encrypted_bytes, 3, ivLen);
         byte[] decrypted = aesDecipherCommon(transformation, AESKeyManager.KeyVersion.AES_V2, iv, encrypted_bytes, cipherBytesStart,
                                              encrypted_bytes.length - cipherBytesStart);
         return removeSeed(decrypted);

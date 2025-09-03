@@ -17,6 +17,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.times;
 
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -34,6 +35,7 @@ import org.mockito.Mockito;
 import com.ibm.ws.common.crypto.CryptoUtils;
 import com.ibm.ws.crypto.util.AESKeyManager;
 import com.ibm.ws.crypto.util.AESKeyManager.KeyVersion;
+import com.ibm.ws.kernel.productinfo.ProductInfo;
 
 import test.common.SharedOutputManager;
 
@@ -194,16 +196,25 @@ public class PasswordUtilTest {
 
     @Test
     public void testBYOAesKey() throws Exception {
-        Map<String, String> props = new HashMap<>();
         byte[] keyBytes = generateRandomAes256Key();
         String keyString = Base64.getEncoder().encodeToString(keyBytes);
-        props.put(PasswordUtil.PROPERTY_AES_KEY, keyString);
         String decoded_string = "pass1233";
-        String encodedPassword = PasswordUtil.encode(decoded_string, "aes", props);
+        Map<String, String> props = new HashMap<>();
+        props.put(PasswordUtil.PROPERTY_AES_KEY, keyString);
 
-        try (MockedStatic<AESKeyManager> mock = Mockito.mockStatic(AESKeyManager.class, Mockito.CALLS_REAL_METHODS)) {
+        try (MockedStatic<ProductInfo> productInfoMock = Mockito.mockStatic(ProductInfo.class);
+                        MockedStatic<AESKeyManager> mock = Mockito.mockStatic(AESKeyManager.class, Mockito.CALLS_REAL_METHODS)) {
+            productInfoMock.when(() -> ProductInfo.getBetaEdition()).thenReturn(true);
             mock.when(() -> AESKeyManager.getKeyCharsUsingResolver(KeyVersion.AES_V2, null)).thenReturn(keyString.toCharArray());
+
+            String encodedPassword = PasswordUtil.encode(decoded_string, "aes", props);
+
             assertEquals("Decoded value does not match original value", decoded_string, PasswordUtil.decode(encodedPassword));
+
+            // two invocations, one for encode and one for decode.
+            productInfoMock.verify(() -> ProductInfo.getBetaEdition(), times(2));
+            mock.verify(() -> AESKeyManager.getKeyCharsUsingResolver(KeyVersion.AES_V2, null), times(1));
+
         }
     }
 

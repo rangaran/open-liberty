@@ -117,8 +117,8 @@ Password encryption XML file successfully created.\n\
 To activate the changes, add a reference to the location of the XML file\n\
 to your server.xml file:\n\
 \t<include location=\"{0}\" />
-generate.fail.file.exists=\
+generate.failFileExists=\
 The {0} file exists and will not be overwritten. Either specify a different\n\
 file name, or remove the existing file before you try again.
-generate.fail.file.is.directory=\
+generate.failFileIsDirectory=\
 The {0} value specified for the file name is a directory. Specify the full file name and try again.
