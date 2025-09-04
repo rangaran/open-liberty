@@ -17,6 +17,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.times;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -39,6 +40,7 @@ import org.xml.sax.SAXException;
 import com.ibm.ws.common.crypto.CryptoUtils;
 import com.ibm.ws.crypto.util.AESKeyManager;
 import com.ibm.ws.crypto.util.AESKeyManager.KeyVersion;
+import com.ibm.ws.kernel.productinfo.ProductInfo;
 
 import test.common.SharedOutputManager;
 
@@ -205,12 +207,12 @@ public class PasswordUtilTest {
         byte[] keyBytes = generateRandomAes256Key();
         String keyString = Base64.getEncoder().encodeToString(keyBytes);
         props.put(PasswordUtil.PROPERTY_AES_KEY, keyString);
-        String testValue = "test123";
-        String encodedValue = PasswordUtil.encode(testValue, "aes", props);
+        String decoded_string = "pass1233";
+        String encodedPassword = PasswordUtil.encode(decoded_string, "aes", props);
 
         try (MockedStatic<AESKeyManager> mock = Mockito.mockStatic(AESKeyManager.class, Mockito.CALLS_REAL_METHODS)) {
             mock.when(() -> AESKeyManager.getKeyCharsUsingResolver(KeyVersion.AES_V2, null)).thenReturn(keyString.toCharArray());
-            assertEquals("Decoded value does not match original value", testValue, PasswordUtil.decode(encodedValue));
+            assertEquals("Decoded value does not match original value", decoded_string, PasswordUtil.decode(encodedPassword));
         }
     }
 
