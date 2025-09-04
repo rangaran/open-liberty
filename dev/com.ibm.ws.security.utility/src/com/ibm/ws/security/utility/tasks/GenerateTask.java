@@ -161,9 +161,9 @@ public class GenerateTask extends BaseCommandTask {
                 keyPhrase = value;
             } else if (ARG_FILE.equals(option)) {
                 if (new File(value).isDirectory()) {
-                    throw new IllegalArgumentException(getMessage("generate.fail.file.is.directory", value));
+                    throw new IllegalArgumentException(getMessage("generate.failFileIsDirectory", value));
                 } else if (new File(value).exists()) {
-                    throw new IllegalArgumentException(getMessage("generate.fail.file.exists", value));
+                    throw new IllegalArgumentException(getMessage("generate.failFileExists", value));
                 }
                 filePath = value;
 

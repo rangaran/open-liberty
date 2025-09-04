@@ -366,7 +366,9 @@ public class PasswordCipherUtil {
             String base64Key = null;
             if (properties != null) {
                 cryptoKey = properties.get(PasswordUtil.PROPERTY_CRYPTO_KEY);
-                base64Key = properties.get(PasswordUtil.PROPERTY_AES_KEY);
+                if (ProductInfo.getBetaEdition()) {
+                    base64Key = properties.get(PasswordUtil.PROPERTY_AES_KEY);
+                }
             }
             if (base64Key != null && ProductInfo.getBetaEdition()) {
                 info = aesEncipherV2(decrypted_bytes, base64Key);

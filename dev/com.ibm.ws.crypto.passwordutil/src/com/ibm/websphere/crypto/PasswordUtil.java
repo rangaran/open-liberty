@@ -40,6 +40,7 @@ import com.ibm.ws.crypto.util.InvalidPasswordCipherException;
 import com.ibm.ws.crypto.util.MessageUtils;
 import com.ibm.ws.crypto.util.PasswordCipherUtil;
 import com.ibm.ws.crypto.util.PasswordHashGenerator;
+import com.ibm.ws.kernel.productinfo.ProductInfo;
 import com.ibm.wsspi.security.crypto.EncryptedInfo;
 
 /**
@@ -794,9 +795,13 @@ public class PasswordUtil {
      * @throws Exception if an exception occurs while parsing the XML file.
      */
     public static Map<String, String> parseAesEncryptionXmlFile(String xmlFilePath) throws Exception {
+
         String base64variableName = AESKeyManager.NAME_WLP_BASE64_AES_ENCRYPTION_KEY;
         String passKeyVariableName = AESKeyManager.NAME_WLP_PASSWORD_ENCRYPTION_KEY;
         Map<String, String> props = new HashMap<>();
+        if (!ProductInfo.getBetaEdition()) {
+            return props;
+        }
         try {
             Map<String, String> xmlVariables = extractXmlVariables(xmlFilePath);
 
