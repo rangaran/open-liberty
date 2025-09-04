@@ -269,8 +269,10 @@ public final class WSX509KeyManager extends X509ExtendedKeyManager implements X5
             if (list != null) {
                 boolean found = false;
                 for (int i = 0; i < list.length && !found; i++) {
-                    if (isPKIX) {
-                        found = setClientServerAliasPKIXAlias(clientAlias, list[i]);
+                    if (isPKIX && setClientServerAliasPKIXAlias(clientAlias, list[i])) {
+                        clientAlias = list[i];
+                        found = true;
+
                     } else {
                         if (clientAlias.equalsIgnoreCase(list[i]))
                             found = true;
@@ -410,8 +412,9 @@ public final class WSX509KeyManager extends X509ExtendedKeyManager implements X5
                 if (list != null) {
                     boolean found = false;
                     for (int i = 0; i < list.length && !found; i++) {
-                        if (isPKIX) {
-                           found = setClientServerAliasPKIXAlias(serverAlias, list[i]);
+                        if (isPKIX && setClientServerAliasPKIXAlias(serverAlias, list[i])) {
+                            serverAlias = list[i];
+                            found = true;
                         } else {
                             if (serverAlias.equalsIgnoreCase(list[i]))
                                 found = true;
@@ -468,7 +471,6 @@ public final class WSX509KeyManager extends X509ExtendedKeyManager implements X5
             if (m.find()) {
                 if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
                     Tr.debug(tc, "setClientServerAliasPKIXAlias", "Should use alias:" + keyManagerAlias);
-                    clientServerAlias = keyManagerAlias;
                     return true;
             }
         }
