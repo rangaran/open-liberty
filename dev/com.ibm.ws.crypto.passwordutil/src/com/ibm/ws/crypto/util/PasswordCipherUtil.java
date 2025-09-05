@@ -370,7 +370,7 @@ public class PasswordCipherUtil {
                     base64Key = properties.get(PasswordUtil.PROPERTY_AES_KEY);
                 }
             }
-            if (base64Key != null && ProductInfo.getBetaEdition()) {
+            if (base64Key != null) {
                 info = aesEncipherV2(decrypted_bytes, base64Key);
             } else {
                 info = aesEncipherV1(decrypted_bytes, cryptoKey);
