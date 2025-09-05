@@ -150,6 +150,9 @@ public class PasswordUtilTest {
 
     @Test
     public void testAESEncoding() throws Exception {
+        try (MockedStatic<ProductInfo> productInfoMock = Mockito.mockStatic(ProductInfo.class)) {
+            productInfoMock.when(() -> ProductInfo.getBetaEdition()).thenReturn(true);
+            
         String encoding = PasswordUtil.encode("WebAS", "aes");
         assertTrue("The encoded password should start with {aes} " + encoding, encoding.startsWith("{aes}"));
         String encoding2 = PasswordUtil.encode("WebAS", "aes");
@@ -163,6 +166,7 @@ public class PasswordUtilTest {
                      PasswordUtil.decode("{aes}AEmVKa+jOeA7pos+sSfpHNmH1MVfwg8ZoV29iDi6I0ZGcov6hSZsAxMhFr91jTSBYQ=="));
         assertEquals("Did not decode password encoded with AES_V1 (AES-256) encoded password", "alternatepwd",
                      PasswordUtil.decode("{aes}ARABGAM7S4HrIRtZWJ229TnxuKZrrPN3dsKrrQzCQE/3U5F4zp3UrDQ+Czmnvz1kaQyN7JktDzieJxelwu077ZYET2V+7/1Gi37iztr7lY0i+j4dlHOFIi5PESnZ7V8XOmdSbH9DSgkuJaXNoEqb"));
+    }
     }
 
     @Test
@@ -253,21 +257,24 @@ public class PasswordUtilTest {
      */
     @Test
     public void testInvalidBase64KeyFails() {
-        Map<String, String> props = new HashMap<>();
-        // Invalid base64 string: contains characters not valid in Base64 encoding
-        String invalidKey = "Not@Valid*Base64==";
-        props.put(PasswordUtil.PROPERTY_AES_KEY, invalidKey);
+        try (MockedStatic<ProductInfo> productInfoMock = Mockito.mockStatic(ProductInfo.class)) {
+            productInfoMock.when(() -> ProductInfo.getBetaEdition()).thenReturn(true);
+            
+            Map<String, String> props = new HashMap<>();
+            // Invalid base64 string: contains characters not valid in Base64 encoding
+            String invalidKey = "Not@Valid*Base64==";
+            props.put(PasswordUtil.PROPERTY_AES_KEY, invalidKey);
 
-        String testPassword = "badKeyTest";
+            String testPassword = "badKeyTest";
 
-        try {
-            PasswordUtil.encode(testPassword, "aes", props);
-            fail("Encoding with an invalid Base64 key should have failed");
-        } catch (Exception e) {
-            // Verify we get the expected exception type
-            assertTrue("Exception should be InvalidPasswordEncodingException",
-                       e instanceof InvalidPasswordEncodingException);
-
+            try {
+                PasswordUtil.encode(testPassword, "aes", props);
+                fail("Encoding with an invalid Base64 key should have failed");
+            } catch (Exception e) {
+                // Verify we get the expected exception type
+                assertTrue("Exception should be InvalidPasswordEncodingException",
+                          e instanceof InvalidPasswordEncodingException);
+            }
         }
     }
 
@@ -277,6 +284,9 @@ public class PasswordUtilTest {
      */
     @Test
     public void testParseAesEncryptionXmlFileWithInvalidPath() {
+
+        try (MockedStatic<ProductInfo> productInfoMock = Mockito.mockStatic(ProductInfo.class)) {
+            productInfoMock.when(() -> ProductInfo.getBetaEdition()).thenReturn(true);
         // Use a path that definitely doesn't exist
         String invalidPath = "/non/existent/path/to/aeskey.xml";
 
@@ -289,6 +299,7 @@ public class PasswordUtilTest {
                        "Unexpected exception type: " + e,
                        e instanceof IOException);
         }
+        }
     }
 
     /**
@@ -297,6 +308,9 @@ public class PasswordUtilTest {
      */
     @Test
     public void testParseAesEncryptionXmlFileWithMalformedXml() throws IOException {
+
+        try (MockedStatic<ProductInfo> productInfoMock = Mockito.mockStatic(ProductInfo.class)) {
+            productInfoMock.when(() -> ProductInfo.getBetaEdition()).thenReturn(true);
         // Create a temporary file with invalid XML content
         File badXml = File.createTempFile("bad-xml", ".xml");
         try (FileWriter writer = new FileWriter(badXml)) {
@@ -315,5 +329,6 @@ public class PasswordUtilTest {
             // Clean up the temporary file
             badXml.delete();
         }
+    }
     }
 }
