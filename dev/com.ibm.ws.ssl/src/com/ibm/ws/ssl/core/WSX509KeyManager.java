@@ -269,7 +269,7 @@ public final class WSX509KeyManager extends X509ExtendedKeyManager implements X5
             if (list != null) {
                 boolean found = false;
                 for (int i = 0; i < list.length && !found; i++) {
-                    if (isPKIX && setClientServerAliasPKIXAlias(clientAlias, list[i])) {
+                    if (isPKIX && resolvePKIXAlias(clientAlias, list[i])) {
                         clientAlias = list[i];
                         found = true;
 
@@ -297,12 +297,12 @@ public final class WSX509KeyManager extends X509ExtendedKeyManager implements X5
             if (isPKIX) {
                 Tr.exit(tc, "chooseClientAlias alias not found returning null");
                 return null;
-            }
-
-            if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled())
+            }else{
+                if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled())
                 Tr.exit(tc, "chooseClientAlias (default)", new Object[] { clientAlias });
-            // error case, alias not found in the list.
-            return clientAlias;
+                // error case, alias not found in the list.
+                return clientAlias;
+            }
         } else {
             String[] keyArray = new String[] { keyType };
             String alias = km.chooseClientAlias(keyArray, issuers, null);
@@ -412,7 +412,7 @@ public final class WSX509KeyManager extends X509ExtendedKeyManager implements X5
                 if (list != null) {
                     boolean found = false;
                     for (int i = 0; i < list.length && !found; i++) {
-                        if (isPKIX && setClientServerAliasPKIXAlias(serverAlias, list[i])) {
+                        if (isPKIX && resolvePKIXAlias(serverAlias, list[i])) {
                             serverAlias = list[i];
                             found = true;
                         } else {
@@ -462,15 +462,19 @@ public final class WSX509KeyManager extends X509ExtendedKeyManager implements X5
         return mappedAlias;
     }
 
-    private boolean setClientServerAliasPKIXAlias(String clientServerAlias, String keyManagerAlias) {
+    /**
+     * This is needed because when using PKIX as the KeyManagerFactory, the alias gets converted from default to 1.0.default. 
+     * So we need to have a way to handle the prefix. 
+     */
+    private boolean resolvePKIXAlias(String alias, String keyManagerAlias) {
         if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
-            Tr.debug(tc, "setClientServerAliasPKIXAlias", "KeyManager Factory algorithm is PKIX");
-        if (keyManagerAlias.toLowerCase().contains(clientServerAlias.toLowerCase())) {
-            Pattern r = Pattern.compile("\\d+\\.\\d+\\." + clientServerAlias + "$", Pattern.CASE_INSENSITIVE);
+            Tr.debug(tc, "resolvePKIXAlias", "KeyManager Factory algorithm is PKIX");
+        if (keyManagerAlias.toLowerCase().contains(alias.toLowerCase())) {
+            Pattern r = Pattern.compile("\\d+\\.\\d+\\." + alias + "$", Pattern.CASE_INSENSITIVE);
             Matcher m = r.matcher(keyManagerAlias);
             if (m.find()) {
                 if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
-                    Tr.debug(tc, "setClientServerAliasPKIXAlias", "Should use alias:" + keyManagerAlias);
+                    Tr.debug(tc, "resolvePKIXAlias", "Should use alias:" + keyManagerAlias);
                     return true;
             }
         }

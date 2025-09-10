@@ -102,9 +102,6 @@ fat.test.container.images:\
     commons-httpclient:commons-httpclient;version=3.1,\
     httpunit:httpunit;version=1.5.4,\
     io.openliberty.com.fasterxml.jackson;version=latest,\
-    org.seleniumhq.selenium:selenium-api;version=4.8.3,\
-    org.seleniumhq.selenium:selenium-support;version=4.8.3,\
-    jakarta.tck.arquillian:tck-porting-lib;version=11.0.1
     io.openliberty.jakarta.annotation.3.0;version=latest,\
     io.openliberty.jakarta.cdi.3.0;version=latest,\
     io.openliberty.jakarta.concurrency.3.1;version=latest,\
@@ -132,7 +129,8 @@ fat.test.container.images:\
     org.jboss.shrinkwrap:shrinkwrap-spi;version=1.2.3,\
     org.jmock:jmock;strategy=exact;version=2.5.1,\
     org.seleniumhq.selenium:selenium-api;version=4.8.3,\
-    org.seleniumhq.selenium:selenium-support;version=4.8.3
+    org.seleniumhq.selenium:selenium-support;version=4.8.3,\
+    jakarta.tck.arquillian:tck-porting-lib;version=11.0.1
 
 -testpath:\
     net.bytebuddy:byte-buddy-agent;version=1.16.1,\
