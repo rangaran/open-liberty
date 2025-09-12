@@ -131,15 +131,13 @@ fat.test.container.images:\
     org.seleniumhq.selenium:selenium-api;version=4.8.3,\
     org.seleniumhq.selenium:selenium-support;version=4.8.3,\
     jakarta.tck.arquillian:tck-porting-lib;version=11.0.1
+    io.openliberty.jakarta.concurrency.3.1;version=latest,\
+    io.openliberty.jakarta.annotation.3.0;version=latest,\
+    com.ibm.ws.ssl;version=latest
 
 -testpath:\
     net.bytebuddy:byte-buddy-agent;version=1.16.1,\
     net.bytebuddy:byte-buddy;version=1.16.1,\
-    io.openliberty.jakarta.concurrency.3.1;version=latest,\
-    io.openliberty.jakarta.annotation.3.0;version=latest,\
-    com.ibm.ws.ssl;version=latest
-    
--testpath: \
     org.mockito:mockito-core;version=4.11.0,\
     org.mockito:mockito-inline;version=4.11.0,\
     org.objenesis:objenesis;version=3.4

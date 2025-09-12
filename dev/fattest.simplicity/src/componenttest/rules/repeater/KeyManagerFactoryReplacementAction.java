@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025 IBM Corporation and others.
+ * Copyright (c) 2025, 2025 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -29,6 +29,9 @@ import java.util.Map.Entry;
 import java.util.Map;
 import java.util.HashMap;
 import java.security.Security;
+import java.util.Properties;
+import java.io.FileInputStream;
+import java.nio.charset.StandardCharsets;
 
 import com.ibm.websphere.simplicity.log.Log;
 import componenttest.common.apiservices.Bootstrap;
@@ -81,6 +84,9 @@ public class KeyManagerFactoryReplacementAction implements RepeatTestAction {
     public void setup() throws Exception {
         Log.info(c, "setup", "setting up pkix");
         setJvmOptions("PKIX");
+        Properties envVars = new Properties();
+        String JVM_ARGS = "-Djava.security.properties=" + getkeymanagerFactoryPKIX();
+        envVars.setProperty("JVM_ARGS", JVM_ARGS);
     }
 
     @Override
@@ -127,6 +133,28 @@ public class KeyManagerFactoryReplacementAction implements RepeatTestAction {
 
     protected static boolean isSunX509EnabledInConfig() {
         return Security.getProperty("ssl.KeyManagerFactory.algorithm") == "SunX509";
+    }
+
+    private String getkeymanagerFactoryPKIX() throws Exception {
+        Properties localProperties = getLocalProperties();
+        String basedir = localProperties.getProperty("basedir");
+        String location = basedir + "/keymanagerFactoryPKIX.properties";
+
+        byte[] fileContents = Files.readAllBytes(Paths.get(location));
+        Log.info(c, "getkeymanagerFactoryPKIX",
+                "keymanagerFactoryPKIX.properties contents:\n"
+                        + new String(fileContents, StandardCharsets.UTF_8));
+
+        return location;
+    }
+
+    public Properties getLocalProperties() throws Exception {
+        String localPropertiesLocation = System.getProperty("local.properties");
+        Properties localProperties = new Properties();
+        FileInputStream in = new FileInputStream(localPropertiesLocation);
+        localProperties.load(in);
+        in.close();
+        return localProperties;
     }
 
     /*
@@ -233,7 +261,7 @@ public class KeyManagerFactoryReplacementAction implements RepeatTestAction {
                 if (optionsFile.length() != 0)
                     bw.newLine();
 
-                bw.write("-Dssl.KeyManagerFactory.algorithm="+provider);
+                bw.write("-Dssl.KeyManagerFactory.algorithm=" + provider);
                 bw.newLine();
             }
         }

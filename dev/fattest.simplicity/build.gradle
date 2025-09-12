@@ -33,7 +33,7 @@ dependencies {
 	                    project(':io.openliberty.org.bouncycastle.bcprov-jdk18on'),
 	                    project(':io.openliberty.org.bouncycastle.bcutil-jdk18on'),
 	                    project(':io.openliberty.org.testcontainers'),
-                        project(':com.ibm.ws.ssl')
+                        project(':com.ibm.ws.ssl')               
 }
 
 task assembleBootstrap(type: Copy) {

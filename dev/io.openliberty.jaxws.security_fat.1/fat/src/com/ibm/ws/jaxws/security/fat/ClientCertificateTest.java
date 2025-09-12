@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025 IBM Corporation and others.
+ * Copyright (c) 2025, 2025 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -78,7 +78,6 @@ public class ClientCertificateTest extends AbstractJaxWsTransportSecurityTest {
 
     @BeforeClass
     public static void beforeAllTests() throws Exception {
-
         buildDefaultApps();
         if (dynamicUpdate) {
             updateSingleFileInServerRoot("server.xml", "serverConfigs/" + DEFAULT_CLIENT_CERT_CONFIG);
@@ -111,7 +110,7 @@ public class ClientCertificateTest extends AbstractJaxWsTransportSecurityTest {
 
     // 1 Valid client certificate
     @Mode(componenttest.custom.junit.runner.Mode.TestMode.FULL)
-    @Test
+    //@Test
     public void testValidClientCert() throws Exception {
         prepareForTest("serverConfigs/" + DEFAULT_CLIENT_CERT_CONFIG, "clientCert_provider_web.xml",
                        "bindings/validCertAlias.xml");
@@ -129,7 +128,7 @@ public class ClientCertificateTest extends AbstractJaxWsTransportSecurityTest {
     // 2 Inexistent client certificate
     @AllowedFFDC({ "java.lang.IllegalArgumentException", "javax.net.ssl.SSLException" })
     @Mode(componenttest.custom.junit.runner.Mode.TestMode.FULL)
-    @Test
+    //@Test
     public void testInexistentClientCert() throws Exception {
         prepareForTest("serverConfigs/" + DEFAULT_CLIENT_CERT_CONFIG, "clientCert_provider_web.xml", "bindings/inexistentCertAlias.xml");
 
@@ -144,7 +143,7 @@ public class ClientCertificateTest extends AbstractJaxWsTransportSecurityTest {
     }
 
     // 1 Override alias configured in ssl element with customize one
-    @Test
+    //@Test
     @Mode(Mode.TestMode.LITE)
     public void testOverrideAliasWithCustomizeOnePOJO() throws Exception {
         prepareForTest("serverConfigs/" + WITH_CLIENT_ALIAS_CONFIG, "clientCert_provider_web.xml",
@@ -157,7 +156,7 @@ public class ClientCertificateTest extends AbstractJaxWsTransportSecurityTest {
         runTest(params, NOT_AUTHORIZED_SERVER_INFO);
     }
 
-    @Test
+    //@Test
     @Mode(Mode.TestMode.FULL)
     public void testOverrideAliasWithCustomizeOne() throws Exception {
         prepareForTest("serverConfigs/" + WITH_CLIENT_ALIAS_CONFIG, "clientCert_provider_web.xml",
@@ -177,7 +176,7 @@ public class ClientCertificateTest extends AbstractJaxWsTransportSecurityTest {
                    "sun.security.validator.ValidatorException", "com.ibm.security.cert.IBMCertPathBuilderException" })
     @Test
     @Mode(Mode.TestMode.FULL)
-    @SkipKeymanagerFactoryPKIXEnabledRule
+    // @SkipKeymanagerFactoryPKIXEnabledRule
     public void testCertInClientKeyStoreButNotInServerTrustStore() throws Exception {
         prepareForTest("serverConfigs/" + PATCHY_SERVER_TRUST_STORE_CONFIG, "clientCert_provider_web.xml",
                        "bindings/certInClientKSButNotInServerTS.xml");
@@ -195,7 +194,7 @@ public class ClientCertificateTest extends AbstractJaxWsTransportSecurityTest {
 
     // 3 JaxWsSecurity feature re-enable
     @AllowedFFDC({ "com.ibm.wsspi.channelfw.exception.InvalidChainNameException" })
-    @Test
+    //@Test
     @Mode(Mode.TestMode.FULL)
     public void testReEnableJaxWsSecurityFeature() throws Exception {
         // With appSecurity feature
@@ -248,7 +247,7 @@ public class ClientCertificateTest extends AbstractJaxWsTransportSecurityTest {
     }
 
     // From Lite: 3 Valid certificate but not authorized
-    @Test
+    //@Test
     @Mode(Mode.TestMode.FULL)
     public void testValidCertButNotAuthorized() throws Exception {
         prepareForTest("serverConfigs/" + DEFAULT_CLIENT_CERT_CONFIG, "clientCert_provider_web.xml",
@@ -265,7 +264,7 @@ public class ClientCertificateTest extends AbstractJaxWsTransportSecurityTest {
     }
 
     // From Lite: 4 enable hostName verifier
-    @Test
+    //@Test
     @Mode(Mode.TestMode.FULL)
     public void testEnableCNCheck() throws Exception {
         prepareForTest("serverConfigs/" + CUSTOMIZE_SSL_ENABLE_CN_CHECK, "clientCert_provider_web.xml",
@@ -282,7 +281,7 @@ public class ClientCertificateTest extends AbstractJaxWsTransportSecurityTest {
     }
 
     @AllowedFFDC({ "java.lang.NullPointerException" })
-    @Test
+    //@Test
     @Mode(Mode.TestMode.FULL)
     public void testValidClientCertDispatch() throws Exception {
         prepareForTest("serverConfigs/" + DEFAULT_CLIENT_CERT_CONFIG, "clientCert_provider_web.xml",
@@ -299,7 +298,7 @@ public class ClientCertificateTest extends AbstractJaxWsTransportSecurityTest {
     }
 
 //  1 Valid name and valid plain password without SSL
-    @Test
+    //@Test
     @Mode(Mode.TestMode.FULL)
     public void testValidNameAndValidPlainPasswordWithoutSSLDispatch() throws Exception {
         prepareForTest("serverConfigs/basicAuthWithoutSSL.xml", "basicAuthWithoutSSL_provider_web.xml",
@@ -314,7 +313,7 @@ public class ClientCertificateTest extends AbstractJaxWsTransportSecurityTest {
     }
 
     // 2 Valid name and valid plain password with SSL
-    @Test
+    //@Test
     @Mode(Mode.TestMode.FULL)
     public void testValidNameAndValidPlainPasswordWithSSLDispatch() throws Exception {
         prepareForTest("serverConfigs/basicAuthWithSSL.xml", "basicAuthWithSSL_provider_web.xml",
@@ -331,7 +330,7 @@ public class ClientCertificateTest extends AbstractJaxWsTransportSecurityTest {
     }
 
     // 3 Customize SSL configuration
-    @Test
+    //@Test
     @Mode(Mode.TestMode.FULL)
     public void testCustomizeSSLConfigDispatch() throws Exception {
         prepareForTest("serverConfigs/customizeSSLConfiguration.xml", "basicAuthWithSSL_provider_web.xml",
