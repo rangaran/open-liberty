@@ -195,6 +195,16 @@ public final class WSX509KeyManager extends X509ExtendedKeyManager implements X5
                     break;
                 }
             }
+            // if (alias == null){
+            //     String algorithm = KeyManagerFactory.getDefaultAlgorithm();
+            //     boolean isPKIX = algorithm.equalsIgnoreCase("PKIX") ? true : false;
+            //     if (isPKIX) {
+            //         if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+            //             Tr.debug(tc, "Last key type tried with PKIX, returning clientAlias: " + "1.0." + clientAlias);
+            //         }
+            //         return "1.0." + clientAlias;
+            //     }
+            // }
             return alias;
         } catch (Throwable t) {
             // here we want to try to catch any runtime exceptions that might occur,
@@ -296,7 +306,7 @@ public final class WSX509KeyManager extends X509ExtendedKeyManager implements X5
 
             if (isPKIX) {
                 Tr.exit(tc, "chooseClientAlias alias not found returning null");
-                return null;
+                return "1.0." + clientAlias;
             }else{
                 if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled())
                 Tr.exit(tc, "chooseClientAlias (default)", new Object[] { clientAlias });
