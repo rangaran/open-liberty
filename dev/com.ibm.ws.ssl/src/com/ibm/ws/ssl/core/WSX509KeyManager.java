@@ -294,15 +294,18 @@ public final class WSX509KeyManager extends X509ExtendedKeyManager implements X5
                 }
             }
 
-            if (isPKIX) {
-                Tr.exit(tc, "chooseClientAlias alias not found returning null");
-                return null;
-            }else{
-                if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled())
-                Tr.exit(tc, "chooseClientAlias (default)", new Object[] { clientAlias });
-                // error case, alias not found in the list.
-                return clientAlias;
-            }
+            // if (isPKIX) {
+            //     Tr.exit(tc, "chooseClientAlias alias not found returning null");
+            //     return null;
+            // }else{
+            //     if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled())
+            //     Tr.exit(tc, "chooseClientAlias (default)", new Object[] { clientAlias });
+            //     // error case, alias not found in the list.
+            //     return clientAlias;
+            // }
+
+            clientAlias = isPKIX ? "1.0.default" : clientAlias;
+            return clientAlias;
         } else {
             String[] keyArray = new String[] { keyType };
             String alias = km.chooseClientAlias(keyArray, issuers, null);

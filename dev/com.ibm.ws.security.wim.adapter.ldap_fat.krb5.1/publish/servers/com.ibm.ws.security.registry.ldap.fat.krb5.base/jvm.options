@@ -3,3 +3,4 @@
 -Dcom.ibm.security.krb5.krb5Debug=true
 -Dcom.ibm.security.jgss.debug=all
 -verbose:gc
+-Djavax.net.debug=all

@@ -19,10 +19,10 @@
 		<feature>ldapRegistry-3.0</feature>
 	</featureManager>
 
-	<ldapRegistry id="ldap" realm="SampleLdapIDSRealm" host="${ldap.server.4.name}" port="${ldap.server.4.ssl.port}" ignoreCase="true"
+	<ldapRegistry id="ldap" realm="SampleLdapIDSRealm" host="was-ldap21.fyre.ibm.com" port="636" ignoreCase="true"
 		baseDN="o=ibm,c=us"
-		bindDN="${ldap.server.4.bindDN}"
-		bindPassword="${ldap.server.4.bindPassword}"
+		bindDN="uid=admin,ou=system"
+		bindPassword="secret"
 		ldapType="IBM Tivoli Directory Server"
 		sslEnabled="true"
 		sslRef="LDAPSSLSettings"
@@ -30,8 +30,8 @@
 		recursiveSearch="true"
 		idsFilters="ibm_dir_server">
 		<failoverServers name="failoverLdapServers">
-		   <server host="${ldap.server.7.name}" port="${ldap.server.7.ssl.port}"/>
-		   <server host="${ldap.server.8.name}" port="${ldap.server.8.ssl.port}"/>
+		   <server host="was-ldap21.fyre.ibm.com" port="636"/>
+		   <server host="was-ldap21.fyre.ibm.com" port="636"/>
         </failoverServers>
 	</ldapRegistry>
 	
