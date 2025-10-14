@@ -1,0 +1,52 @@
+/*******************************************************************************
+ * Copyright (c) 2017, 2025 IBM Corporation and others.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License 2.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-2.0/
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ *
+ * Contributors:
+ *     IBM Corporation - Gradle conversion of build.xml
+ *******************************************************************************/
+
+// Define commonly used directories
+def puTestPublishDir = file("${projectDir}/publish")
+def puTestFeatureDir = new File(puTestPublishDir, 'features')
+def puTestBundleDir  = new File(puTestPublishDir, 'bundles')
+def puTestFilesDir   = new File(puTestPublishDir, 'files')
+def puCcBundleDir    = file("${projectDir}/../com.ibm.websphere.crypto.sample.customencryption/build/lib")
+def puCcFeatureDir   = file("${projectDir}/../com.ibm.websphere.crypto.sample.customencryption/build/publish/usr/extension/lib/features")
+def puCcExtensionDir = file("${projectDir}/../com.ibm.websphere.crypto.sample.customencryption/build/publish/bin/tools/extensions/ws-customPasswordEncryption")
+
+autoFVT.doLast {
+
+  /*
+   * Copy the custom encryption feature bundle and related files.
+   */
+  copy {
+    from puCcBundleDir
+    include 'com.ibm.websphere.crypto.sample.customencryption_1.0.jar'
+    into puTestBundleDir
+  }
+
+  copy {
+    from puCcFeatureDir
+    include 'customEncryption-1.0.mf'
+    into puTestFeatureDir
+  }
+
+  copy {
+    from new File(puCcFeatureDir, 'l10n')
+    include 'customEncryption-1.0.properties'
+    into new File(puTestFeatureDir, 'l10n')
+  }
+
+  copy {
+    from puCcExtensionDir
+    include 'customEncryption.jar'
+    into puTestFilesDir
+  }
+
+}
