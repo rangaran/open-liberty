@@ -305,9 +305,29 @@ public final class WSX509KeyManager extends X509ExtendedKeyManager implements X5
             }
 
             if (isPKIX) {
-                Tr.exit(tc, "chooseClientAlias alias not found returning null");
-                return "1.0." + clientAlias;
-            }else{
+                // error case, list of aliases is empty
+                if (list == null || list.length == 0) {
+                    if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled())
+                        Tr.exit(tc, "chooseClientAlias (no aliases available)", null);
+                    return null;
+                }
+                
+                // error case, alias not found in the list.
+                String prefixedClientAlias = clientAlias;
+                String prefix = getPrefix(list[0]);
+                
+                if (prefix != null && !clientAlias.startsWith(prefix)) {
+                    prefixedClientAlias = prefix + clientAlias;
+                    if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                        Tr.debug(tc, "Applied prefix to client alias",
+                                 new Object[] { "Original: " + clientAlias, "Prefixed: " + prefixedClientAlias });
+                    }
+                }
+                
+                if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled())
+                    Tr.exit(tc, "chooseClientAlias (default)", new Object[] { prefixedClientAlias });
+                return prefixedClientAlias;
+            } else {
                 if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled())
                 Tr.exit(tc, "chooseClientAlias (default)", new Object[] { clientAlias });
                 // error case, alias not found in the list.
@@ -331,6 +351,24 @@ public final class WSX509KeyManager extends X509ExtendedKeyManager implements X5
                 Tr.exit(tc, "chooseClientAlias (from JSSE)", new Object[] { alias });
             return alias;
         }
+    }
+
+    /**
+     * Extract the numeric prefix from an alias string (e.g., "1.0." from "1.0.default")
+     *
+     * @param alias The alias to extract the prefix from
+     * @return The numeric prefix or null if no prefix pattern is found
+     */
+    public String getPrefix(String alias) {
+        
+        Pattern pattern = Pattern.compile("^(\\d+\\.\\d+\\.)");
+        Matcher matcher = pattern.matcher(alias);
+        
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+        
+        return null;
     }
 
     /**
