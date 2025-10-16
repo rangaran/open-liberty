@@ -60,7 +60,7 @@ public class SkipJavaSemeruWithFipsEnabled implements TestRule {
             e.printStackTrace();
         }
 
-        this.IS_SEMERU_JAVA = javaInfo.runtimeName().contains("OpenJDK");
+        this.IS_SEMERU_JAVA = javaInfo.runtimeName().contains("Semeru");
         this.majorVersion = javaInfo.majorVersion();
 
     }
