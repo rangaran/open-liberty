@@ -1322,34 +1322,6 @@ public class DataJPATestServlet extends FATServlet {
                                              .map(a -> a.houseNumber + " " + a.streetName)
                                              .collect(Collectors.toList()));
 
-        List<ShippingAddress> found = shippingAddresses
-                        .findByStreetAddressRecipientInfoNotEmpty();
-        ShippingAddress a = null;
-        for (ShippingAddress s : found) {
-            if (a1.id.equals(s.id))
-                a = s;
-        }
-        // TODO Replace above for loop with the following once EclipseLink bug #31559 is fixed
-        // assertEquals(1, found.size());
-        // a = found.get(0);
-        assertEquals(a1.id, a.id);
-        assertEquals(a1.city, a.city);
-        assertEquals(a1.state, a.state);
-        assertEquals(a1.zipCode, a.zipCode);
-        assertEquals(a1.streetAddress.houseNumber, a.streetAddress.houseNumber);
-        assertEquals(a1.streetAddress.streetName, a.streetAddress.streetName);
-        assertEquals(a1.streetAddress.recipientInfo, a.streetAddress.recipientInfo);
-
-        long count = shippingAddresses.countByStreetAddressRecipientInfoEmpty();
-        // TODO Enable once EclipseLink bug #31559 is fixed:
-        // assertEquals(3L, count);
-
-        // [EclipseLink-4002] Internal Exception: java.sql.SQLIntegrityConstraintViolationException:
-        //                    DELETE on table 'SHIPPINGADDRESS' caused a violation of foreign key constraint 'SHPPNGSHPPNGDDRSSD' for key (1001)
-        // TODO Entity removal fails without the above error unless we add the following lines to first remove the rows from the collection attribute's table,
-        a1.streetAddress.recipientInfo = new ArrayList<>();
-        shippingAddresses.save(a1);
-
         assertEquals(4, shippingAddresses.removeAll());
     }
 
@@ -1745,6 +1717,56 @@ public class DataJPATestServlet extends FATServlet {
         // accounts.deleteAll(List.of(new Account(1004470, 70081, "Think Bank", true, 443.94, "Erin TestEmbeddedId")));
 
         accounts.deleteByOwnerEndsWith("TestEmbeddedId");
+    }
+
+    /**
+     * Tests the Empty (and NotEmpty) Query by Method Name keyword.
+     */
+    @Test
+    public void testEmptyAndNotEmpty() {
+        mobilePhones.removeAll();
+
+        Mobile m1 = mobilePhones.insert(Mobile.of(OS.ANDROID,
+                                                  List.of("Camera",
+                                                          "Photos",
+                                                          "Email"),
+                                                  List.of()));
+
+        Mobile m2 = mobilePhones.insert(Mobile.of(OS.IOS,
+                                                  List.of(),
+                                                  List.of("email1@openliberty.io",
+                                                          "email2@openliberty.io",
+                                                          "email3@openliberty.io")));
+
+        List<Mobile> list = mobilePhones.findByEmailsEmpty();
+        assertEquals(list.toString(), 1, list.size());
+        Mobile m = list.get(0);
+        assertEquals(OS.ANDROID,
+                     m.operatingSystem);
+        assertEquals(m1.deviceId,
+                     m.deviceId);
+        assertEquals(List.of("Camera",
+                             "Photos",
+                             "Email"),
+                     m.apps);
+        assertEquals(List.of(),
+                     m.emails);
+
+        list = mobilePhones.findByEmailsNotEmpty();
+        assertEquals(list.toString(), 1, list.size());
+        m = list.get(0);
+        assertEquals(OS.IOS,
+                     m.operatingSystem);
+        assertEquals(m2.deviceId,
+                     m.deviceId);
+        assertEquals(List.of(),
+                     m.apps);
+        assertEquals(List.of("email1@openliberty.io",
+                             "email2@openliberty.io",
+                             "email3@openliberty.io"),
+                     m.emails);
+
+        mobilePhones.removeAll();
     }
 
     /**

@@ -261,20 +261,19 @@ public class ServerDumpPackager {
 
     static class FolderStructureGenerator {
 
-        protected static MessageDigest getMessageDigest() {
+        protected static MessageDigest newMD5MessageDigest() {
             try {
-                return MessageDigest.getInstance("SHA-512");
+                return MessageDigest.getInstance("MD5");
             } catch (Exception ex) {
                 return null;
             }
         }
 
-        private static final int HASH_LEN = 64;
-        private static final int HASH_STR_LEN = HASH_LEN * 2;
+        private static final int NUM_MD5_BYTES = 16;
 
-        private final MessageDigest digest = getMessageDigest();
-        private final byte[] hashBytes = new byte[0x4000];
-        private final char[] hashChars = new char[HASH_STR_LEN];
+        private final MessageDigest md5 = newMD5MessageDigest();
+        private final byte[] md5Bytes = new byte[0x4000];
+        private final char[] md5Chars = new char[NUM_MD5_BYTES * 2];
 
         private boolean generate(File folder, File output) {
             if (folder == null || output == null) {
@@ -317,15 +316,15 @@ public class ServerDumpPackager {
                         if (!BootstrapConstants.LOC_AREA_NAME_USR.equals(file.getName()))
                             printFileList(file, writer, leadingPathLength);
                     } else {
-                        writer.format("f  %1$10d  %2$tF %2$tT  %3$" + HASH_STR_LEN + "s  %4$s%n", file.length(), file.lastModified(), hash(file), fileName);
+                        writer.format("f  %1$10d  %2$tF %2$tT  %3$32s  %4$s%n", file.length(), file.lastModified(), md5(file), fileName);
                     }
                 }
             }
         }
 
-        protected String hash(File file) {
-            if (digest == null) {
-                return "SHA-512 unavailable";
+        protected String md5(File file) {
+            if (md5 == null) {
+                return "MD5 unavailable";
             }
 
             InputStream in = null;
@@ -333,8 +332,8 @@ public class ServerDumpPackager {
                 in = new FileInputStream(file);
                 in = new BufferedInputStream(in);
 
-                for (int read; (read = in.read(hashBytes)) != -1;) {
-                    digest.update(hashBytes, 0, read);
+                for (int read; (read = in.read(md5Bytes)) != -1;) {
+                    md5.update(md5Bytes, 0, read);
                 }
             } catch (IOException ex) {
                 return ex.toString();
@@ -342,15 +341,15 @@ public class ServerDumpPackager {
                 Utils.tryToClose(in);
             }
 
-            byte[] bytes = digest.digest();
+            byte[] bytes = md5.digest();
             int j = 0;
-            for (int i = 0; i < HASH_LEN; i++) {
+            for (int i = 0; i < NUM_MD5_BYTES; i++) {
                 byte b = bytes[i];
-                hashChars[j++] = Character.forDigit((b >> 4) & 0xf, 16);
-                hashChars[j++] = Character.forDigit(b & 0xf, 16);
+                md5Chars[j++] = Character.forDigit((b >> 4) & 0xf, 16);
+                md5Chars[j++] = Character.forDigit(b & 0xf, 16);
             }
 
-            return new String(hashChars);
+            return new String(md5Chars);
         }
     }
 

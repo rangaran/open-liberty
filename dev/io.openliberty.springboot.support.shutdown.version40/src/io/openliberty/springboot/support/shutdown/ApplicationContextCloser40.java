@@ -20,7 +20,7 @@ import org.springframework.core.env.ConfigurableEnvironment;
 
 import com.ibm.ws.app.manager.springboot.container.SpringBootConfigFactory;
 
-public class ApplicationContextCloser implements EnvironmentPostProcessor {
+public class ApplicationContextCloser40 implements EnvironmentPostProcessor {
     private static final Object token = new Object() {
     };
 

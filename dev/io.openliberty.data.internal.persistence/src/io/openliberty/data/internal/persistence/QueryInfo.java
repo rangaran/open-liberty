@@ -1518,7 +1518,7 @@ public class QueryInfo {
      */
     @Trivial
     private RuntimeException excMissingParamAnno(int p) {
-        DataVersionCompatibility compat = producer.provider().compat;
+        DataVersionCompatibility compat = producer.compat();
 
         switch (type) {
             case FIND:
@@ -4608,7 +4608,7 @@ public class QueryInfo {
 
             if (findQueryStartsWithSelect == Boolean.TRUE) {
                 countMustOmitSelect = countPages;
-                if (producer.provider().compat.atLeast(1, 1) &&
+                if (producer.compat().atLeast(1, 1) &&
                     singleType.isRecord()) {
                     while (i < length && Character.isWhitespace(ql.charAt(i)))
                         i++;
@@ -5287,7 +5287,7 @@ public class QueryInfo {
     void setParameters(jakarta.persistence.Query query, Object... args) throws Exception {
         final boolean trace = TraceComponent.isAnyTracingEnabled();
 
-        DataVersionCompatibility compat = producer.provider().compat;
+        DataVersionCompatibility compat = producer.compat();
         Iterator<String> namedParams = jpqlParamNames.iterator();
         for (int i = 0, p = 0; i < jpqlParamCount; i++) {
             Object[] values = compat.toConstraintValues(args[i]);

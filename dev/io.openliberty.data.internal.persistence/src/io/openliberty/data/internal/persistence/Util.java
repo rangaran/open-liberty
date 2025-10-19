@@ -294,7 +294,7 @@ public class Util {
     @Trivial
     static final boolean hasOperationAnno(Method method,
                                           RepositoryProducer<?> producer) {
-        DataVersionCompatibility compat = producer.provider().compat;
+        DataVersionCompatibility compat = producer.compat();
         Set<Class<? extends Annotation>> statefulAnnos = compat.operationAnnoTypes(true);
         Set<Class<? extends Annotation>> statelessAnnos = compat.operationAnnoTypes(false);
 
@@ -344,7 +344,7 @@ public class Util {
      */
     @Trivial
     static String lifeCycleAnnoNames(RepositoryProducer<?> producer) {
-        Set<Class<? extends Annotation>> annoClasses = producer.provider().compat //
+        Set<Class<? extends Annotation>> annoClasses = producer.compat() //
                         .lifeCycleAnnoTypes(producer.stateful());
 
         return annoClasses.stream() //
@@ -413,7 +413,7 @@ public class Util {
      */
     @Trivial
     static String operationAnnoNames(RepositoryProducer<?> producer) {
-        Set<Class<? extends Annotation>> annoClasses = producer.provider().compat //
+        Set<Class<? extends Annotation>> annoClasses = producer.compat() //
                         .operationAnnoTypes(producer.stateful());
 
         return annoClasses.stream() //
@@ -496,7 +496,7 @@ public class Util {
      */
     @Trivial
     static String resourceAccessorTypeNames(RepositoryProducer<?> producer) {
-        Set<Class<?>> types = producer.provider().compat //
+        Set<Class<?>> types = producer.compat() //
                         .resourceAccessorTypes(producer.stateful());
 
         return types.stream() //
