@@ -365,15 +365,7 @@ public class SecurityUtilityGenerateAesKeyTest {
         String fileContent1 = new String(Files.readAllBytes(outputFile1.toPath()));
         String fileContent2 = new String(Files.readAllBytes(outputFile2.toPath()));
 
-        assertTrue("First file should contain wlp.aes.encryption.key variable",
-                  fileContent1.contains("name=\"wlp.aes.encryption.key\""));
-        assertTrue("Second file should contain wlp.aes.encryption.key variable",
-                  fileContent2.contains("name=\"wlp.aes.encryption.key\""));
-
-        // Verify keys are identical
-        String key1 = extractKeyValue(fileContent1);
-        String key2 = extractKeyValue(fileContent2);
-        assertEquals("Keys generated from the same input should be identical", key1, key2);
+        assertEquals("Using the same --key both output files should be identical", fileContent1, fileContent2);
     }
 
     /**
@@ -397,14 +389,6 @@ public class SecurityUtilityGenerateAesKeyTest {
     public void testV1V2PasswordsCoexistInServerXml() throws Exception {
         testEnvironment = new Properties();
         testEnvironment.put("JVM_ARGS", "-Dcom.ibm.ws.beta.edition=true");
-        
-
-
-        // Test AES encryption with base64Key option
-        byte[] keyBytes = new byte[32];
-        new SecureRandom().nextBytes(keyBytes);
-        String base64Key = Base64.getEncoder().encodeToString(keyBytes);
-        String textToEncode = "secretPassword";
 
         String aesConfigFile = testOutputDir + "/temp_aes.xml";
 
@@ -509,8 +493,15 @@ public class SecurityUtilityGenerateAesKeyTest {
         assertTrue("Output should mention include directive",
                   generateOutput.contains("<include location="));
 
+        Pattern pattern = Pattern.compile("<include location=\"([^\"]+)\" />");
+        Matcher match = pattern.matcher(generateOutput);
+        String filepath = "";
 
-        String includesnippet = getincludeOverride(xmlFile.getAbsolutePath());
+        if (match.find()) {
+            filepath = match.group(1);
+        }
+
+        String includesnippet = getincludeOverride(filepath);
         writeStringToServerOverride(includesnippet, testServer);
         
         // Start server

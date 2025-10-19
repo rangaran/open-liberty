@@ -411,28 +411,22 @@ public class SecurityUtilityCreateLTPAKeysTest {
 
     /**
      * Test that verifies createLTPAKeys creates ltpa.keys directly in the server's resources/security
-     * and that the server starts and loads those keys using the snippet from stdout.
+     * and that the server starts and loads those keys using the snippet from stdout. This creates an AES_V2 key using --passwordBase64Key.
      */
     @Test
     public void testCreateServerLTPAKeys() throws Exception {
         
-        byte[] keyBytes = new byte[32];
-        new SecureRandom().nextBytes(keyBytes);
-        String base64Key = Base64.getEncoder().encodeToString(keyBytes);
-        
-
          // Create a secure key file for testing
         File outputFile1 = new File(ltpaTestServer.pathToAutoFVTTestFiles, "temp_aes.xml");
 
         // Generate AES base64 key for wlp.aes.encryption.key
         ProgramOutput aesKeyOutput = testMachine.execute(
             securityUtilityPath,
-            new String[] { "generateAESKey", "--createConfigFile=" + outputFile1.getAbsolutePath(), "--key="+base64Key},
+            new String[] { "generateAESKey", "--createConfigFile=" + outputFile1.getAbsolutePath(), "--key="+"KeyString2"},
             libertyInstallRoot, testEnvironment);
         
         Log.info(thisClass, testName.getMethodName(), "stderr:\n" + aesKeyOutput.getStderr());
         Log.info(thisClass, testName.getMethodName(), "stdout:\n" + aesKeyOutput.getStdout());
-        Log.info(thisClass, testName.getMethodName(), "base64key:\n" + base64Key);
         Log.info(thisClass, testName.getMethodName(), "Return code: " + aesKeyOutput.getReturnCode());
         assertEquals("AES key generation should succeed", SUCCESS_RC, aesKeyOutput.getReturnCode());
 
