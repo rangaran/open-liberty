@@ -93,6 +93,11 @@ public final class AttachmentUtil {
     
     private static final String HOLD_TEMP_FILES = "ibm-hold-temp-files";  // Liberty Change
 
+    private enum attachmentAction {
+        HOLD,
+        RELEASE
+    }
+    
     static final class EnhancedMailcapCommandMap extends MailcapCommandMap {
         @Override
         public synchronized DataContentHandler createDataContentHandler(
@@ -214,14 +219,10 @@ public final class AttachmentUtil {
 
     public static void setStreamedAttachmentProperties(Message message, CachedOutputStream bos)
         throws IOException {
-        Object directory = message.getContextualProperty(AttachmentDeserializer.ATTACHMENT_DIRECTORY);
         // Liberty change begin
-        if (directory == null) {
-            directory = getPropertyFromEndPointInfo(message, AttachmentDeserializer.ATTACHMENT_DIRECTORY);
-        }
-        if (LOG.isLoggable(Level.FINEST)) {
-            LOG.finest("setStreamedAttachmentProperties: Attachment directory: " + directory);
-         } //Liberty Change End
+        Object directory = getAttachmentProperty(message, AttachmentDeserializer.ATTACHMENT_DIRECTORY);
+        
+        //Liberty Change End
         if (directory != null) {
             if (directory instanceof File) {
                 bos.setOutputDir((File)directory);
@@ -230,14 +231,9 @@ public final class AttachmentUtil {
             }
         }
 
-        Object threshold = message.getContextualProperty(AttachmentDeserializer.ATTACHMENT_MEMORY_THRESHOLD);
         // Liberty change begin
-        if (threshold == null) {
-            threshold = getPropertyFromEndPointInfo(message, AttachmentDeserializer.ATTACHMENT_MEMORY_THRESHOLD);
-        }
-        if (LOG.isLoggable(Level.FINE)) {
-            LOG.fine("setStreamedAttachmentProperties: Attachment memory threshold: " + threshold);
-         } //Liberty Change End
+        Object threshold = getAttachmentProperty(message, AttachmentDeserializer.ATTACHMENT_MEMORY_THRESHOLD);
+        //Liberty Change End
         if (threshold != null) {
             if (threshold instanceof Long) {
                 bos.setThreshold((Long)threshold);
@@ -248,14 +244,10 @@ public final class AttachmentUtil {
             bos.setThreshold(AttachmentDeserializer.THRESHOLD);
         }
 
-        Object maxSize = message.getContextualProperty(AttachmentDeserializer.ATTACHMENT_MAX_SIZE);
         // Liberty change begin
-        if (maxSize == null) {
-            maxSize = getPropertyFromEndPointInfo(message, AttachmentDeserializer.ATTACHMENT_MAX_SIZE);
-        }
-        if (LOG.isLoggable(Level.FINEST)) {
-            LOG.finest("setStreamedAttachmentProperties: Attachment maxSize: " + maxSize);
-         } //Liberty Change End
+        Object maxSize = getAttachmentProperty(message, AttachmentDeserializer.ATTACHMENT_MAX_SIZE);
+
+        //Liberty Change End
         if (maxSize != null) {
             if (maxSize instanceof Long) {
                 bos.setMaxSize((Long) maxSize);
@@ -734,35 +726,17 @@ public final class AttachmentUtil {
     }
     
     public static void holdTempFiles(Message message) throws IOException {
-        AttachmentDataSource attachmentDataSource = getAttachmentDataSource(message);
-        if (attachmentDataSource!= null) {
-            attachmentDataSource.hold(message);
-            if (LOG.isLoggable(Level.FINEST)) {
-                LOG.finest("holdTempFiles : Temporary file and stream are set to hold from removal.");
-             }
-        } else {
-            if (LOG.isLoggable(Level.FINEST)) {
-                LOG.finest("holdTempFiles : Couldn't get attachment data source!");
-             }
-        }
-    }    
+        attachmentOperation(message, attachmentAction.HOLD);
+    }
 
     public static void releaseTempFileHold(Message message) throws IOException {
-        AttachmentDataSource attachmentDataSource = getAttachmentDataSource(message);
-        if (attachmentDataSource!= null) {
-            attachmentDataSource.release();
-            if (LOG.isLoggable(Level.FINEST)) {
-                LOG.finest("releaseTempFileHold : Temporary file and stream holds are released. They will be removed.");
-             }
-        } else {
-            if (LOG.isLoggable(Level.FINEST)) {
-                LOG.finest("releaseTempFileHold : Couldn't get attachment data source!");
-             }
-        }
+        attachmentOperation(message, attachmentAction.RELEASE);
     }
     
-    private static AttachmentDataSource getAttachmentDataSource(Message message)        {
-        AttachmentDataSource attachmentDataSource = null;
+    /*
+     * Operate on each attachment separately to hold and release
+     */
+    private static void attachmentOperation(Message message, attachmentAction action) throws IOException        {
         Collection<Attachment> attachments = message.getAttachments();
         if (attachments != null) {
             for (Attachment attachment : attachments) {
@@ -771,13 +745,30 @@ public final class AttachmentUtil {
                     if (dataHandler != null) {
                         DataSource dataSource = dataHandler.getDataSource();
                         if (dataSource instanceof AttachmentDataSource) {
-                            attachmentDataSource = (AttachmentDataSource) dataSource;
+                            if (action == attachmentAction.HOLD) {
+                                ((AttachmentDataSource) dataSource).hold(message);
+                                if (LOG.isLoggable(Level.FINEST)) {
+                                    LOG.finest("attachmentOperation : Temporary file and stream are set to hold from removal.");
+                                 }
+                            } else if (action == attachmentAction.RELEASE) {
+                                ((AttachmentDataSource) dataSource).release();
+                                if (LOG.isLoggable(Level.FINEST)) {
+                                    LOG.finest("attachmentOperation : Temporary file and stream holds are released. They will be removed.");
+                                 }
+                            } else {
+                                if (LOG.isLoggable(Level.FINEST)) {
+                                    LOG.finest("attachmentOperation : No attachmentAction to perform!");
+                                }
+                            }
                         }
                     }
                 }
             }
+        } else {
+            if (LOG.isLoggable(Level.FINEST)) {
+                LOG.finest("attachmentHolds : Couldn't find any attachments!");
+            }
         }
-        return attachmentDataSource;
     }
     
     public static boolean isHoldTempFilesPropertyTrue(org.apache.cxf.message.Message message) {
@@ -785,18 +776,14 @@ public final class AttachmentUtil {
         return PropertyUtils.isTrue(propertyFromEndPointInfo);
     }
     
-    /*
-     * @return  If <propertyName> end point info property value is set returns that value,
-     *          If no value set returns null
-     */
-    public static Object getPropertyFromEndPointInfo(org.apache.cxf.message.Message message, String propertyName)     {
-        Object propertyValue = null;
-        Endpoint endpoint = message.getExchange().getEndpoint();
-        if(endpoint != null)    {
-            EndpointInfo endpointInfo = endpoint.getEndpointInfo();
-            if(endpointInfo!= null)    {
-                propertyValue = endpointInfo.getProperty(propertyName);        
-            }
+    private static Object getAttachmentProperty(Message message, String propertyName)     {
+        Object propertyValue = message.getContextualProperty(propertyName);
+        // Liberty change begin
+        if (propertyValue == null) {
+            propertyValue = getPropertyFromEndPointInfo(message, propertyName);
+        }
+        if (LOG.isLoggable(Level.FINEST)) {
+            LOG.finest("setStreamedAttachmentProperties: " + propertyName + ": " + propertyValue);
         }
         return propertyValue;
     }
