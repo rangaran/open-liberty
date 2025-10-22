@@ -44,4 +44,5 @@ tested.features: \
 	com.ibm.ws.org.eclipse.equinox.region;version=latest, \
 	com.ibm.ws.runtime.update;version=latest, \
 	com.ibm.ws.kernel.feature.core;version=latest, \
-	com.ibm.ws.kernel.feature;version=latest
+	com.ibm.ws.kernel.feature;version=latest, \
+	com.ibm.ws.security.client_fat;version=latest

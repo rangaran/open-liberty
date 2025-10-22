@@ -20,6 +20,16 @@ def puCcBundleDir    = file("${projectDir}/../com.ibm.websphere.crypto.sample.cu
 def puCcFeatureDir   = file("${projectDir}/../com.ibm.websphere.crypto.sample.customencryption/build/publish/usr/extension/lib/features")
 def puCcExtensionDir = file("${projectDir}/../com.ibm.websphere.crypto.sample.customencryption/build/publish/bin/tools/extensions/ws-customPasswordEncryption")
 
+configurations {
+  requiredLibs {
+    transitive = false
+  }
+}
+
+dependencies {
+  requiredLibs project(':com.ibm.ws.security.client_fat')
+}
+
 autoFVT.doLast {
 
   /*
