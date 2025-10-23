@@ -30,6 +30,8 @@ dependencies {
   requiredLibs project(':com.ibm.ws.security.client_fat')
 }
 
+autoFVT.dependsOn ':com.ibm.ws.security.client_fat:assemble'
+
 autoFVT.doLast {
 
   /*

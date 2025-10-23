@@ -16,6 +16,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.nio.charset.StandardCharsets;
@@ -430,6 +432,32 @@ public class SecurityUtilityCreateSSLCertificateTest {
      * @throws Exception If an error occurs during client configuration or startup
      */
     private void runclient(ProgramOutput commandOutput, LibertyClient client) throws Exception {
+
+        // Current working directory = this FAT project root
+        Path projectRoot = Paths.get(System.getProperty("user.dir"));
+
+        // Correct relative path to the earDD.ear in client_fat
+        Path earSource = projectRoot.resolve("../../../../com.ibm.ws.security.client_fat/build/libs/test-application/earDD.ear").normalize();
+
+        if (!Files.exists(earSource)) {
+            throw new RuntimeException("EAR file not found: " + earSource);
+        }
+
+        // Destination directory inside the client’s apps folder
+        Path destDir = Paths.get(client.getInstallRoot())
+        .resolve("usr")
+        .resolve("clients")
+        .resolve("mySSLCmdClient")
+        .resolve("apps");
+        Files.createDirectories(destDir);
+
+        // Copy EAR into destination
+        Path destEar = destDir.resolve("earDD.ear");
+        Files.copy(earSource, destEar, StandardCopyOption.REPLACE_EXISTING);
+
+        assertTrue("The ear file was not copied to the client apps directory",
+                destEar.toFile().exists());
+
         String ksSnippet = formatXmlInclude(commandOutput, "");
         writeStringToClientOverride(ksSnippet, client);
 
