@@ -149,7 +149,8 @@ public class SecurityUtilityCreateLTPAKeysTest {
             ltpaTestServer.pathToAutoFVTTestFiles + "server_ltpa_passwordKey.xml",
             ltpaTestServer.pathToAutoFVTTestFiles + "server_ltpa.xml",
             ltpaTestServer.pathToAutoFVTTestFiles + "overrides.xml",
-            ltpaTestServer.pathToAutoFVTTestFiles + "Secure_file1.xml"
+            ltpaTestServer.pathToAutoFVTTestFiles + "Secure_file1.xml",
+            ltpaTestServer.pathToAutoFVTTestFiles + "temp_aes.xml"
         };
         for (String filePath : filesToCleanup) {
             deleteFileIfExists(filePath, "LTPA key file");

@@ -30,11 +30,10 @@ dependencies {
   requiredLibs project(':com.ibm.ws.security.client_fat')
 }
 
-autoFVT.dependsOn ':com.ibm.ws.security.client_fat:assemble'
 
-autoFVT.doLast {
-
-  /*
+task copyCustomFiles{
+  doLast {
+    /*
    * Copy the custom encryption feature bundle and related files.
    */
   copy {
@@ -60,5 +59,32 @@ autoFVT.doLast {
     include 'customEncryption.jar'
     into puTestFilesDir
   }
-
+  }
 }
+
+task addEarFile {
+  dependsOn ':com.ibm.ws.security.client_fat:assemble'
+  doLast {
+  
+  def earSource = file("${projectDir}/../com.ibm.ws.security.client_fat/build/libs/test-application/earDD.ear")
+  def destDir = file("${buildDir}/autoFVT/lib/LibertyFATTestFiles")
+
+  if (!earSource.exists()) {
+      throw new GradleException("EAR file not found: ${earSource}")
+  }
+
+  destDir.mkdirs()
+
+  copy {
+      from earSource
+      into destDir
+      rename { "earDD.ear" }
+  }
+  }
+}
+
+addRequiredLibraries {
+  dependsOn copyCustomFiles
+  dependsOn addEarFile
+}
+
