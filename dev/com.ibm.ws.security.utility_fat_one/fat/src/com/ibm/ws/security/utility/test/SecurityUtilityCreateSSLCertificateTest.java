@@ -42,6 +42,7 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
+import org.junit.runner.RunWith;
 
 import com.ibm.websphere.simplicity.Machine;
 import com.ibm.websphere.simplicity.ProgramOutput;
@@ -51,6 +52,7 @@ import componenttest.topology.impl.LibertyClient;
 import componenttest.topology.impl.LibertyClientFactory;
 import componenttest.topology.impl.LibertyServer;
 import componenttest.topology.impl.LibertyServerFactory;
+import componenttest.custom.junit.runner.FATRunner;
 
 /**
  * Tests for securityUtility createSSLCertificate command.
@@ -62,6 +64,8 @@ import componenttest.topology.impl.LibertyServerFactory;
  * - Testing error handling for invalid inputs
  * - Validating server and client configuration with generated certificates
  */
+
+@RunWith(FATRunner.class)
 public class SecurityUtilityCreateSSLCertificateTest {
 
     private static final Class<?> thisClass = SecurityUtilityCreateSSLCertificateTest.class;

@@ -41,6 +41,7 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
+import org.junit.runner.RunWith;
 
 import com.ibm.websphere.simplicity.Machine;
 import com.ibm.websphere.simplicity.ProgramOutput;
@@ -48,6 +49,7 @@ import com.ibm.websphere.simplicity.log.Log;
 
 import componenttest.topology.impl.LibertyServer;
 import componenttest.topology.impl.LibertyServerFactory;
+import componenttest.custom.junit.runner.FATRunner;
 
 /**
  * Test class for the securityUtility generateAESKey command.
@@ -60,6 +62,8 @@ import componenttest.topology.impl.LibertyServerFactory;
  * - Integration with other security features (encoded passwords, keystore configuration)
  * - Beta guard functionality
  */
+
+@RunWith(FATRunner.class)
 public class SecurityUtilityGenerateAesKeyTest {
     private static final Class<?> thisClass = SecurityUtilityGenerateAesKeyTest.class;
     private static LibertyServer testServer = LibertyServerFactory.getLibertyServer("SecurityUtilityGenerateServer");

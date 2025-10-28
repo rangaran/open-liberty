@@ -30,6 +30,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import static org.junit.Assert.fail;
 import org.junit.rules.TestName;
+import org.junit.runner.RunWith;
 
 import com.ibm.websphere.simplicity.Machine;
 import com.ibm.websphere.simplicity.ProgramOutput;
@@ -38,11 +39,14 @@ import com.ibm.websphere.simplicity.log.Log;
 
 import componenttest.topology.impl.LibertyServer;
 import componenttest.topology.impl.LibertyServerFactory;
+import componenttest.custom.junit.runner.FATRunner;
 
 /**
  * Test class for the securityUtility encode command.
  * Tests encoding options, custom encryption, and parameter validation.
  */
+
+@RunWith(FATRunner.class)
 public class SecurityUtilityEncodeTest {
     private static final Class<?> thisClass = SecurityUtilityEncodeTest.class;
     private static LibertyServer server = LibertyServerFactory.getLibertyServer("PasswordUtilityEncodeTest");

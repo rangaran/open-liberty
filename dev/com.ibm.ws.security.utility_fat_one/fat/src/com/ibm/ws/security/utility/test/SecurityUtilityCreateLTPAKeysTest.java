@@ -35,6 +35,7 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
+import org.junit.runner.RunWith;
 
 import com.ibm.websphere.simplicity.Machine;
 import com.ibm.websphere.simplicity.ProgramOutput;
@@ -42,6 +43,7 @@ import com.ibm.websphere.simplicity.log.Log;
 
 import componenttest.topology.impl.LibertyServer;
 import componenttest.topology.impl.LibertyServerFactory;
+import componenttest.custom.junit.runner.FATRunner;
 
 /**
  * Test class for the securityUtility createLTPAKeys command.
@@ -52,6 +54,8 @@ import componenttest.topology.impl.LibertyServerFactory;
  * - Validating error handling for invalid inputs
  * - Verifying server configuration and LTPA initialization
  */
+
+@RunWith(FATRunner.class)
 public class SecurityUtilityCreateLTPAKeysTest {
     private static final Class<?> thisClass = SecurityUtilityCreateLTPAKeysTest.class;
     
