@@ -21,4 +21,5 @@ instrument.disabled: true
   com.ibm.wsspi.org.osgi.service.component.annotations;version=latest, \
   com.ibm.ws.crypto.passwordutil;version=latest
 
-
+publish.wlp.jar.disabled: true
+test.project: true
