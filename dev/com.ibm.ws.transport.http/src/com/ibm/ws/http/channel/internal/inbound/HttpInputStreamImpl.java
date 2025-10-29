@@ -24,6 +24,7 @@ import com.ibm.ws.http.channel.internal.HttpChannelConfig;
 import com.ibm.ws.http.channel.internal.HttpMessages;
 import com.ibm.wsspi.bytebuffer.WsByteBuffer;
 import com.ibm.wsspi.channelfw.ChannelFrameworkFactory;
+import com.ibm.wsspi.http.channel.HttpConstants;
 import com.ibm.wsspi.http.channel.exception.IllegalHttpBodyException;
 import com.ibm.wsspi.http.channel.inbound.HttpInboundServiceContext;
 
@@ -85,7 +86,7 @@ public class HttpInputStreamImpl extends HttpInputStreamConnectWeb {
         String contentEncoding = nettyRequest.headers().get(HttpHeaderNames.CONTENT_ENCODING);
     
         // If the content is compressed, use legacy decompression handler
-        if (contentEncoding != null && isCompressed(contentEncoding)) {
+        if (contentEncoding != null && isCompressed(contentEncoding.toLowerCase())) {
             HttpChannelConfig config = ((HttpInboundServiceContextImpl) isc).getHttpConfig();
 
 
@@ -106,7 +107,7 @@ public class HttpInputStreamImpl extends HttpInputStreamConnectWeb {
     }
 
     private boolean isCompressed(String encoding) {
-        return "gzip".equalsIgnoreCase(encoding) || "deflate".equalsIgnoreCase(encoding);
+        return HttpConstants.GZIP.equals(encoding) || HttpConstants.DEFLATE.equals(encoding) || HttpConstants.X_GZIP.equals(encoding);
     }
 
     /*

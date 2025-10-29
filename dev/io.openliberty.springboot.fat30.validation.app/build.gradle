@@ -12,11 +12,10 @@
 plugins {
   id 'org.springframework.boot' version '3.5.3'
   id 'war'
+  id 'io.spring.dependency-management' version '1.1.7'
 }
 
 apply from: '../wlp-gradle/subprojects/spring.gradle'
-
-apply plugin: 'io.spring.dependency-management'
 
 group = 'com.ibm.ws.example.spring'
 version = '0.0.1-SNAPSHOT'
@@ -26,7 +25,6 @@ java {
 
 apply from: '../wlp-gradle/subprojects/maven-central-mirror.gradle'
 
-
 dependencies {
   implementation('org.springframework.boot:spring-boot-starter-web')
   providedCompile 'org.springframework.boot:spring-boot-starter-tomcat'
@@ -34,12 +32,4 @@ dependencies {
     exclude group: 'org.hibernate.validator', module: 'hibernate-validator'
   }
   compileOnly 'jakarta.validation:jakarta.validation-api'
-}
-
-bootJar {
-  duplicatesStrategy = 'warn'
-}
-
-jar {
-  enabled = false
 }

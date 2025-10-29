@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2015, 2022 IBM Corporation and others.
+ * Copyright (c) 2015, 2025 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -50,6 +50,10 @@ public class BasicEncryptionTests extends SAMLCommonTest {
 
     private final String CLASS_DEFAULT_SP = "sp_enc_aes128";
     private final String SP_ENCRYPTION_AES_128 = "sp_enc_aes128";
+    private final String SP_ENCRYPTION_AES_128_EC = "sp_enc_aes128_ec";
+    private final String SP_ENCRYPTION_AES_128_NO_SIGN = "sp_enc_aes128_no_sign";
+    private final String SP_ENCRYPTION_RSASP_ECDSAIDP = "sp_enc_rsaSP_ecdsaIDP";
+    private final String SP_ENCRYPTION_ECDSASP_RSAIDP = "sp_enc_ecdsaSP_rsaIDP";
     private final String SP_ENCRYPTION_AES_192 = "sp_enc_aes192";
     private final String SP_ENCRYPTION_AES_256 = "sp_enc_aes256";
     private final String DEFAULT_ENCRYPTION_KEY_USER = "CN=new_user2, O=IBM, C=US";
@@ -140,8 +144,8 @@ public class BasicEncryptionTests extends SAMLCommonTest {
      * @throws Exception
      */
     @MaximumJavaLevel(javaLevel = 8) // test uses DSA cert and that is no longer supported
-    @AllowedFFDC(value = { "com.ibm.ws.security.saml.error.SamlException", "org.opensaml.xmlsec.encryption.support.DecryptionException", "org.opensaml.xmlsec.signature.support.SignatureException" }, repeatAction = {EmptyAction.ID,JakartaEE9Action.ID})
     @Test
+    @AllowedFFDC(value = { "com.ibm.ws.security.saml.error.SamlException", "org.opensaml.xmlsec.encryption.support.DecryptionException", "org.opensaml.xmlsec.signature.support.SignatureException", "java.security.InvalidKeyException", "org.apache.xml.security.signature.XMLSignatureException" })
     public void testNoKeyAlias_DefaultKeyAliasInKeystore_MultipleCertsInKeystore_MissingCorrectCert() throws Exception {
 
         testSAMLServer.reconfigServer(buildSPServerName("server_enc_noKeyAlias_multiCertKeyStore_defaultKeyAliasCertWithWrongKeyAlias.xml"), _testName, SAMLConstants.NO_EXTRA_MSGS, SAMLConstants.JUNIT_REPORTING);
@@ -192,7 +196,7 @@ public class BasicEncryptionTests extends SAMLCommonTest {
      * @throws Exception
      */
     @MaximumJavaLevel(javaLevel = 8) // test uses DSA cert and that is no longer supported
-    @AllowedFFDC(value = { "com.ibm.ws.security.saml.error.SamlException", "org.opensaml.xmlsec.encryption.support.DecryptionException", "org.opensaml.xmlsec.signature.support.SignatureException" }, repeatAction = {EmptyAction.ID,JakartaEE9Action.ID})
+    @AllowedFFDC(value = { "com.ibm.ws.security.saml.error.SamlException", "org.opensaml.xmlsec.encryption.support.DecryptionException", "org.opensaml.xmlsec.signature.support.SignatureException", "java.security.InvalidKeyException", "org.apache.xml.security.signature.XMLSignatureException" }, repeatAction = {EmptyAction.ID,JakartaEE9Action.ID})
     @Test
     public void testNoKeyAlias_DefaultKeyAliasInKeystore_OneCertInKeystore_WrongCert() throws Exception {
 
@@ -264,7 +268,7 @@ public class BasicEncryptionTests extends SAMLCommonTest {
      * @throws Exception
      */
     @Mode(TestMode.LITE)
-    @AllowedFFDC(value = { "com.ibm.ws.security.saml.error.SamlException", "org.opensaml.xmlsec.encryption.support.DecryptionException" },repeatAction = {EmptyAction.ID,JakartaEE9Action.ID,JakartaEE10Action.ID})
+    @AllowedFFDC(value = { "com.ibm.ws.security.saml.error.SamlException", "org.opensaml.xmlsec.encryption.support.DecryptionException", "java.security.InvalidKeyException", "org.apache.xml.security.signature.XMLSignatureException" }, repeatAction = {EmptyAction.ID,JakartaEE9Action.ID,JakartaEE10Action.ID})
     @Test
     public void testKeyAlias_MultipleCertsInKeystore_KeyAliasIsWrongCert() throws Exception {
 
@@ -337,7 +341,7 @@ public class BasicEncryptionTests extends SAMLCommonTest {
      * @throws Exception
      */
     @MaximumJavaLevel(javaLevel = 8) // test uses DSA cert and that is no longer supported
-    @AllowedFFDC(value = { "com.ibm.ws.security.saml.error.SamlException", "org.opensaml.xmlsec.encryption.support.DecryptionException", "org.opensaml.xmlsec.signature.support.SignatureException" },repeatAction = {EmptyAction.ID,JakartaEE9Action.ID})
+    @AllowedFFDC(value = { "com.ibm.ws.security.saml.error.SamlException", "org.opensaml.xmlsec.encryption.support.DecryptionException", "org.opensaml.xmlsec.signature.support.SignatureException", "java.security.InvalidKeyException", "org.apache.xml.security.signature.XMLSignatureException" }, repeatAction = {EmptyAction.ID,JakartaEE9Action.ID})
     @Test
     public void testKeyAlias_OneCertInKeystore_KeyAliasIsWrongCert() throws Exception {
 
@@ -431,6 +435,149 @@ public class BasicEncryptionTests extends SAMLCommonTest {
         updatedTestSettings.setSamlTokenValidationData(updatedTestSettings.getSamlTokenValidationData().getNameId(), updatedTestSettings.getSamlTokenValidationData().getIssuer(), updatedTestSettings.getSamlTokenValidationData().getInResponseTo(), SAMLConstants.BAD_TOKEN_EXCHANGE, updatedTestSettings.getSamlTokenValidationData().getEncryptionKeyUser(), updatedTestSettings.getSamlTokenValidationData().getRecipient(), SAMLConstants.AES128);
         successfulFlow(updatedTestSettings, SP_ENCRYPTION_AES_128);
     }
+    
+    /**
+     * Test description:
+     * - The standard SAML flow is followed using an SP that is configured to encrypt assertions using the AES-128-GCM, AES-KEY-WRAP and uses EC-DH key agreement algorithms
+     * TODO : generate SP metadata in such a way that it should specify specific encryption and key wrap algorithms (and even signature algorithms) based on the configuration or if there is a requirement (such as server is in FIPS140-3 mode)
+     * for now, sp metadata (sp_enc_aes128_nosignatureMetadata.xml.orig) has aes128-gcm and kw_aes128 as supported EncryptionMethod algorithms and includes EC certificate
+     * - No Signature involved
+     * Expected results:
+     * - Access to the protected resource should be successful.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testEncryptionAlgorithm_AES128_ECDH_noSignature() throws Exception {
+    	if (true || System.getProperty("java.specification.version").matches("1\\.[789]")) {
+            Log.info(thisClass, _testName, "Skipping test. idp v3 does not support EC-DH");
+            return;
+    	}
+
+        testSAMLServer.reconfigServer(buildSPServerName("server_enc_aes128_no_sign.xml"), _testName, SAMLConstants.NO_EXTRA_MSGS, SAMLConstants.JUNIT_REPORTING);
+        SAMLTestSettings updatedTestSettings = getTestSettings(testSettings, SP_ENCRYPTION_AES_128_NO_SIGN);
+        updatedTestSettings.setSamlTokenValidationData(updatedTestSettings.getSamlTokenValidationData().getNameId(), updatedTestSettings.getSamlTokenValidationData().getIssuer(), updatedTestSettings.getSamlTokenValidationData().getInResponseTo(), SAMLConstants.BAD_TOKEN_EXCHANGE, updatedTestSettings.getSamlTokenValidationData().getEncryptionKeyUser(), updatedTestSettings.getSamlTokenValidationData().getRecipient(), SAMLConstants.AES128);
+        successfulFlow(updatedTestSettings, SP_ENCRYPTION_AES_128_NO_SIGN);
+    }
+
+    /**
+     * Test description:
+     * - The standard SAML flow is followed using an SP that is configured to encrypt assertions using the AES-128-GCM, AES-KEY-WRAP and uses EC-DH key agreement algorithms
+     * TODO : generate SP metadata in such a way that it should specify specific encryption and key wrap algorithms (and even signature algorithms) based on the configuration or if there is a requirement (such as server is in FIPS140-3 mode)
+     * for now, sp metadata (sp_enc_aes128_ecMetadata.xml.orig) has aes128-gcm and kw_aes128 as supported EncryptionMethod algorithms and includes EC certificate
+     * - ECDSA Signature involved
+     * Expected results:
+     * - Access to the protected resource should be successful.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testEncryptionAlgorithm_AES128_ECDH_ECDSASignature() throws Exception {
+    	if (true || System.getProperty("java.specification.version").matches("1\\.[789]")) {
+            Log.info(thisClass, _testName, "Skipping test. idp v3 does not support EC-DH");
+            return;
+    	}
+
+        testSAMLServer.reconfigServer(buildSPServerName("server_enc_aes128_ecdsa_sign.xml"), _testName, SAMLConstants.NO_EXTRA_MSGS, SAMLConstants.JUNIT_REPORTING);
+        SAMLTestSettings updatedTestSettings = getTestSettings(testSettings, SP_ENCRYPTION_AES_128_EC);
+        updatedTestSettings.setSamlTokenValidationData(updatedTestSettings.getSamlTokenValidationData().getNameId(), updatedTestSettings.getSamlTokenValidationData().getIssuer(), updatedTestSettings.getSamlTokenValidationData().getInResponseTo(), SAMLConstants.BAD_TOKEN_EXCHANGE, updatedTestSettings.getSamlTokenValidationData().getEncryptionKeyUser(), updatedTestSettings.getSamlTokenValidationData().getRecipient(), SAMLConstants.AES128);
+        successfulFlow(updatedTestSettings, SP_ENCRYPTION_AES_128_EC);
+    }
+
+    /**
+     * Test description:
+     * - The standard SAML flow 
+     * Expected results:
+     * - Access to the protected resource should NOT be successful.
+     * - SP_INITIATED should fail to sign AuthnRequest
+     * - IDP_INITIATED should fail to decrypt the SAMLResponse
+     *
+     * @throws Exception
+     */
+    @Test
+    @AllowedFFDC(value = { "com.ibm.ws.security.saml.error.SamlException", "org.opensaml.xmlsec.encryption.support.DecryptionException", "org.opensaml.xmlsec.signature.support.SignatureException", "java.security.InvalidKeyException", "java.security.spec.InvalidKeySpecException", "org.apache.xml.security.signature.XMLSignatureException" })
+    public void testEncryptionAlgorithm_AES128_RSAKey_signatureMethodAlgorithmECDSAMismatch() throws Exception {
+    	if (System.getProperty("java.specification.version").matches("1\\.[789]")) {
+            Log.info(thisClass, _testName, "Skipping test. idp v3 does not support EC-DH");
+            return;
+    	}
+
+        testSAMLServer.reconfigServer(buildSPServerName("server_enc_aes128_ecdsa_rsaKeyMismatch.xml"), _testName, SAMLConstants.NO_EXTRA_MSGS, SAMLConstants.JUNIT_REPORTING);
+        SAMLTestSettings updatedTestSettings = getTestSettings(testSettings, SP_ENCRYPTION_AES_128_EC);
+        updatedTestSettings.setSamlTokenValidationData(updatedTestSettings.getSamlTokenValidationData().getNameId(), updatedTestSettings.getSamlTokenValidationData().getIssuer(), updatedTestSettings.getSamlTokenValidationData().getInResponseTo(), SAMLConstants.BAD_TOKEN_EXCHANGE, updatedTestSettings.getSamlTokenValidationData().getEncryptionKeyUser(), updatedTestSettings.getSamlTokenValidationData().getRecipient(), SAMLConstants.AES128);
+
+        String errorMsg = SAMLMessageConstants.CWWKS5007E_INTERNAL_SERVER_ERROR + ".+Failed to decrypt EncryptedData.*";
+        if (flowType.equals(SAMLConstants.SOLICITED_SP_INITIATED)) {
+            errorMsg = SAMLMessageConstants.CWWKS5007E_INTERNAL_SERVER_ERROR + ".+Signature computation error.*";
+        }
+
+        unsuccessfulFlow(SP_ENCRYPTION_AES_128_EC, errorMsg, "Did not find message: EC Signature computation error");
+    }
+
+    /**
+     * Test description:
+     * - The standard SAML flow with an SP that is configured to sign assertions using the RSA-SHA256 and the IDP to sign response with ECDSA-SHA256 certificate.
+     * Expected results:
+     * - Access to the protected resource should be successful.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testEncryptionAlgorithm_RSACertSP_ECDSACertIDP() throws Exception {
+        testSAMLServer.reconfigServer(buildSPServerName("server_enc_rsaCertSP_ecdsaCertIDP.xml"), _testName, SAMLConstants.NO_EXTRA_MSGS, SAMLConstants.JUNIT_REPORTING);
+        SAMLTestSettings updatedTestSettings = getTestSettings(testSettings, SP_ENCRYPTION_RSASP_ECDSAIDP);
+        updatedTestSettings.setSamlTokenValidationData(updatedTestSettings.getSamlTokenValidationData().getNameId(), updatedTestSettings.getSamlTokenValidationData().getIssuer(), updatedTestSettings.getSamlTokenValidationData().getInResponseTo(), SAMLConstants.BAD_TOKEN_EXCHANGE, updatedTestSettings.getSamlTokenValidationData().getEncryptionKeyUser(), updatedTestSettings.getSamlTokenValidationData().getRecipient(), SAMLConstants.AES128);
+
+        successfulFlowWithoutEncryption(updatedTestSettings, SP_ENCRYPTION_RSASP_ECDSAIDP);
+    }
+
+    /**
+     * Test description:
+     * - The standard SAML flow with an SP that is configured to sign assertions using the ECDSA-SHA256 and the IDP to sign response with RSA-SHA256 and encrypt with ECDH.
+     * Expected results:
+     * - Access to the protected resource should fail with "the signature method provided is weaker than the required".
+     *
+     * @throws Exception
+     */
+    @Test
+    @AllowedFFDC(value = { "com.ibm.ws.security.saml.error.SamlException", "org.opensaml.messaging.handler.MessageHandlerException" })
+    public void testEncryptionAlgorithm_ECDSACertSP_RSACertIDP() throws Exception {
+            	if (true || System.getProperty("java.specification.version").matches("1\\.[789]")) {
+            Log.info(thisClass, _testName, "Skipping test. idp v3 does not support EC-DH");
+            return;
+    	}
+
+        testSAMLServer.reconfigServer(buildSPServerName("server_enc_ecdsaCertSP_rsaCertIDP.xml"), _testName, SAMLConstants.NO_EXTRA_MSGS, SAMLConstants.JUNIT_REPORTING);
+
+        String sp = SP_ENCRYPTION_ECDSASP_RSAIDP;
+        String failureMessage = SAMLMessageConstants.CWWKS5007E_INTERNAL_SERVER_ERROR + ".+the signature method provided is weaker than the required.*";
+        String logMessage = "Did not find message: " + failureMessage;
+
+        // unsuccessfulFlow(sp, failureMessage, logMessage);
+
+
+        List<validationData> expectations = vData.addSuccessStatusCodes();
+
+        String[] flow = standardFlow;
+
+        if (flowType.equals(SAMLConstants.IDP_INITIATED)) {
+            expectations = vData.addExpectation(expectations, SAMLConstants.PERFORM_IDP_LOGIN, SAMLConstants.RESPONSE_FULL, SAMLConstants.STRING_CONTAINS, "Did not receive expected SAML response.", null, SAMLConstants.SAML_RESPONSE);
+            // Ensure we validate the SAML token content for an EncryptedAssertion
+            expectations = vData.addExpectation(expectations, SAMLConstants.PERFORM_IDP_LOGIN, SAMLConstants.SAML_TOKEN_ENCRYPTED, SAMLConstants.STRING_CONTAINS, "Did not receive the expected encrypted SAML token content.", null, null);
+        }
+
+        String errorPageStep = SAMLConstants.INVOKE_ACS_WITH_SAML_RESPONSE;
+
+        if (flowType.equals(SAMLConstants.SOLICITED_SP_INITIATED)) {
+            flow = SAMLConstants.SOLICITED_SP_INITIATED_FLOW_ONLY_SP;
+        }
+
+        // Should reach an error page with the expected message appearing in the logs
+        expectations = msgUtils.addForbiddenExpectation(errorPageStep, expectations);
+        expectations = helpers.addMessageExpectation(testSAMLServer, expectations, errorPageStep, SAMLConstants.SAML_MESSAGES_LOG, SAMLConstants.STRING_MATCHES, logMessage, failureMessage);
+
+        performSamlFlow(testSettings, sp, flow, expectations);
+    }
 
     /**
      * Test description:
@@ -504,6 +651,29 @@ public class BasicEncryptionTests extends SAMLCommonTest {
         performSamlFlow(sp, standardFlow, updatedTestSettings, expectations);
     }
 
+    private void successfulFlowWithoutEncryption(SAMLTestSettings settings, String sp) throws Exception {
+        SAMLTestSettings updatedTestSettings = getTestSettings(settings, sp);
+
+        List<validationData> expectations = vData.addSuccessStatusCodes();
+
+        String firstAction = standardFlow[0];
+        if (flowType.equals(SAMLConstants.UNSOLICITED_SP_INITIATED)) {
+            expectations = vData.addExpectation(expectations, firstAction, SAMLConstants.RESPONSE_TITLE, SAMLConstants.STRING_CONTAINS, "Did not land on the IDP client JSP page.", null, SAMLConstants.IDP_CLIENT_JSP_TITLE);
+        } else {
+            expectations = vData.addExpectation(expectations, firstAction, SAMLConstants.RESPONSE_TITLE, SAMLConstants.STRING_CONTAINS, "Did not land on the IDP form login page.", null, cttools.getLoginTitle(updatedTestSettings.getIdpRoot()));
+        }
+        expectations = vData.addExpectation(expectations, SAMLConstants.PERFORM_IDP_LOGIN, SAMLConstants.RESPONSE_FULL, SAMLConstants.STRING_CONTAINS, "Did not receive expected SAML response.", null, SAMLConstants.SAML_RESPONSE);
+
+        // Ensure we validate the SAML token content for an EncryptedAssertion
+        // expectations = vData.addExpectation(expectations, SAMLConstants.PERFORM_IDP_LOGIN, SAMLConstants.SAML_TOKEN_ENCRYPTED, SAMLConstants.STRING_CONTAINS, "Did not receive the expected encrypted SAML token content.", null, null);
+
+        // Should successfully reach snoop servlet
+        expectations = vData.addExpectation(expectations, SAMLConstants.INVOKE_ACS_WITH_SAML_RESPONSE, SAMLConstants.RESPONSE_MESSAGE, SAMLConstants.STRING_MATCHES, "Did not get expected OK message.", null, SAMLConstants.OK_MESSAGE);
+        expectations = vData.addExpectation(expectations, SAMLConstants.INVOKE_ACS_WITH_SAML_RESPONSE, SAMLConstants.RESPONSE_TITLE, SAMLConstants.STRING_CONTAINS, "Did not see the expected snoop servlet title.", null, SAMLConstants.APP1_TITLE);
+
+        performSamlFlow(sp, standardFlow, updatedTestSettings, expectations);
+    }
+
     /**
      * Runs through an unsuccessful standard SAML flow. This verifies that a SAML response is obtained from the IDP
      * that contains an EncryptedAssertion element in the IdP-initiated and unsolicited SP flows. For the solicited SP
@@ -520,11 +690,11 @@ public class BasicEncryptionTests extends SAMLCommonTest {
      *
      * @throws Exception
      */
-    private void unsuccessfulFlow(String sp, String logMessage, String failureMessage) throws Exception {
-        unsuccessfulFlow(testSettings, sp, logMessage, failureMessage);
+    private void unsuccessfulFlow(String sp, String failureMessage, String logMessage) throws Exception {
+        unsuccessfulFlow(testSettings, sp, failureMessage, logMessage);
     }
 
-    private void unsuccessfulFlow(SAMLTestSettings settings, String sp, String logMessage, String failureMessage) throws Exception {
+    private void unsuccessfulFlow(SAMLTestSettings settings, String sp, String failureMessage, String logMessage) throws Exception {
         List<validationData> expectations = vData.addSuccessStatusCodes();
 
         String[] flow = standardFlow;
@@ -544,7 +714,7 @@ public class BasicEncryptionTests extends SAMLCommonTest {
 
         // Should reach an error page with the expected message appearing in the logs
         expectations = msgUtils.addForbiddenExpectation(errorPageStep, expectations);
-        expectations = helpers.addMessageExpectation(testSAMLServer, expectations, errorPageStep, SAMLConstants.SAML_MESSAGES_LOG, SAMLConstants.STRING_MATCHES, failureMessage, logMessage);
+        expectations = helpers.addMessageExpectation(testSAMLServer, expectations, errorPageStep, SAMLConstants.SAML_MESSAGES_LOG, SAMLConstants.STRING_MATCHES, logMessage, failureMessage);
 
         performSamlFlow(settings, sp, flow, expectations);
     }

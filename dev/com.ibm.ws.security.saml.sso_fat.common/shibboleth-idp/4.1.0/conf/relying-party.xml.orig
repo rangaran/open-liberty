@@ -261,6 +261,106 @@
 				</list>
 			</property>
 		</bean>
+		
+		<bean
+			parent="RelyingPartyByName"
+			c:relyingPartyIds="#{{'https://localhost:xxx_SpSecurePort_xxx/ibm/saml20/sp_enc_aes128_ec'}}"
+		>
+			<property name="profileConfigurations">
+				<list>
+					<bean parent="Shibboleth.SSO" />
+					<ref bean="SAML1.AttributeQuery" />
+					<ref bean="SAML1.ArtifactResolution" />
+					<bean
+						parent="SAML2.SSO"
+						p:signResponses="true"
+						p:signAssertions="true"
+						p:encryptAssertions="true"
+						p:securityConfiguration-ref="encryption128ecdh"
+						p:nameIDFormatPrecedence="urn:oasis:names:tc:SAML:2.0:nameid-format:uid" />
+					<ref bean="SAML2.ECP" />
+					<ref bean="SAML2.Logout" />
+					<ref bean="SAML2.AttributeQuery" />
+					<ref bean="SAML2.ArtifactResolution" />
+					<ref bean="Liberty.SSOS" />
+				</list>
+			</property>
+		</bean>
+
+	    <bean
+			parent="RelyingPartyByName"
+			c:relyingPartyIds="#{{'https://localhost:xxx_SpSecurePort_xxx/ibm/saml20/sp_enc_aes128_no_sign'}}"
+		>
+			<property name="profileConfigurations">
+				<list>
+					<bean parent="Shibboleth.SSO" />
+					<ref bean="SAML1.AttributeQuery" />
+					<ref bean="SAML1.ArtifactResolution" />
+					<bean
+						parent="SAML2.SSO"
+						p:signResponses="false"
+						p:signAssertions="false"
+						p:encryptAssertions="true"
+						p:securityConfiguration-ref="encryption128ecdh"
+						p:nameIDFormatPrecedence="urn:oasis:names:tc:SAML:2.0:nameid-format:uid" />
+					<ref bean="SAML2.ECP" />
+					<ref bean="SAML2.Logout" />
+					<ref bean="SAML2.AttributeQuery" />
+					<ref bean="SAML2.ArtifactResolution" />
+					<ref bean="Liberty.SSOS" />
+				</list>
+			</property>
+		</bean>
+
+		<bean
+			parent="RelyingPartyByName"
+			c:relyingPartyIds="#{{'https://localhost:xxx_SpSecurePort_xxx/ibm/saml20/sp_enc_rsaSP_ecdsaIDP'}}"
+		>
+			<property name="profileConfigurations">
+				<list>
+					<bean parent="Shibboleth.SSO" />
+					<ref bean="SAML1.AttributeQuery" />
+					<ref bean="SAML1.ArtifactResolution" />
+					<bean
+						parent="SAML2.SSO"
+						p:signResponses="true"
+						p:signAssertions="true"
+						p:encryptAssertions="false"
+						p:securityConfiguration-ref="ECDSASHA256SecurityConfig"
+						p:nameIDFormatPrecedence="urn:oasis:names:tc:SAML:2.0:nameid-format:uid" />
+					<ref bean="SAML2.ECP" />
+					<ref bean="SAML2.Logout" />
+					<ref bean="SAML2.AttributeQuery" />
+					<ref bean="SAML2.ArtifactResolution" />
+					<ref bean="Liberty.SSOS" />
+				</list>
+			</property>
+		</bean>
+
+		<bean
+			parent="RelyingPartyByName"
+			c:relyingPartyIds="#{{'https://localhost:xxx_SpSecurePort_xxx/ibm/saml20/sp_enc_ecdsaSP_rsaIDP'}}"
+		>
+			<property name="profileConfigurations">
+				<list>
+					<bean parent="Shibboleth.SSO" />
+					<ref bean="SAML1.AttributeQuery" />
+					<ref bean="SAML1.ArtifactResolution" />
+					<bean
+						parent="SAML2.SSO"
+						p:signResponses="true"
+						p:signAssertions="true"
+						p:encryptAssertions="true"
+						p:securityConfiguration-ref="SHA256SecurityConfig"
+						p:nameIDFormatPrecedence="urn:oasis:names:tc:SAML:2.0:nameid-format:uid" />
+					<ref bean="SAML2.ECP" />
+					<ref bean="SAML2.Logout" />
+					<ref bean="SAML2.AttributeQuery" />
+					<ref bean="SAML2.ArtifactResolution" />
+					<ref bean="Liberty.SSOS" />
+				</list>
+			</property>
+		</bean>
 
 		<bean
 			parent="RelyingPartyByName"
@@ -592,6 +692,15 @@
 		</property>
 	</bean>
 
+	<bean
+		id="ECDSASHA256SecurityConfig"
+		parent="shibboleth.DefaultSecurityConfiguration"
+	>
+		<property name="signatureSigningConfiguration">
+			<bean parent="shibboleth.SigningConfiguration.SHA256" p:signingCredentials-ref="shibboleth.DefaultSigningCredentialECDSA" />
+		</property>
+	</bean>
+
 	<!-- not supported <bean id="SHA128SecurityConfig" parent="shibboleth.DefaultSecurityConfiguration"> 
 		<property name="signatureSigningConfiguration"> <ref bean="shibboleth.SigningConfiguration.SHA128" 
 		/> </property> </bean> -->
@@ -631,6 +740,27 @@
 							static-field="org.opensaml.xmlsec.encryption.support.EncryptionConstants.ALGO_ID_KEYTRANSPORT_RSAOAEP" />
 					</list>
 				</property>
+			</bean>
+		</property>
+	</bean>
+	
+	<bean
+		id="encryption128ecdh"
+		class="net.shibboleth.idp.profile.config.SecurityConfiguration"
+	    >
+		<property name="signatureSigningConfiguration">
+			<!-- <ref bean="shibboleth.SigningConfiguration.SHA256" /> -->
+			<bean parent="shibboleth.SigningConfiguration.SHA256" p:signingCredentials-ref="shibboleth.DefaultSigningCredentialECDSA" />
+		</property>
+		<property name="encryptionConfiguration">
+			<bean parent="shibboleth.BasicEncryptionConfiguration">
+				<property name="dataEncryptionAlgorithms">
+					<list>
+						<util:constant
+							static-field="org.opensaml.xmlsec.encryption.support.EncryptionConstants.ALGO_ID_BLOCKCIPHER_AES128_GCM" />
+					</list>
+				</property>
+
 			</bean>
 		</property>
 	</bean>

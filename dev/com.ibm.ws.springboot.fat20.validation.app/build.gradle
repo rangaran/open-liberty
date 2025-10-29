@@ -12,6 +12,7 @@
 plugins {
   id 'org.springframework.boot' version '3.5.3'
   id 'war'
+  id 'io.spring.dependency-management' version '1.1.7'
 }
 
 apply from: '../wlp-gradle/subprojects/springboot2.gradle'
@@ -29,12 +30,4 @@ dependencies {
     exclude group: 'org.hibernate.validator', module: 'hibernate-validator'
   }
   compileOnly 'jakarta.validation:jakarta.validation-api'
-}
-
-bootJar {
-  duplicatesStrategy = 'warn'
-}
-
-jar {
-  enabled = false
 }

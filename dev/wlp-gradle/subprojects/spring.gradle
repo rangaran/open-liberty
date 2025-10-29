@@ -63,6 +63,11 @@ ext {
   ]
 }
 
+// disable the jar and war tasks since the spring plugin we only need the bootJar and bootWar tasks
+jar {
+  enabled = false
+}
+
 if (project.plugins.hasPlugin('war')) {
   // Do not also create the non boot war
   tasks.war.enabled = false

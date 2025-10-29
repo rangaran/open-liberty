@@ -10,15 +10,13 @@
 
 /**
  * This gradle file includes the updates needed to build a Spring Boot 2 application
- * using the Spring Boot 3 gradle plugin.  The Spring Boot 2 gradle plugin does not
+ * using the Spring Boot 3 gradle plugin. The Spring Boot 2 gradle plugin does not
  * work with Gradle 9 so we do this approach to be able to build Spring Boot 2
- * application using Gradle 9 still.
+ * applications using Gradle 9 still.
  */
 
 apply from: '../wlp-gradle/subprojects/spring.gradle'
 def sv = springVersions[ '2.0' ]
-
-apply plugin: 'io.spring.dependency-management'
 
 // Need to use the dependency manager as well because the implementation with the
 // enforcedPlatform below only works for implementation and we need to have the bom

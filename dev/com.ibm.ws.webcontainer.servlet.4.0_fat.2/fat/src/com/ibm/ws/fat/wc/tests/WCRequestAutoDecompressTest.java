@@ -34,6 +34,8 @@ import org.junit.runner.RunWith;
 
 import com.ibm.websphere.simplicity.ShrinkHelper;
 
+import componenttest.annotation.AllowedFFDC;
+import componenttest.annotation.ExpectedFFDC;
 import componenttest.annotation.Server;
 import componenttest.custom.junit.runner.FATRunner;
 import componenttest.custom.junit.runner.Mode;
@@ -56,7 +58,7 @@ public class WCRequestAutoDecompressTest {
     @BeforeClass
     public static void setUp() throws Exception {
         LOG.info("Setup server: servlet40_requestAutoDecompress");
-        ShrinkHelper.defaultDropinApp(server, APP_NAME + ".war", "/resources");
+        ShrinkHelper.defaultDropinApp(server, APP_NAME + ".war", "decompression.servlets");
         server.startServer(WCRequestAutoDecompressTest.class.getSimpleName() + ".log");
         LOG.info("Setup: startServer, ready for Tests.");
     }
@@ -118,13 +120,41 @@ public class WCRequestAutoDecompressTest {
     }
 
     /*
+     * Send POST request with corrupted compressed data + Content-Encoding=gzip
+     * 
+     * Expected and Allowed FFDCs may vary between Channel and Netty Frameworks.
+     */
+    @AllowedFFDC({ "java.util.zip.DataFormatException", "java.lang.IllegalArgumentException" })
+    @ExpectedFFDC({"com.ibm.wsspi.http.channel.exception.IllegalHttpBodyException"})
+    @Test
+    public void test_corruptCompressedData() throws IOException, ParseException {
+        LOG.info("====== <test_corruptCompressedData> ======");
+        sendPostRequestCompressedData("small", "gzip", true);
+    }
+
+    /*
      * Send POST request with compressed data + Content-Encoding=gzip or x-gzip or deflate
      * Test various compressed sizes.
      * 
      * Identity header: indicate the body is not compressed.
      */
     private void sendPostRequestCompressedData(String dataSize, String compressMethod) throws IOException, ParseException {
-        String url = "http://" + server.getHostname() + ":" + server.getHttpDefaultPort() + "/" + APP_NAME + "/EchoRequestHeaderParams.jsp";
+        sendPostRequestCompressedData(dataSize, compressMethod, false);
+    }
+
+    /*
+     * Extra parameter: testCorruptedZip
+     * Used for test_corruptCompressedData in order to send a corrupted compressed message
+     */
+    private void sendPostRequestCompressedData(String dataSize, String compressMethod, boolean testCorruptedZip) throws IOException, ParseException {
+        String url = "http://" + server.getHostname() + ":" + server.getHttpDefaultPort() + "/" + APP_NAME;
+
+        if(testCorruptedZip) {
+            url += "/DecompressionServlet";  // Easily displays the IllegalHttpBodyException error in response.
+        } else {
+            url += "/EchoRequestHeaderParams.jsp";
+        }
+
         HttpPost httpPost = new HttpPost(url);
         int totalExpectedPairs = 0;
 
@@ -170,6 +200,11 @@ public class WCRequestAutoDecompressTest {
             }
             stream.close();
             byte[] compressedData = baos.toByteArray();
+            if(testCorruptedZip){
+                 LOG.info("Corrupting compressedData");
+                 compressedData[compressedData.length-1] = '9'; //corrupt the last character
+            }
+
             ByteArrayEntity entity = new ByteArrayEntity(compressedData, ContentType.APPLICATION_FORM_URLENCODED);
 
             httpPost.setHeader("content-encoding", compressMethod); //lower case content-encoding is intentionally
@@ -190,8 +225,16 @@ public class WCRequestAutoDecompressTest {
                 LOG.info("\n=========================\n");
 
                 String responseText = EntityUtils.toString(response.getEntity());
+                LOG.info("\n==== RESPONSE START =========================\n");
+                LOG.info(responseText);
+                LOG.info("\n==== RESPONSE END=========================\n");
                 //Large data is 32k+ ...only show if test fails during assert. Uncomment LOG below for local debug
                 //LOG.info("\n" + "Response Text: \n[" + responseText + "]");
+
+                if(testCorruptedZip) {
+                    assertTrue("No IllegalHttpBodyException was found in the response!", responseText.contains("IllegalHttpBodyException") );
+                    return;
+                }
 
                 assertTrue("Cannot find start query string [" + startExpectedResponse + "]. Response Text: \n[" + responseText + "[", responseText.contains(startExpectedResponse));
                 assertTrue("Cannot find end query string [" + endExpectedResponse + "]. Response Text: \n[" + responseText + "[", responseText.contains(endExpectedResponse));

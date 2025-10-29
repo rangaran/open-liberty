@@ -123,7 +123,7 @@ public class CursoredPageImpl<T> implements CursoredPage<T> {
             if (cursor.isPresent())
                 queryInfo.setParametersFromCursor(query, cursor.get());
 
-            // TODO why are EntityManager.setCacheRetrieveMode and
+            // TODO #33189 why are EntityManager.setCacheRetrieveMode and
             // Query.setCacheRetrieveMode unable to set this instead?
             query.setHint("jakarta.persistence.cache.retrieveMode",
                           CacheRetrieveMode.BYPASS);
@@ -182,7 +182,7 @@ public class CursoredPageImpl<T> implements CursoredPage<T> {
             TypedQuery<Long> query = em.createQuery(queryInfo.jpqlCount, Long.class);
             queryInfo.setParameters(query, args);
 
-            // TODO why are EntityManager.setCacheRetrieveMode and
+            // TODO #33189 why are EntityManager.setCacheRetrieveMode and
             // Query.setCacheRetrieveMode unable to set this instead?
             query.setHint("jakarta.persistence.cache.retrieveMode",
                           CacheRetrieveMode.BYPASS);
