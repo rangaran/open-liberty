@@ -1,1 +1,6 @@
 /bootstrapping.properties
+# Generated custom encryption files
+/publish/bundles/com.ibm.ws.crypto.sample.customencryption.jar
+/publish/features/customEncryption-1.0.mf
+/publish/features/l10n/customEncryption-1.0.properties
+/publish/files/customEncryption.jar

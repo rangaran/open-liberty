@@ -5,6 +5,9 @@
 	<projects>
                 <project>com.ibm.ws.security.client_fat</project>
 	</projects>
+	<projects>
+                <project>com.ibm.ws.crypto.sample.customencryption</project>
+	</projects>
 	<buildSpec>
 		<buildCommand>
 			<name>org.eclipse.jdt.core.javabuilder</name>

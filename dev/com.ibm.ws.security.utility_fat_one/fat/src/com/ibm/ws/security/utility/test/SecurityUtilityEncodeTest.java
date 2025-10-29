@@ -52,7 +52,7 @@ public class SecurityUtilityEncodeTest {
     private static LibertyServer server = LibertyServerFactory.getLibertyServer("PasswordUtilityEncodeTest");
     
     // Custom encryption constants
-    private static final String CUSTOM_PASSWORD_ENCRYPTION_BUNDLE_NAME = "com.ibm.websphere.crypto.sample.customencryption_1.0";
+    private static final String CUSTOM_PASSWORD_ENCRYPTION_BUNDLE_NAME = "com.ibm.ws.crypto.sample.customencryption";
     private static final String CUSTOM_PASSWORD_ENCRYPTION_FEATURE_NAME = "customEncryption-1.0";
     private static final String CUSTOM_PASSWORD_ENCRYPTION_EXTENSION_ROOT = "bin/tools/extensions";
     private static final String CUSTOM_PASSWORD_ENCRYPTION_EXTENSION_PATH = CUSTOM_PASSWORD_ENCRYPTION_EXTENSION_ROOT + "/ws-customPasswordEncryption";

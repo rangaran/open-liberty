@@ -11,80 +11,92 @@
  *     IBM Corporation - Gradle conversion of build.xml
  *******************************************************************************/
 
-// Define commonly used directories
-def puTestPublishDir = file("${projectDir}/publish")
-def puTestFeatureDir = new File(puTestPublishDir, 'features')
-def puTestBundleDir  = new File(puTestPublishDir, 'bundles')
-def puTestFilesDir   = new File(puTestPublishDir, 'files')
-def puCcBundleDir    = file("${projectDir}/../com.ibm.websphere.crypto.sample.customencryption/build/lib")
-def puCcFeatureDir   = file("${projectDir}/../com.ibm.websphere.crypto.sample.customencryption/build/publish/usr/extension/lib/features")
-def puCcExtensionDir = file("${projectDir}/../com.ibm.websphere.crypto.sample.customencryption/build/publish/bin/tools/extensions/ws-customPasswordEncryption")
+def puTestPublishDir = file("${projectDir}/../com.ibm.ws.security.utility_fat_one/publish")
+def puTestFeatureDir = file("${puTestPublishDir}/features")
+def puTestBundleDir  = file("${puTestPublishDir}/bundles")
+def puTestFilesDir   = file("${puTestPublishDir}/files")
+
+def puCcBaseDir      = file("${projectDir}/../com.ibm.ws.crypto.sample.customencryption/build")
+def puCcBundleDir    = file("${puCcBaseDir}/libs")
+def puCcFeatureDir   = file("${puCcBundleDir}/publish/usr/extension/lib/features")
+def puCcExtensionDir = file("${puCcBundleDir}/publish/bin/tools/extensions/ws-customPasswordEncryption")
 
 configurations {
-  requiredLibs {
-    transitive = false
-  }
+    requiredLibs {
+        transitive = false
+    }
 }
 
 dependencies {
-  requiredLibs project(':com.ibm.ws.security.client_fat')
+    requiredLibs project(':com.ibm.ws.security.client_fat'),
+                 project(':com.ibm.ws.crypto.sample.customencryption')
 }
 
+// Copy custom encryption feature and related files
+task copyCustomFiles {
+    dependsOn ':com.ibm.ws.crypto.sample.customencryption:build'
+    doLast {
+        // Verify source paths exist
+        if (!puCcBundleDir.exists()) throw new GradleException("Bundle dir not found: ${puCcBundleDir}")
+        if (!puCcFeatureDir.exists()) throw new GradleException("Feature dir not found: ${puCcFeatureDir}")
+        if (!puCcExtensionDir.exists()) throw new GradleException("Extension dir not found: ${puCcExtensionDir}")
 
-task copyCustomFiles{
-  doLast {
-    /*
-   * Copy the custom encryption feature bundle and related files.
-   */
-  copy {
-    from puCcBundleDir
-    include 'com.ibm.websphere.crypto.sample.customencryption_1.0.jar'
-    into puTestBundleDir
-  }
+        puTestBundleDir.mkdirs()
+        puTestFeatureDir.mkdirs()
+        puTestFilesDir.mkdirs()
 
-  copy {
-    from puCcFeatureDir
-    include 'customEncryption-1.0.mf'
-    into puTestFeatureDir
-  }
+        // Bundle JAR
+        copy {
+            from puCcBundleDir
+            include 'com.ibm.ws.crypto.sample.customencryption.jar'
+            into puTestBundleDir
+        }
 
-  copy {
-    from new File(puCcFeatureDir, 'l10n')
-    include 'customEncryption-1.0.properties'
-    into new File(puTestFeatureDir, 'l10n')
-  }
+        // Feature manifest
+        copy {
+            from puCcFeatureDir
+            include 'customEncryption-1.0.mf'
+            into puTestFeatureDir
+        }
 
-  copy {
-    from puCcExtensionDir
-    include 'customEncryption.jar'
-    into puTestFilesDir
-  }
-  }
+        // L10N properties
+        copy {
+            from file("${puCcFeatureDir}/l10n")
+            include 'customEncryption-1.0.properties'
+            into file("${puTestFeatureDir}/l10n")
+        }
+
+        // Extension JAR
+        copy {
+            from puCcExtensionDir
+            include 'customEncryption.jar'
+            into puTestFilesDir
+        }
+    }
 }
 
+// Copy the EAR from client FAT
 task addEarFile {
-  dependsOn ':com.ibm.ws.security.client_fat:assemble'
-  doLast {
-  
-  def earSource = file("${projectDir}/../com.ibm.ws.security.client_fat/build/libs/test-application/earDD.ear")
-  def destDir = file("${buildDir}/autoFVT/lib/LibertyFATTestFiles")
+    dependsOn ':com.ibm.ws.security.client_fat:assemble'
+    doLast {
+        def earSource = file("${projectDir}/../com.ibm.ws.security.client_fat/build/libs/test-application/earDD.ear")
+        def destDir   = file("${buildDir}/autoFVT/lib/LibertyFATTestFiles")
 
-  if (!earSource.exists()) {
-      throw new GradleException("EAR file not found: ${earSource}")
-  }
+        if (!earSource.exists()) {
+            throw new GradleException("EAR file not found: ${earSource}")
+        }
 
-  destDir.mkdirs()
+        destDir.mkdirs()
 
-  copy {
-      from earSource
-      into destDir
-      rename { "earDD.ear" }
-  }
-  }
+        copy {
+            from earSource
+            into destDir
+            rename { "earDD.ear" }
+        }
+    }
 }
 
 addRequiredLibraries {
-  dependsOn copyCustomFiles
-  dependsOn addEarFile
+    dependsOn copyCustomFiles
+    dependsOn addEarFile
 }
-

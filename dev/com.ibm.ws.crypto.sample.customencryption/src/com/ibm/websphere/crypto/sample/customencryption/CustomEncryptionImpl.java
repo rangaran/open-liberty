@@ -11,7 +11,7 @@
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
 
-package com.ibm.ws.crypto.sample.customencryption;
+package com.ibm.websphere.crypto.sample.customencryption;
 
 import java.util.Map;
 import java.util.logging.Level;
