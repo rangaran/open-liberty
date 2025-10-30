@@ -45,4 +45,4 @@ tested.features: \
 	com.ibm.ws.kernel.feature.core;version=latest, \
 	com.ibm.ws.kernel.feature;version=latest, \
 	com.ibm.ws.security.client_fat;version=latest, \
-	com.ibm.ws.crypto.sample.customencryption
+	com.ibm.ws.crypto.sample.customencryption;version=latest
