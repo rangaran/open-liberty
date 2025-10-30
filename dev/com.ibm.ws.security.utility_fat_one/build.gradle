@@ -16,10 +16,10 @@ def puTestFeatureDir = file("${puTestPublishDir}/features")
 def puTestBundleDir  = file("${puTestPublishDir}/bundles")
 def puTestFilesDir   = file("${puTestPublishDir}/files")
 
-def puCcBaseDir      = file("${projectDir}/../com.ibm.ws.crypto.sample.customencryption/build")
-def puCcBundleDir    = file("${puCcBaseDir}/libs")
-def puCcFeatureDir   = file("${puCcBundleDir}/publish/usr/extension/lib/features")
-def puCcExtensionDir = file("${puCcBundleDir}/publish/bin/tools/extensions/ws-customPasswordEncryption")
+def puCcBaseDir      = file("${projectDir}/../com.ibm.ws.crypto.sample.customencryption/build/libs/publish")
+def puCcBundleDir    = file("${puCcBaseDir}/usr/extension/lib")
+def puCcFeatureDir   = file("${puCcBundleDir}/features")
+def puCcExtensionDir = file("${puCcBaseDir}/bin/tools/extensions/ws-customPasswordEncryption")
 
 configurations {
     requiredLibs {
@@ -44,11 +44,13 @@ task copyCustomFiles {
         puTestBundleDir.mkdirs()
         puTestFeatureDir.mkdirs()
         puTestFilesDir.mkdirs()
-
+        
+		delete "${puTestBundleDir}/com.ibm.ws.crypto.sample.customencryption_1.0.jar"
+		
         // Bundle JAR
         copy {
             from puCcBundleDir
-            include 'com.ibm.ws.crypto.sample.customencryption.jar'
+            include 'com.ibm.ws.crypto.sample.customencryption_1.0.jar'
             into puTestBundleDir
         }
 

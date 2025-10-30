@@ -19,15 +19,16 @@
 
 ext {
     extJarName = 'customEncryption.jar'
-    extJarInputDir = "${projectDir}/publish/bin/tools/extensions/ws-customPasswordEncryption/${extJarName}"
+    extJarInputDir = "${projectDir}/publish/_bin/tools/extensions/ws-customPasswordEncryption/${extJarName}"
     extJarOutputDir = "${buildDir}/publish/bin/tools/extensions/ws-customPasswordEncryption"
     featureDir = "publish/usr/extension/lib"
     featureName = "customEncryption-1.0.mf"
     featureBundleName = "com.ibm.ws.crypto.sample.customencryption.jar"
+    featureBundleWithVersion = "com.ibm.ws.crypto.sample.customencryption_1.0.jar"
 }
  
 // Task to publish the user feature
-task copyFeature() {
+task copyFeature(dependsOn: jar) {
     description = 'Publishes the user feature'
     group = 'build'
     
@@ -35,7 +36,9 @@ task copyFeature() {
         // Copy the bundle JAR to the feature directory 
         copy {
             from "${buildDir}/${featureBundleName}"
-            into "${buildDir}/${featureDir}"
+            into "${buildDir}/${featureDir}" 
+            rename "${featureBundleName}","${featureBundleWithVersion}"
+           
         }
         
         // Copy the feature manifest
@@ -43,7 +46,7 @@ task copyFeature() {
             from "${projectDir}/${featureDir}/features/${featureName}"
             into "${buildDir}/${featureDir}/features"
         }
-        
+
         // Copy the localization resources
         copy {
             from "${projectDir}/resources/l10n"
@@ -53,14 +56,20 @@ task copyFeature() {
 }
  
 task generateExtensionJar (type: Jar, dependsOn: copyFeature ) {
-    archiveFileName.set(extJarName)
-    destinationDirectory.set(file(extJarOutputDir))
-    doLast {
+    description = 'Generates the extension jar file'
+    group = 'build'
+    // Configure the Jar task properties
+    archiveFileName = extJarName
+    destinationDirectory = file(extJarOutputDir)
+
+    // Use the manifest from the input directory
+    manifest {
+        from "${extJarInputDir}/META-INF/MANIFEST.MF"
+    }
+    
+    doFirst {
         mkdir extJarOutputDir
-        
-        // Create the JAR file with the specified manifest
-        ant.jar(destfile: "${extJarOutputDir}/${extJarName}",
-                manifest: "${extJarInputDir}/META-INF/MANIFEST.MF")
     }
 }
-build.finalizedBy generateExtensionJar
+
+build.dependsOn generateExtensionJar
