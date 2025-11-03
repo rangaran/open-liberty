@@ -593,6 +593,31 @@ public class CreateLTPAKeysTaskTest {
                      task.handleTask(stdin, stdout, stderr, args));
     }
 
+/**
+ * Test method for
+ * {@link com.ibm.ws.security.utility.tasks.CreateLTPAKeysTask#handleTask(com.ibm.ws.security.utility.utils.ConsoleWrapper, java.io.PrintStream, java.io.PrintStream, java.lang.String[])}
+ * .
+ */
+@Test
+public void handleTask_specifiedServer_serverNameInvalid() throws Exception {
+    CreateLTPAKeysTask task = new CreateLTPAKeysTask(ltpaKeyFileUtil, fileUtil, TEST_UTILITY_NAME);
+    String[] args = new String[] { "securityUtility", "--password=Liberty", "--server=." };
+
+    mock.checking(new Expectations() {
+        {
+            // No file system access should occur
+            never(fileUtil).exists(with(any(String.class)));
+            never(fileUtil).resolvePath(with(any(String.class)));
+
+            one(stdout).println(with(stringContaining("LTPA")));
+            one(stdout).println(with(stringContaining("The specified server . is not a valid server name")));
+        }
+    });
+
+    assertEquals("FAIL: The task did not report execution error due to invalid server name",
+                 SecurityUtilityReturnCodes.ERR_INVALID_SERVER_NAME,
+                 task.handleTask(stdin, stdout, stderr, args));
+}
     /**
      * Test method for
      * {@link com.ibm.ws.security.utility.tasks.CreateLTPAKeysTask#handleTask(com.ibm.ws.security.utility.utils.ConsoleWrapper, java.io.PrintStream, java.io.PrintStream, java.lang.String[])}
