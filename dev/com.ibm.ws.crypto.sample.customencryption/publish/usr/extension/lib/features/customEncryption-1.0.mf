@@ -7,5 +7,5 @@ Subsystem-Version: 1.0.0
 Subsystem-ManifestVersion: 1.0
 Subsystem-SymbolicName: customEncryption-1.0;visibility:=public
 Subsystem-Content: com.ibm.ws.crypto.sample.customencryption; version="[1,1.1)"; start-phase:="SERVICE_EARLY",
- customEncryption.jar; location:="_bin/tools/extensions/ws-customPasswordEncryption/customEncryption.jar"; type=file
+ customEncryption.jar; location:="bin/tools/extensions/ws-customPasswordEncryption/customEncryption.jar"; type=file
 Subsystem-Description: %description
