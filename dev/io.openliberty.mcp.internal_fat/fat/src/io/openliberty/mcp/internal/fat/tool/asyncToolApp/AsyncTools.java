@@ -19,6 +19,9 @@ import java.util.logging.Logger;
 
 import io.openliberty.mcp.annotations.Tool;
 import io.openliberty.mcp.annotations.ToolArg;
+import io.openliberty.mcp.content.Content;
+import io.openliberty.mcp.content.ContentEncoder;
+import io.openliberty.mcp.content.TextContent;
 import io.openliberty.mcp.internal.fat.utils.ToolStatus;
 import io.openliberty.mcp.messaging.Cancellation;
 import io.openliberty.mcp.messaging.Cancellation.OperationCancellationException;
@@ -26,6 +29,8 @@ import jakarta.annotation.Resource;
 import jakarta.enterprise.concurrent.ManagedExecutorService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.json.bind.Jsonb;
+import jakarta.json.bind.JsonbBuilder;
 
 /**
  *
@@ -115,6 +120,49 @@ public class AsyncTools {
 
         return neverReturns.thenApply(result -> {
             return input + ": (async) : Will Never be returned";
+        });
+    }
+
+    /*******************************************************************************
+     * Test encoding a completion stage with a given content encoder
+     *******************************************************************************/
+
+    public record Person(String fistName, String lastName, int age) {}
+
+    @ApplicationScoped
+    public static class PersonContentEncoder implements ContentEncoder<Person> {
+
+        private final Jsonb jsonb = JsonbBuilder.create();
+
+        @Override
+        public boolean supports(Class<?> runtimeType) {
+            return Person.class.isAssignableFrom(runtimeType);
+        }
+
+        @Override
+        public Content encode(Person person) {
+            Person encodedPerson = new Person(person.fistName, "Encoded by PersonContentEncoder", person.age);
+            return new TextContent(jsonb.toJson(encodedPerson));
+        }
+    }
+
+    @Tool(name = "testContentEncoderCompletionStage", description = "tests that a Person object is encoded to content correctly by the PersonContentEncoder")
+    public CompletionStage<Person> testContentEncoderCompletionStage() {
+        return executor.supplyAsync(() -> {
+            return new Person("Jon", "Doe", 32);
+        });
+    }
+
+    /*******************************************************************************
+     * Test encoding CompletionStage that wraps a list of objects with a given
+     * content encoder
+     *******************************************************************************/
+
+    @Tool(name = "testContentEncoderEncodingACompletionStageContainingAList",
+          description = "tests that a Person object is encoded to content correctly by the PersonContentEncoder")
+    public CompletionStage<List<Person>> testContentEncoderEncodingACompletionStageContainingAList() {
+        return executor.supplyAsync(() -> {
+            return List.of(new Person("Jon", "Doe", 32), new Person("Jane", "Doe", 22));
         });
     }
 

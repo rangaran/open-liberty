@@ -25,6 +25,7 @@ import com.ibm.ws.kernel.service.util.ServiceCaller;
 
 import io.openliberty.mcp.internal.Capabilities.ServerCapabilities;
 import io.openliberty.mcp.internal.config.McpConfiguration;
+import io.openliberty.mcp.internal.encoders.EncoderRegistry;
 import io.openliberty.mcp.internal.exceptions.jsonrpc.HttpResponseException;
 import io.openliberty.mcp.internal.exceptions.jsonrpc.JSONRPCErrorCode;
 import io.openliberty.mcp.internal.exceptions.jsonrpc.JSONRPCException;
@@ -74,6 +75,9 @@ public class McpServlet extends HttpServlet {
 
     @Inject
     McpCdiExtension cdiExtension;
+
+    @Inject
+    EncoderRegistry encoderRegistry;
 
     private Jsonb jsonb;
 
@@ -245,10 +249,10 @@ public class McpServlet extends HttpServlet {
     private ToolArguments createToolArguments(McpToolCallParams params) {
         Map<String, Object> args = params.getArguments(jsonb);
         Meta meta = new MetaImpl(params.getMeta(), jsonb);
-        return new ToolArgumentsImpl(args, new CancellationImpl(), meta);
+        return new ToolArgumentsImpl(args, new CancellationImpl(), meta, encoderRegistry);
     }
 
-    record ToolArgumentsImpl(Map<String, Object> args, Cancellation cancellation, Meta meta) implements ToolArguments {}
+    public record ToolArgumentsImpl(Map<String, Object> args, Cancellation cancellation, Meta meta, EncoderRegistry encoderRegistry) implements ToolArguments {}
 
     private void cleanup(ExecutionRequestId requestId) {
         if (requestId != null && requestTracker.isOngoingRequest(requestId)) {

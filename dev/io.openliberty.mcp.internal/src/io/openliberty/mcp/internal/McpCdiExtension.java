@@ -9,8 +9,10 @@
  *******************************************************************************/
 package io.openliberty.mcp.internal;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -19,13 +21,18 @@ import com.ibm.websphere.ras.Tr;
 import com.ibm.websphere.ras.TraceComponent;
 
 import io.openliberty.mcp.annotations.Tool;
+import io.openliberty.mcp.content.ContentEncoder;
 import io.openliberty.mcp.internal.ToolMetadata.ArgumentMetadata;
 import io.openliberty.mcp.internal.ToolMetadata.SpecialArgumentMetadata;
+import io.openliberty.mcp.internal.encoders.EncoderRegistry;
 import io.openliberty.mcp.internal.exceptions.GenericArgumentException;
 import io.openliberty.mcp.internal.requests.McpRequestIdDeserializer;
 import io.openliberty.mcp.internal.requests.McpRequestIdSerializer;
 import io.openliberty.mcp.internal.schemas.SchemaRegistry;
 import io.openliberty.mcp.internal.tools.BeanMethodHandler.MethodMetadata;
+import io.openliberty.mcp.messaging.Encoder;
+import io.openliberty.mcp.tools.ToolResponseEncoder;
+import jakarta.enterprise.context.spi.CreationalContext;
 import jakarta.enterprise.event.Observes;
 import jakarta.enterprise.inject.spi.AfterDeploymentValidation;
 import jakarta.enterprise.inject.spi.AnnotatedMethod;
@@ -46,6 +53,8 @@ public class McpCdiExtension implements Extension {
 
     private static final TraceComponent tc = Tr.register(McpCdiExtension.class);
 
+    private static final List<Bean<?>> encoderBeans = new ArrayList<>();
+    private EncoderRegistry encoderRegistry;
     private ToolRegistry tools = new ToolRegistry();
     private ConcurrentHashMap<String, LinkedList<String>> duplicateToolsMap = new ConcurrentHashMap<>();
 
@@ -55,7 +64,7 @@ public class McpCdiExtension implements Extension {
     private static Jsonb createJsonb() {
         JsonbConfig jsonbConfig = new JsonbConfig().withSerializers(new McpRequestIdSerializer())
                                                    .withDeserializers(new McpRequestIdDeserializer());
-    
+
         return JsonbBuilder.create(jsonbConfig);
     }
 
@@ -69,11 +78,56 @@ public class McpCdiExtension implements Extension {
         }
     }
 
+    void discoverEncoderBeans(@Observes ProcessManagedBean<?> processManagedBean) {
+        AnnotatedType<?> type = processManagedBean.getAnnotatedBeanClass();
+        Class<?> javaClass = type.getJavaClass();
+        if (Encoder.class.isAssignableFrom(javaClass)) {
+            encoderBeans.add(processManagedBean.getBean());
+        }
+    }
+
     void afterDeploymentValidation(@Observes AfterDeploymentValidation afterDeploymentValidation, BeanManager manager) {
+        registerEncoders(manager);
+
         boolean error = reportOnDuplicateTools(afterDeploymentValidation) | reportOnToolArgEdgeCases(afterDeploymentValidation) |
                         reportOnDuplicateSpecialArguments(afterDeploymentValidation) | reportOnInvalidSpecialArguments(afterDeploymentValidation);
         if (error) {
             afterDeploymentValidation.addDeploymentProblem(new Exception(Tr.formatMessage(tc, "CWMCM0005E.validation.error")));
+        }
+    }
+
+    void registerEncoders(BeanManager beanManager) {
+        encoderRegistry = beanManager.createInstance().select(EncoderRegistry.class).get();
+
+        CreationalContext<?> context = beanManager.createCreationalContext(null);
+
+        List<ToolResponseEncoder<?>> toolResponseEncoders = new ArrayList<>();
+        List<ContentEncoder<?>> contentEncoders = new ArrayList<>();
+
+        for (Bean<?> bean : encoderBeans) {
+            if (ToolResponseEncoder.class.isAssignableFrom(bean.getBeanClass())) {
+                ToolResponseEncoder<?> encoder = (ToolResponseEncoder<?>) beanManager.getReference(bean, bean.getBeanClass(), context);
+                toolResponseEncoders.add(encoder);
+                logEncoderRegistration(bean);
+            } else if (ContentEncoder.class.isAssignableFrom(bean.getBeanClass())) {
+                ContentEncoder<?> encoder = (ContentEncoder<?>) beanManager.getReference(bean, bean.getBeanClass(), context);
+                contentEncoders.add(encoder);
+                logEncoderRegistration(bean);
+            }
+        }
+
+        encoderRegistry.registerEncoders(toolResponseEncoders, contentEncoders);
+
+        context.release();
+    }
+
+    private static void logEncoderRegistration(Bean<?> encoderBean) {
+        if (TraceComponent.isAnyTracingEnabled()) {
+            if (tc.isDebugEnabled()) {
+                Tr.debug(McpCdiExtension.class, tc, "Registered encoder: " + encoderBean.getName(), encoderBean);
+            } else if (tc.isEventEnabled()) {
+                Tr.event(McpCdiExtension.class, tc, "Registered encoder: " + encoderBean.getName());
+            }
         }
     }
 
@@ -195,4 +249,7 @@ public class McpCdiExtension implements Extension {
         return jsonb;
     }
 
+    public EncoderRegistry getEncoderRegistry() {
+        return encoderRegistry;
+    }
 }

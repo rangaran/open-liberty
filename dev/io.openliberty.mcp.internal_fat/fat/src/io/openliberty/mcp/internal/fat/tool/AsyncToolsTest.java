@@ -301,4 +301,78 @@ public class AsyncToolsTest extends FATServletClient {
                         """;
         client.callMCP(request);
     }
+
+    @Test
+    public void testContentEncoderThatReturnsCompletionStage() throws Exception {
+        String request = """
+                          {
+                          "jsonrpc": "2.0",
+                          "id": "2",
+                          "method": "tools/call",
+                          "params": {
+                            "name": "testContentEncoderCompletionStage",
+                            "arguments": {}
+                          }
+                        }
+                        """;
+
+        String response = client.callMCP(request);
+        // the object within the text field is expected to have the fields in lexicographical order after converting the object to JSON
+        // 3 backslashes, as it should look like \" in the response. So we need extra backslashes to escape the \ and to escape the "
+        String expectedResponseString = """
+                        {
+                          "id":"2",
+                          "jsonrpc":"2.0",
+                          "result": {
+                            "content": [
+                              {
+                                "type":"text",
+                                "text":"{\\\"age\\\":32,\\\"fistName\\\":\\\"Jon\\\",\\\"lastName\\\":\\\"Encoded by PersonContentEncoder\\\"}"
+                              }
+                            ],
+                            "isError": false
+                          }
+                        }
+                        """;
+        JSONAssert.assertEquals(expectedResponseString, response, true);
+    }
+
+    @Test
+    public void testContentEncoderCompletionStageWithListEncoding() throws Exception {
+        String request = """
+                          {
+                          "jsonrpc": "2.0",
+                          "id": "2",
+                          "method": "tools/call",
+                          "params": {
+                            "name": "testContentEncoderEncodingACompletionStageContainingAList",
+                            "arguments": {}
+                          }
+                        }
+                        """;
+
+        String response = client.callMCP(request);
+        // the object within the text field is expected to have the fields in lexicographical order after converting the object to JSON
+        // 3 backslashes, as it should look like \" in the response. So we need extra backslashes to escape the \ and to escape the "
+        String expectedResponseString = """
+                        {
+                          "id":"2",
+                          "jsonrpc":"2.0",
+                          "result": {
+                            "content": [
+                              {
+                                "type":"text",
+                                "text":"{\\\"age\\\":32,\\\"fistName\\\":\\\"Jon\\\",\\\"lastName\\\":\\\"Encoded by PersonContentEncoder\\\"}"
+                              },
+                              {
+                                "type":"text",
+                                "text":"{\\\"age\\\":22,\\\"fistName\\\":\\\"Jane\\\",\\\"lastName\\\":\\\"Encoded by PersonContentEncoder\\\"}"
+                              }
+                            ],
+                            "isError": false
+                          }
+                        }
+                        """;
+        JSONAssert.assertEquals(expectedResponseString, response, true);
+    }
 }

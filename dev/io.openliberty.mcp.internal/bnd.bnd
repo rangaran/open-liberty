@@ -45,6 +45,7 @@ Bundle-Localization: \
 	io.openliberty.mcp;version=latest,\
 	io.openliberty.jakarta.jsonb.3.0;version=latest,\
 	io.openliberty.jakarta.jsonp.2.1;version=latest,\
+	io.openliberty.jakarta.annotation.2.1;version=latest,\
 	com.ibm.ws.cdi.interfaces.jakarta;version=latest,\
 	com.ibm.ws.transport.http;version=latest,\
 	com.ibm.ws.kernel.service;version=latest

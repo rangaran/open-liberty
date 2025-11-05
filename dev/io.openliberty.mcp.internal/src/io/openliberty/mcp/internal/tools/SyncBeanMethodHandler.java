@@ -57,8 +57,7 @@ public class SyncBeanMethodHandler extends BeanMethodHandler<ToolResponse> {
             } finally {
                 releaseCc(cc);
             }
-
-            return createSuccessfulResponse(result);
+            return createSuccessfulResponse(result, toolArgs);
 
         } catch (JSONRPCException e) {
             throw e;

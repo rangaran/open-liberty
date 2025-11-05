@@ -159,3 +159,11 @@ jsonrpc.missing.arguments=The following arguments were expected by the method bu
 CWMCM0018E.generic.arguments=CWMCM0018E: The {1} argument of the {0} MCP tool method contains unsupported components such as TypeVariable, Wildcard, GenericArrayType.
 CWMCM0018E.generic.arguments.explanation=MCP Tool arguments were provided but they are not supported. 
 CWMCM0018E.generic.arguments.useraction=Provide arguments that do not have generic components.
+
+# Used for encoder logging
+# {0} = The encoder class name
+# {1} = The tool name
+# {2} = The exception
+CWMCM0019E.error.encoding.element=CWMCM0019E: The {0} encoder threw an exception while encoding the result of the {1} tool. The exception is {2}
+CWMCM0019E.error.encoding.element.explanation=The encoder threw an exception while encoding the result of the tool. This could be due to a problem with the encoder, or with the tool returning an unexpected result.
+CWMCM0019E.error.encoding.element.useraction=Review the server message.log and FFDC logs to identify the problem.

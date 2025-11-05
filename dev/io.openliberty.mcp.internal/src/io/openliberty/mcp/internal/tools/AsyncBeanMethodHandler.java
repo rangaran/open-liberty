@@ -64,7 +64,7 @@ public class AsyncBeanMethodHandler extends BeanMethodHandler<CompletionStage<To
                 throw new JSONRPCException(JSONRPCErrorCode.INVALID_PARAMS, List.of("Incorrect arguments in params"));
             }
 
-            return methodStage.thenApply(result -> createSuccessfulResponse(result))
+            return methodStage.thenApply(result -> createSuccessfulResponse(result, toolArgs))
                               .exceptionally(throwable -> {
                                   if (throwable instanceof CompletionException) {
                                       throwable = throwable.getCause();
