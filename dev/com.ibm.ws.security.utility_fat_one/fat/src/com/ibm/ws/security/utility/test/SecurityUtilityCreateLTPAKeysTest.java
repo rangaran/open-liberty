@@ -97,7 +97,6 @@ public class SecurityUtilityCreateLTPAKeysTest {
         libertyInstallRoot = ltpaTestServer.getInstallRoot();
         securityUtilityPath = libertyInstallRoot + "/bin/securityUtility";
         testEnvironment = new Properties();
-        testEnvironment.put("JVM_ARGS", "-Dcom.ibm.ws.beta.edition=true");
         testMachine = ltpaTestServer.getMachine();
 
         // Ensure resources/security directory exists for the test server

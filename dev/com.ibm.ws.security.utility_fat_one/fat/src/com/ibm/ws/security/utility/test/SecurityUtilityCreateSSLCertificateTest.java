@@ -115,7 +115,6 @@ public class SecurityUtilityCreateSSLCertificateTest {
         autoFVTpath = sslTestServer.pathToAutoFVTTestFiles;
         testMachine = sslTestServer.getMachine();
         testEnvironment = new Properties();
-        testEnvironment.put("JVM_ARGS", "-Dcom.ibm.ws.beta.edition=true");
 
         // Create security directories for test servers and clients
         new File(libertyInstallRoot + "/usr/clients/" + SSL_TEST_CLIENT_NAME + "/resources/security").mkdirs();
@@ -820,9 +819,7 @@ public class SecurityUtilityCreateSSLCertificateTest {
         String securityUtilityPath = libertyInstallRoot + "/bin/securityUtility";
         String certificatePassword = "Liberty";
         
-        // Create beta environment with required flag
-        Properties betaEnvironment = new Properties();
-        betaEnvironment.put("JVM_ARGS", "-Dcom.ibm.ws.beta.edition=true");
+        Properties testEnvironment = new Properties();
         
         // Execute createSSLCertificate command with both --server and --client
         ProgramOutput commandOutput = testMachine.execute(
@@ -834,7 +831,7 @@ public class SecurityUtilityCreateSSLCertificateTest {
                 "--password=" + certificatePassword
             },
             libertyInstallRoot,
-            betaEnvironment);
+            testEnvironment);
 
         Log.info(thisClass, testName.getMethodName(), "stderr:\n" + commandOutput.getStderr());
         Log.info(thisClass, testName.getMethodName(), "stdout:\n" + commandOutput.getStdout());

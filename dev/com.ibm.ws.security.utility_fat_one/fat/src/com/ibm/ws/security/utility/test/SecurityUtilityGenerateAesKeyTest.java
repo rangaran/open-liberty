@@ -60,7 +60,6 @@ import componenttest.custom.junit.runner.FATRunner;
  * - Key generation (random and specified keys)
  * - XML file usage (inclusion in server configuration)
  * - Integration with other security features (encoded passwords, keystore configuration)
- * - Beta guard functionality
  */
 
 @RunWith(FATRunner.class)
@@ -191,7 +190,6 @@ public class SecurityUtilityGenerateAesKeyTest {
         
 
         testEnvironment = new Properties();
-        testEnvironment.put("JVM_ARGS", "-Dcom.ibm.ws.beta.edition=true");
 
         ProgramOutput commandOutput = testMachine.execute(
             securityUtilityPath,
@@ -215,7 +213,6 @@ public class SecurityUtilityGenerateAesKeyTest {
     @Test
     public void testMissingFileParameter() throws Exception {
         testEnvironment = new Properties();
-        testEnvironment.put("JVM_ARGS", "-Dcom.ibm.ws.beta.edition=true");
 
         // Test with missing --createConfigFile parameter
         
@@ -251,7 +248,6 @@ public class SecurityUtilityGenerateAesKeyTest {
     public void testExistingFile() throws Exception {
         // Create existing test file
         testEnvironment = new Properties();
-        testEnvironment.put("JVM_ARGS", "-Dcom.ibm.ws.beta.edition=true");
         
         String existingFileName = "existing.xml";
         String existingFilePath = testOutputDir + "/" + existingFileName;
@@ -289,7 +285,6 @@ public class SecurityUtilityGenerateAesKeyTest {
     @Test
     public void testSpecifiedKeyGeneration() throws Exception {
         testEnvironment = new Properties();
-        testEnvironment.put("JVM_ARGS", "-Dcom.ibm.ws.beta.edition=true");
 
         // Test specified key generation
         String specifiedKey = "myTestKey123";
@@ -344,7 +339,6 @@ public class SecurityUtilityGenerateAesKeyTest {
     @Test
     public void testEmptyKeyParameter() throws Exception {
         testEnvironment = new Properties();
-        testEnvironment.put("JVM_ARGS", "-Dcom.ibm.ws.beta.edition=true");
 
         String specifiedKeyFile1 = "specified_key1.xml";
         String outputFilePath1 = testOutputDir + "/" + specifiedKeyFile1;
@@ -383,7 +377,6 @@ public class SecurityUtilityGenerateAesKeyTest {
     @Test
     public void testV1V2PasswordsCoexistInServerXml() throws Exception {
         testEnvironment = new Properties();
-        testEnvironment.put("JVM_ARGS", "-Dcom.ibm.ws.beta.edition=true");
 
         String aesConfigFile = testOutputDir + "/temp_aes.xml";
 
@@ -458,7 +451,6 @@ public class SecurityUtilityGenerateAesKeyTest {
     @Test
     public void testGeneratedXmlFileInclusion() throws Exception {
         testEnvironment = new Properties();
-        testEnvironment.put("JVM_ARGS", "-Dcom.ibm.ws.beta.edition=true");
 
         // Generate encryption XML file
         String includeFileName = "include.xml";
