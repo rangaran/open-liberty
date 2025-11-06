@@ -26,7 +26,6 @@ import static java.lang.annotation.ElementType.FIELD;
 import static java.lang.annotation.ElementType.METHOD;
 import static java.lang.annotation.ElementType.PARAMETER;
 import static java.lang.annotation.ElementType.TYPE;
-import static java.lang.annotation.ElementType.TYPE_USE;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 import java.lang.annotation.Retention;
@@ -36,7 +35,7 @@ import java.lang.annotation.Target;
  * Annotates a parameter of a {@linkSchema} method.
  */
 @Retention(RUNTIME)
-@Target({ TYPE, TYPE_USE, FIELD, METHOD, PARAMETER })
+@Target({ TYPE, FIELD, METHOD, PARAMETER })
 public @interface Schema {
 
     public final static String UNSET = "<<unset>>";

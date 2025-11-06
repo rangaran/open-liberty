@@ -19,12 +19,34 @@
     xsi:schemaLocation="https://jakarta.ee/xml/ns/persistence/orm https://jakarta.ee/xml/ns/persistence/orm/orm_3_2.xsd"
     version="3.2">
 
- <entity class="test.jakarta.data.web.Apartment">
-  <table name="Apartment"/>
+ <!-- 
+   Without the access type set to FIELD
+   Hibernate will default to access type PROPERTY.
+   
+   - FIELD    expect entity attributes to be public fields.
+   - PROPERTY expect entity attributes to be private fields with getters/setters.
+   
+   TODO when generating the orm.xml using our persistence service we should
+   determine the access type of the entity class based on the id field and reflect
+   that in the entity element to make the orm.xml more portable between provides, for example: 
+   
+   <entity class="test.jakarta.data.web.Apartment" access="FIELD"> //Because: public long APTID;
+ -->
+ <persistence-unit-metadata>
+   <persistence-unit-defaults>
+     <access>FIELD</access>
+   </persistence-unit-defaults>
+ </persistence-unit-metadata>
+ 
+ <!-- 
+   Hibernate requires explicitly defining the mapped-superclasses
+   
+   TODO when generating the orm.xml using our persistence we should
+   detect and generate mapped-superclass elements to make the 
+   orm.xml more portable between provides
+ -->
+ <mapped-superclass class="test.jakarta.data.web.Residence">
   <attributes>
-   <id name="APTID">
-    <column nullable="false"/>
-   </id>
    <basic name="isOccupied">
     <column nullable="false"/>
    </basic>
@@ -36,6 +58,18 @@
      <column name="OCCUPANT_LASTNAME"/>
     </attribute-override>
    </embedded>
+  </attributes>
+ </mapped-superclass>
+ 
+ <entity class="test.jakarta.data.web.Apartment">
+  <table name="Apartment"/>
+  <attributes>
+   <id name="APTID">
+    <column nullable="false"/>
+   </id>
+   <basic name="quartersWidth">
+    <column nullable="false"/>
+   </basic>
    <embedded name="quarters">
     <attribute-override name="length">
      <column name="QUARTERS_LENGTH"/>
@@ -44,9 +78,6 @@
      <column name="QUARTERS_WIDTH"/>
     </attribute-override>
    </embedded>
-   <basic name="quartersWidth">
-    <column nullable="false"/>
-   </basic>
   </attributes>
  </entity>
 
@@ -56,17 +87,9 @@
    <id name="aptId">
     <column nullable="false"/>
    </id>
-   <basic name="isOccupied">
+   <basic name="quarters_width">
     <column nullable="false"/>
    </basic>
-   <embedded name="occupant">
-    <attribute-override name="firstName">
-     <column name="OCCUPANT_FIRSTNAME"/>
-    </attribute-override>
-    <attribute-override name="lastName">
-     <column name="OCCUPANT_LASTNAME"/>
-    </attribute-override>
-   </embedded>
    <embedded name="quarters">
     <attribute-override name="length">
      <column name="QUARTERS_LENGTH"/>
@@ -75,9 +98,6 @@
      <column name="QUARTERS_WIDTH"/>
     </attribute-override>
    </embedded>
-   <basic name="quarters_width">
-    <column nullable="false"/>
-   </basic>
   </attributes>
  </entity>
 
@@ -87,17 +107,6 @@
    <id name="aptId">
     <column nullable="false"/>
    </id>
-   <basic name="isOccupied">
-    <column nullable="false"/>
-   </basic>
-   <embedded name="occupant">
-    <attribute-override name="firstName">
-     <column name="OCCUPANT_FIRSTNAME"/>
-    </attribute-override>
-    <attribute-override name="lastName">
-     <column name="OCCUPANT_LASTNAME"/>
-    </attribute-override>
-   </embedded>
    <basic name="occupant_firstName">
     <column nullable="false"/>
    </basic>
@@ -115,8 +124,21 @@
  <entity class="test.jakarta.data.web.House">
   <table name="House"/>
   <attributes>
+   <id name="parcelId">
+   </id>
    <basic name="area">
     <column nullable="false"/>
+   </basic>
+   <basic name="lotSize">
+    <column nullable="false"/>
+   </basic>
+   <basic name="numBedrooms">
+    <column nullable="false"/>
+   </basic>
+   <basic name="purchasePrice">
+    <column nullable="false"/>
+   </basic>
+   <basic name="sold">
    </basic>
    <embedded name="garage">
     <attribute-override name="area">
@@ -140,33 +162,20 @@
      <column name="KITCHEN_WIDTH"/>
     </attribute-override>
    </embedded>
-   <basic name="lotSize">
-    <column nullable="false"/>
-   </basic>
-   <basic name="numBedrooms">
-    <column nullable="false"/>
-   </basic>
-   <id name="parcelId">
-   </id>
-   <basic name="purchasePrice">
-    <column nullable="false"/>
-   </basic>
-   <basic name="sold">
-   </basic>
   </attributes>
  </entity>
 
  <entity class="test.jakarta.data.web.Package">
   <table name="Package"/>
   <attributes>
+   <id name="id">
+    <column nullable="false"/>
+   </id>
    <basic name="description">
    </basic>
    <basic name="height">
     <column nullable="false"/>
    </basic>
-   <id name="id">
-    <column nullable="false"/>
-   </id>
    <basic name="length">
     <column nullable="false"/>
    </basic>
@@ -179,6 +188,8 @@
  <entity class="test.jakarta.data.web.Participant">
   <table name="Participant"/>
   <attributes>
+   <id name="pID">
+   </id>
    <embedded name="name">
     <attribute-override name="first">
      <column name="NAME_FIRST"/>
@@ -187,27 +198,28 @@
      <column name="NAME_LAST"/>
     </attribute-override>
    </embedded>
-   <id name="pID">
-   </id>
   </attributes>
  </entity>
 
  <entity class="test.jakarta.data.web.Person">
   <table name="Person"/>
   <attributes>
+   <id name="ssn_id">
+    <column nullable="false"/>
+   </id>
    <basic name="firstName">
    </basic>
    <basic name="lastName">
    </basic>
-   <id name="ssn_id">
-    <column nullable="false"/>
-   </id>
   </attributes>
  </entity>
 
  <entity class="test.jakarta.data.web.Prime">
   <table name="Prime"/>
   <attributes>
+   <id name="numberId">
+    <column nullable="false"/>
+   </id>
    <basic name="binaryDigits">
    </basic>
    <basic name="even">
@@ -217,28 +229,25 @@
    </basic>
    <basic name="name">
    </basic>
-   <id name="numberId">
-    <column nullable="false"/>
-   </id>
    <basic name="romanNumeral">
    </basic>
-   <element-collection name="romanNumeralSymbols" fetch="EAGER">
-   </element-collection>
    <basic name="sumOfBits">
     <column nullable="false"/>
    </basic>
+   <element-collection name="romanNumeralSymbols" fetch="EAGER">
+   </element-collection>
   </attributes>
  </entity>
 
  <entity class="test.jakarta.data.web.Product">
   <table name="Product"/>
   <attributes>
+   <id name="pk">
+   </id>
    <basic name="description">
    </basic>
    <basic name="name">
    </basic>
-   <id name="pk">
-   </id>
    <basic name="price">
     <column nullable="false"/>
    </basic>
@@ -251,11 +260,14 @@
  <entity class="test.jakarta.data.web.Purchase">
   <table name="Purchase"/>
   <attributes>
-   <basic name="customer">
-   </basic>
    <id name="purchaseId">
     <column nullable="false"/>
    </id>
+   <basic name="customer">
+   </basic>
+   <basic name="total">
+    <column nullable="false"/>
+   </basic>
    <embedded name="receipt">
     <attribute-override name="customer">
      <column name="RECEIPT_CUSTOMER"/>
@@ -267,15 +279,15 @@
      <column name="RECEIPT_TOTAL"/>
     </attribute-override>
    </embedded>
-   <basic name="total">
-    <column nullable="false"/>
-   </basic>
   </attributes>
  </entity>
 
  <entity class="test.jakarta.data.web.Thing">
   <table name="Thing"/>
   <attributes>
+   <id name="thingId">
+    <column nullable="false"/>
+   </id>
    <basic name="a">
    </basic>
    <basic name="alike">
@@ -299,15 +311,14 @@
    <basic name="purchaseOrder">
     <column nullable="false"/>
    </basic>
-   <id name="thingId">
-    <column nullable="false"/>
-   </id>
   </attributes>
  </entity>
 
  <entity class="test.jakarta.data.web.Vehicle">
   <table name="Vehicle"/>
   <attributes>
+   <id name="vinId">
+   </id>
    <basic name="make">
    </basic>
    <basic name="model">
@@ -318,8 +329,6 @@
    <basic name="price">
     <column nullable="false"/>
    </basic>
-   <id name="vinId">
-   </id>
   </attributes>
  </entity>
  
@@ -336,10 +345,10 @@
   <attributes>
    <basic name="area">
    </basic>
-   <embedded name="door">
-   </embedded>
    <basic name="type">
    </basic>
+   <embedded name="door">
+   </embedded>
   </attributes>
  </embeddable>
 

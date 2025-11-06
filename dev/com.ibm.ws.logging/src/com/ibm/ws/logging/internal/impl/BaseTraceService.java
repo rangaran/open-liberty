@@ -312,7 +312,8 @@ public class BaseTraceService implements TrService {
     protected final static int BYTE_ARRAY_OUTPUT_BUFFER_THRESHOLD = ThreadLocalByteArrayOutputStream.getByteArrayOutputThreshold();
     public static boolean isStackTraceSingleEntryEnabled = false;
 
-    private static Boolean isBetaEdition;
+    private static volatile Boolean isBetaEdition = null;
+    private static final AtomicBoolean betaCheckInitializing = new AtomicBoolean(false);
 
     /**
      * Called from Tr.getDelegate when BaseTraceService delegate is created
@@ -362,14 +363,28 @@ public class BaseTraceService implements TrService {
     }
 
     public Boolean betaFenceCheck() {
-        if (isBetaEdition == null) {
-            if (Boolean.getBoolean("com.ibm.ws.beta.edition")) {
-                isBetaEdition = true;
-            } else {
-                isBetaEdition = false;
+        if (isBetaEdition != null)
+            return isBetaEdition;
+
+        //To prevent a StackOverflow error, we need to ensure only one thread runs the beta check block, otherwise the tr.info will be stuck in an infinite loop.
+        if (betaCheckInitializing.compareAndSet(false, true)) {
+            try {
+                if (isBetaEdition == null) {
+                    if (Boolean.getBoolean("com.ibm.ws.beta.edition")) {
+                        Tr.info(tc, "BETA: A beta method has been invoked for the class BaseTraceService for the first time.");
+                        isBetaEdition = true;
+                    } else {
+                        isBetaEdition = false;
+                    }
+
+                }
+
+                return isBetaEdition;
+            } finally {
+                betaCheckInitializing.set(false);
             }
         }
-        return isBetaEdition;
+        return isBetaEdition != null ? isBetaEdition : false;
     }
 
     /**
@@ -482,15 +497,13 @@ public class BaseTraceService implements TrService {
             collectorMgrPipelineUtils = CollectorManagerPipelineUtils.getInstance();
         }
 
-        if (betaFenceCheck()) {
-            throttleMaxMessagesPerWindow = trConfig.getThrottleMaxMessagesPerWindow();
-            throttleMapSize = trConfig.getThrottleMapSize();
+        throttleMaxMessagesPerWindow = trConfig.getThrottleMaxMessagesPerWindow();
+        throttleMapSize = trConfig.getThrottleMapSize();
 
-            if (throttleType != trConfig.getThrottleType()) {
-                throttleType = trConfig.getThrottleType();
-                resetLogThrottling(); //We need to reset the throttleStates map when switching between throttleTypes.
+        if (throttleType != trConfig.getThrottleType()) {
+            throttleType = trConfig.getThrottleType();
+            resetLogThrottling(); //We need to reset the throttleStates map when switching between throttleTypes.
 
-            }
         }
 
         //Sources

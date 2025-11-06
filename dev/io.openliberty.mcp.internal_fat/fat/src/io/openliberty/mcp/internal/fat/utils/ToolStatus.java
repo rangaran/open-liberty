@@ -9,38 +9,76 @@
  *******************************************************************************/
 package io.openliberty.mcp.internal.fat.utils;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-
-import jakarta.enterprise.context.ApplicationScoped;
-
 /**
+ * Handles synchronization of tests with tools that need to run in parallel
+ * <p>
+ * Usage example:
+ *
+ * <pre>
+ * {@code
+ * &#64;Inject
+ * ToolStatus toolStatus;
+ *
+ * @Tool
+ * public String myTool(@ToolArg String latchName) {
+ *     toolStatus.signalStarted(latchName);
+ *     toolStatus.awaitShouldEnd(latchName);
+ *     return "OK";
+ * }
+ * }
+ * </pre>
+ *
+ * <pre>
+ * {@code
+ * &#64;Rule
+ * public ToolStatus toolStatus = new ToolStatusClient(server, "myAppName");
+ *
+ * @Test
+ * public String myTest() {
+ *     String request = """
+ *                     ...
+ *                        "latchName": "MyLatch"
+ *                     ...
+ *                     """;
+ *     Future<String> result = executor.submit(() -> client.callMCP(request));
+ *     toolStatus.awaitStarted("MyLatch");
+ *
+ *     // Test something that is supposed to run while the first request is running
+ *
+ *     toolStatus.signalShouldEnd("MyLatch");
+ *     assertEquals(expectedResult, result.get(10, SECONDS));
+ * }
+ * }
+ * </pre>
  *
  */
-@ApplicationScoped
-public class ToolStatus {
+public interface ToolStatus {
 
-    Map<String, CountDownLatch> latches = new HashMap<>();
+    /**
+     * Signals that a tool has started and unblocks any thread waiting on this latch.
+     *
+     */
+    void signalStarted(String latchName);
 
-    private CountDownLatch getOrCreateCountDownLatch(String latchName) {
-        // ensures only one thread at a time can safely get or add a latch to the map of latches
-        synchronized (this) {
-            return latches.computeIfAbsent(latchName, l -> new CountDownLatch(1));
-        }
-    }
+    /**
+     * Waits for the tool to signal that it has started.
+     *
+     */
+    void awaitStarted(String latchName);
 
-    public void setRunning(String latchName) {
-        CountDownLatch latch = getOrCreateCountDownLatch(latchName);
-        latch.countDown();
-    }
+    /**
+     * Releases the latch so that a tool can complete.
+     *
+     */
+    void signalShouldEnd(String latchName);
 
-    public void awaitRunning(String latchName) throws InterruptedException {
-        CountDownLatch latch = getOrCreateCountDownLatch(latchName);
-        boolean toolStarted = latch.await(10, TimeUnit.SECONDS);
-        if (!toolStarted) {
-            throw new RuntimeException("Tool did not start");
-        }
-    }
+    /**
+     * Blocks until the end latch with the given name is released by the test.
+     * <p>
+     * This is typically called by the tool to wait before completing execution,
+     * allowing the test to control when the tool finishes.
+     * </p>
+     */
+    void awaitShouldEnd(String latchName);
+
 }

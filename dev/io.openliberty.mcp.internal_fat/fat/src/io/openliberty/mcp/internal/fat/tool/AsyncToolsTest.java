@@ -25,14 +25,18 @@ import com.ibm.websphere.simplicity.ShrinkHelper;
 
 import componenttest.annotation.Server;
 import componenttest.custom.junit.runner.FATRunner;
+import componenttest.custom.junit.runner.Mode;
+import componenttest.custom.junit.runner.Mode.TestMode;
 import componenttest.topology.impl.LibertyServer;
 import componenttest.topology.utils.FATServletClient;
 import io.openliberty.mcp.internal.fat.tool.asyncToolApp.AsyncTools;
-import io.openliberty.mcp.internal.fat.utils.AwaitToolServlet;
 import io.openliberty.mcp.internal.fat.utils.McpClient;
+import io.openliberty.mcp.internal.fat.utils.ToolStatus;
+import io.openliberty.mcp.internal.fat.utils.ToolStatusClient;
 
 @RunWith(FATRunner.class)
 public class AsyncToolsTest extends FATServletClient {
+
     private static final String EXPECTED_ERROR = "Method call caused runtime exception. This is expected if the input was 'throw error'";
 
     @Server("mcp-server-async")
@@ -41,11 +45,14 @@ public class AsyncToolsTest extends FATServletClient {
     @Rule
     public McpClient client = new McpClient(server, "/asyncToolsTest");
 
+    @Rule
+    public ToolStatusClient toolStatus = new ToolStatusClient(server, "/asyncToolsTest");
+
     @BeforeClass
     public static void setup() throws Exception {
         WebArchive war = ShrinkWrap.create(WebArchive.class, "asyncToolsTest.war")
                                    .addPackage(AsyncTools.class.getPackage())
-                                   .addPackage(AwaitToolServlet.class.getPackage());
+                                   .addPackage(ToolStatus.class.getPackage());
 
         ShrinkHelper.exportDropinAppToServer(server, war, SERVER_ONLY);
 
@@ -277,6 +284,7 @@ public class AsyncToolsTest extends FATServletClient {
     }
 
     @Test(expected = Exception.class)
+    @Mode(TestMode.FULL)
     public void testCompletionStageThatNeverCompletes() throws Exception {
         String request = """
                           {

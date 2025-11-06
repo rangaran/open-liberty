@@ -1088,6 +1088,7 @@ public class SchemaTest {
                                     "type": "object"
                                 }
                             },
+                            "description": "Returns list of person object",
                             "items": {
                                 "$ref": "#/$defs/Person"
                             },

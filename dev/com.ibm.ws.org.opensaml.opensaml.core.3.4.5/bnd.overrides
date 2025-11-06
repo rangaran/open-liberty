@@ -195,6 +195,5 @@ Include-Resource: \
   @\${repo;io.openliberty.org.opensaml:opensaml-xacml-api;4.3.2.1}!/!META-INF/MANIFEST.MF|META-INF/maven/*|META-INF/services/*, \
   @\${repo;io.openliberty.org.opensaml:opensaml-xacml-saml-impl;4.3.2.1}!/!META-INF/MANIFEST.MF|META-INF/maven/*|META-INF/services/*, \
  @\${repo;io.dropwizard.metrics:metrics-core;4.2.25}!/!META-INF/MANIFEST.MF|META-INF/maven/*|META-INF/services/*, \
- org/opensaml=${bin}/org/opensaml, \
  META-INF=resources/META-INF
 

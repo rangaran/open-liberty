@@ -44,14 +44,25 @@ public class AsyncLifecycleTools {
         LOG.info("[LIFECYCLE] @PreDestroy AsyncLifecycleTools (" + id + ")");
     }
 
-    @Tool(name = "asyncLifecycleEcho", title = "Async Echo", description = "Echoes input asynchronously")
-    public CompletionStage<String> asyncLifecycleEcho(@ToolArg(name = "input", description = "input to echo") String input) {
-        LOG.info("[LOGGED] AsyncLifecycleTools.asyncLifecycleEcho Tool logged");
+    @Tool(name = "asyncLifecycleCompleteCompletionStage", title = "Async Echo", description = "Echoes input asynchronously")
+    public CompletionStage<String> asyncLifecycleCompleteCompletionStage(@ToolArg(name = "input", description = "input to echo") String input) {
+        LOG.info("[LOGGED] AsyncLifecycleTools.asyncLifecycleCompleteCompletionStage Tool logged");
         if (input.equals("throw error")) {
-            LOG.info("[LOGGED] AsyncLifecycleTools.asyncLifecycleEcho Tool throwing error");
+            LOG.info("[LOGGED] AsyncLifecycleTools.asyncLifecycleCompleteCompletionStage Tool throwing error");
+            throw new RuntimeException("Method call caused runtime exception. This is expected if the input was 'throw error'");
+        }
+        return executor.completedStage(input + ": (async)");
+    }
+
+    @Tool(name = "asyncLifecycleAsyncStage", title = "Async Echo", description = "Echoes input asynchronously")
+    public CompletionStage<String> asyncLifecycleAsyncStage(@ToolArg(name = "input", description = "input to echo") String input) {
+        LOG.info("[LOGGED] AsyncLifecycleTools.asyncLifecycleAsyncStage Tool logged");
+        if (input.equals("throw error")) {
+            LOG.info("[LOGGED] AsyncLifecycleTools.asyncLifecycleAsyncStage Tool throwing error");
             throw new RuntimeException("Method call caused runtime exception. This is expected if the input was 'throw error'");
         }
         return executor.supplyAsync(() -> {
+            LOG.info("[LOGGED] AsyncLifecycleTools.asyncLifecycleAsyncStage Tool running process async");
             return input + ": (async)";
         });
     }

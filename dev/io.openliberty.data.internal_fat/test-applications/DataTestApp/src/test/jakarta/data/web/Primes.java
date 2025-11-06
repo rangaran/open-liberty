@@ -380,7 +380,7 @@ public interface Primes {
     @Query("SELECT o.name FROM Prime o WHERE o.numberId < ?1")
     Page<String> namesBelow(long numBelow, Sort<Prime> sort, PageRequest pageRequest);
 
-    @Query(value = "SELECT NEW java.util.AbstractMap.SimpleImmutableEntry(p.numberId, p.name) FROM Prime p WHERE p.numberId <= ?1 ORDER BY p.name")
+    @Query(value = "SELECT NEW java.util.AbstractMap$SimpleImmutableEntry(p.numberId, p.name) FROM Prime p WHERE p.numberId <= ?1 ORDER BY p.name")
     Page<Map.Entry<Long, String>> namesByNumber(long maxNumber, PageRequest pagination);
 
     @Query("SELECT prime.name, prime.hex FROM  Prime  prime  WHERE prime.numberId <= ?1")

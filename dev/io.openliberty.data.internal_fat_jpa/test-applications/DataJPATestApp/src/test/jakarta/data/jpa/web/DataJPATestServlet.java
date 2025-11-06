@@ -1423,7 +1423,12 @@ public class DataJPATestServlet extends FATServlet {
                                      .map(t -> t.ssn)
                                      .collect(Collectors.toList()));
 
-        assertIterableEquals(List.of("AccountId:66320100:410224", "AccountId:77512000:705030", "AccountId:88191200:410224"),
+        if (!isHibernate())
+            return; // TODO enable once EclipseLink #33293 is fixed
+
+        assertIterableEquals(List.of("AccountId:66320100:410224",
+                                     "AccountId:77512000:705030",
+                                     "AccountId:88191200:410224"),
                              taxpayers.findAccountsBySSN(234002340L)
                                              .stream()
                                              .map(AccountId::toString)
@@ -1809,6 +1814,10 @@ public class DataJPATestServlet extends FATServlet {
                                                   List.of("email1@openliberty.io",
                                                           "email2@openliberty.io",
                                                           "email3@openliberty.io")));
+
+        if (skipForHibernate("https://github.com/OpenLiberty/open-liberty/issues/33290")) {
+            return; //TODO remove skip when fixed in Hibernate or Liberty
+        }
 
         List<Mobile> list = mobilePhones.findByEmailsEmpty();
         assertEquals(list.toString(), 1, list.size());
@@ -2373,6 +2382,10 @@ public class DataJPATestServlet extends FATServlet {
         // Populate database
         UUID id = mobilePhones.insert(Mobile.of(OS.ANDROID, apps, emails)).deviceId;
 
+        if (skipForHibernate("https://github.com/OpenLiberty/open-liberty/issues/33290")) {
+            return; //TODO remove skip when fixed in Hibernate or Liberty
+        }
+
         // Outside of transaction, returned entity should be detached
         Mobile johnsMobile = mobilePhones.findById(id).orElseThrow();
 
@@ -2387,13 +2400,139 @@ public class DataJPATestServlet extends FATServlet {
     }
 
     /**
+     * Attempt a find-and-delete operation within a UserTransaction. The
+     * returned entities must operate as detached.
+     */
+    @Test
+    public void testFindAndDeleteInTransaction() throws Exception {
+
+        cities.save(new City("Grand Forks", "North Dakota", 59845, Set.of(701)));
+        cities.save(new City("Bismarck", "North Dakota", 77772, Set.of(701)));
+        cities.save(new City("Fargo", "North Dakota", 136285, Set.of(701)));
+
+        City bismarck;
+        City grandForks;
+
+        tran.begin();
+        try {
+            List<City> removed = cities.removeByStateName("North Dakota");
+
+            assertEquals(Set.of("Grand Forks",
+                                "Bismarck",
+                                "Fargo"),
+                         removed.stream()
+                                         .map(c -> c.name)
+                                         .collect(Collectors.toSet()));
+
+            bismarck = removed.stream()
+                            .filter(c -> "Bismarck".equals(c.name))
+                            .findFirst()
+                            .orElseThrow();
+            // The entity must be detached so this update must not commit
+            bismarck.population = 77777;
+
+            grandForks = removed.stream()
+                            .filter(c -> "Grand Forks".equals(c.name))
+                            .findFirst()
+                            .orElseThrow();
+            // The entity must be detached so this update must not commit
+            grandForks.population = 59800;
+        } finally {
+            tran.commit();
+        }
+
+        List<City> found = cities.removeByStateName("North Dakota");
+
+        assertEquals(found.toString(), 0, found.size());
+
+        bismarck.changeCount = 0;
+        bismarck = cities.save(bismarck);
+
+        assertEquals(77777, bismarck.population);
+
+        bismarck = cities.findByName("Bismarck")
+                        .findFirst()
+                        .orElseThrow();
+
+        assertEquals(77777, bismarck.population);
+
+        List<City> removed = cities.removeByStateName("North Dakota");
+
+        assertEquals(removed.toString(), 1, removed.size());
+    }
+
+    /**
+     * Perform a find operation within a transaction. Update the resulting
+     * entity while still in a transaction. Verify that the updates are not
+     * written to the database because the entity returned by the stateless
+     * repository find operation is detached.
+     */
+    @Test
+    public void testFindInTransaction() throws Exception {
+        PurchaseTime saturdayAt8AM = new PurchaseTime( //
+                        LocalTime.of(8, 0, 0), LocalDate.of(2025, 11, 8));
+
+        PurchaseTime saturdayAt9AM = new PurchaseTime( //
+                        LocalTime.of(9, 0, 0), LocalDate.of(2025, 11, 8));
+
+        PurchaseTime saturdayAt2PM = new PurchaseTime( //
+                        LocalTime.of(14, 0, 0), LocalDate.of(2025, 11, 8));
+
+        PurchaseTime saturdayAt3PM = new PurchaseTime( //
+                        LocalTime.of(15, 0, 0), LocalDate.of(2025, 11, 8));
+
+        PurchaseTime saturdayAt8PM = new PurchaseTime( //
+                        LocalTime.of(20, 0, 0), LocalDate.of(2025, 11, 8));
+
+        purchases.removeByTimeOfPurchaseBetween(saturdayAt8AM,
+                                                saturdayAt8PM);
+
+        purchases.make(Purchase.of((short) 201,
+                                   "TestFindInTransaction-1",
+                                   saturdayAt9AM,
+                                   2.15f));
+
+        purchases.make(Purchase.of((short) 202,
+                                   "TestFindInTransaction-2",
+                                   saturdayAt2PM,
+                                   12.95f));
+
+        purchases.make(Purchase.of((short) 203,
+                                   "TestFindInTransaction-3",
+                                   saturdayAt8PM,
+                                   3.95f));
+
+        tran.begin();
+        try {
+            List<Purchase> found = purchases
+                            .findByTimeOfPurchaseBetween(saturdayAt2PM,
+                                                         saturdayAt3PM);
+            assertEquals(found.toString(), 1, found.size());
+
+            Purchase p = found.get(0);
+            // The entity must be detached so this update must not commit
+            p.total = 52.95f;
+        } finally {
+            tran.commit();
+        }
+
+        List<Purchase> found = purchases
+                        .findByTimeOfPurchaseBetween(saturdayAt2PM,
+                                                     saturdayAt3PM);
+        assertEquals(found.toString(), 1, found.size());
+
+        Purchase p = found.get(0);
+        assertEquals(12.95f, p.total, 0.01f);
+
+        assertEquals(3, purchases.removeByTimeOfPurchaseBetween(saturdayAt8AM,
+                                                                saturdayAt8PM));
+    }
+
+    /**
      * Reproduces issue 27925.
      */
     @Test
     public void testForeignKey() {
-        if (skipForHibernate("https://github.com/OpenLiberty/open-liberty/issues/33178")) {
-            return; //TODO remove skip when fixed in Hibernate or Liberty
-        }
 
         Manufacturer toyota = new Manufacturer();
         toyota.setName("Toyota");
@@ -2427,6 +2566,7 @@ public class DataJPATestServlet extends FATServlet {
 
         Instant corollaLastMod;
         corollaLastMod = models.lastModified(corollaId).orElseThrow();
+
         List<Model> found = models.modifiedAt(corollaLastMod);
         assertEquals(false, found.isEmpty());
         corolla = null;
@@ -3104,6 +3244,41 @@ public class DataJPATestServlet extends FATServlet {
     }
 
     /**
+     * Attempt an insert operation within a UserTransaction. The returned entity
+     * must operate as detached.
+     */
+    @Test
+    public void testInsertInTransaction() throws Exception {
+        UUID id1;
+
+        tran.begin();
+        try {
+            Mobile m1 = mobilePhones.insert(Mobile.of(OS.ANDROID,
+                                                      List.of("settings",
+                                                              "email",
+                                                              "addresses"),
+                                                      List.of("insert1@openliberty.io")));
+
+            id1 = m1.deviceId;
+
+            // The entity must be detached so this update must not commit
+            m1.operatingSystem = OS.IOS;
+        } finally {
+            tran.commit();
+        }
+
+        Mobile m1 = mobilePhones.findById(id1).orElseThrow();
+        assertEquals(id1,
+                     m1.deviceId);
+        assertEquals(OS.ANDROID,
+                     m1.operatingSystem);
+        assertEquals(List.of("insert1@openliberty.io"),
+                     m1.emails);
+
+        mobilePhones.delete(m1);
+    }
+
+    /**
      * Repository method that queries by an Instant attribute and retrieves an
      * entity that includes the Instant attribute.
      */
@@ -3245,9 +3420,6 @@ public class DataJPATestServlet extends FATServlet {
      */
     @Test
     public void testManyToManyIncludedInResults() {
-        if (skipForHibernate("https://github.com/OpenLiberty/open-liberty/issues/33178")) {
-            return; //TODO remove skip when fixed in Hibernate or Liberty
-        }
 
         List<String> addresses = customers.findByPhoneIn(List.of(5075552444L,
                                                                  5075550101L))
@@ -3357,10 +3529,6 @@ public class DataJPATestServlet extends FATServlet {
                                              .map(cc -> cc.debtor)
                                              .map(c -> c.email)
                                              .collect(Collectors.toList()));
-
-        if (skipForHibernate("https://github.com/OpenLiberty/open-liberty/issues/33178")) {
-            return; //TODO remove skip when fixed in Hibernate or Liberty
-        }
 
         assertIterableEquals(List.of("MICHELLE@TESTS.OPENLIBERTY.IO",
                                      "Matthew@tests.openliberty.io",
@@ -3991,6 +4159,40 @@ public class DataJPATestServlet extends FATServlet {
     }
 
     /**
+     * Attempt a save operation within a UserTransaction. The returned entity
+     * must operate as detached.
+     */
+    @Test
+    public void testSaveInTransaction() throws Exception {
+        cities.deleteByStateName("Montana");
+
+        tran.begin();
+        try {
+            City billings = cities.save(new City( //
+                            "Billings", //
+                            "Montana", //
+                            117116, //
+                            Set.of(406)));
+
+            // The entity must be detached so this update must not commit
+            billings.population = 117117;
+        } finally {
+            tran.commit();
+        }
+
+        City city = cities.findByStateName("Montana")
+                        .findFirst()
+                        .orElseThrow();
+
+        assertEquals("Billings", city.name);
+        assertEquals("Montana", city.stateName);
+        assertEquals(117116, city.population);
+        assertEquals(Set.of(406), city.areaCodes);
+
+        cities.deleteByStateName("Montana");
+    }
+
+    /**
      * Repository method that queries for the IdClass using id(this)
      * and sorts based on the attributes of the IdClass.
      */
@@ -4522,9 +4724,6 @@ public class DataJPATestServlet extends FATServlet {
      */
     @Ignore("See comments ")
     public void testUpdateEntityWithIdClass() {
-        if (skipForHibernate("https://github.com/OpenLiberty/open-liberty/issues/33178")) {
-            return; //TODO remove skip when fixed in Hibernate or Liberty
-        }
 
         CreditCard original = creditCards
                         .findByIssuedOnWithMonthIn(Set.of(Month.MAY.getValue()))
@@ -4592,7 +4791,7 @@ public class DataJPATestServlet extends FATServlet {
         // for the following subsequent tests:
         // testCollectionAttribute, testIdClassOrderBySorts, testIdClassOrderByAnnotationWithCursorPagination,
         // testIdClassOrderByNamePatternWithCursorPagination, testIdClassOrderByAnnotationReverseDirection
-        if (true)
+        if (!isHibernate())
             return;
 
         City[] updated = cities.modifyData(City.of(mnId, 122413, Set.of(507, 924), mnVer),
@@ -4613,6 +4812,51 @@ public class DataJPATestServlet extends FATServlet {
         // restore original data
         cities.modifyStats(City.of(mnId, 121395, Set.of(507), mnVer + 1),
                            City.of(nyId, 211328, Set.of(585), nyVer + 1));
+    }
+
+    /**
+     * Attempt an update operation within a UserTransaction. The returned entity
+     * must operate as detached.
+     */
+    @Test
+    public void testUpdateInTransaction() throws Exception {
+
+        Mobile m1 = mobilePhones.insert(Mobile.of(OS.ANDROID,
+                                                  List.of("settings",
+                                                          "messages",
+                                                          "maps",
+                                                          "photos"),
+                                                  List.of("update1@openliberty.io",
+                                                          "update2@openliberty.io")));
+
+        UUID id1 = m1.deviceId;
+
+        tran.begin();
+        try {
+            m1.operatingSystem = OS.IOS;
+            m1 = mobilePhones.update(m1);
+
+            // The entity must be detached so this update must not commit
+            m1.operatingSystem = OS.WINDOWS;
+        } finally {
+            tran.commit();
+        }
+
+        m1 = mobilePhones.findById(id1).orElseThrow();
+
+        assertEquals(id1,
+                     m1.deviceId);
+        if (skipForHibernate("https://github.com/OpenLiberty/open-liberty/issues/33232")) {
+            //TODO remove skip when fixed in Hibernate
+        } else {
+            assertEquals(OS.IOS,
+                         m1.operatingSystem);
+        }
+        assertEquals(List.of("update1@openliberty.io",
+                             "update2@openliberty.io"),
+                     m1.emails);
+
+        mobilePhones.delete(m1);
     }
 
     /**

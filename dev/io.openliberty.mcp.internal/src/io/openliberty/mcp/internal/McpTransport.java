@@ -188,7 +188,7 @@ public class McpTransport {
      * @return the session ID string, or {@code null} if none is available
      */
     public String getSessionId() {
-        return sessionId;
+        return sessionInfo == null ? null : sessionInfo.getSessionId();
     }
 
     /**

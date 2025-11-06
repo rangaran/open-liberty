@@ -80,6 +80,11 @@ public class Util {
                             Update.class.getSimpleName());
 
     /**
+     * Query hint and map key for a load graph.
+     */
+    static final String LOADGRAPH = "jakarta.persistence.loadgraph";
+
+    /**
      * List of valid prefixes for Query by Method Name methods of a stateful
      * repository.
      */

@@ -6,10 +6,12 @@
  * http://www.eclipse.org/legal/epl-2.0/
  *
  * SPDX-License-Identifier: EPL-2.0
+ *
+ * Contributors:
+ *     IBM Corporation - initial API and implementation
  *******************************************************************************/
 /**
- *
+ * @version 1.0.0
  */
-@com.ibm.websphere.ras.annotation.TraceOptions(traceGroup = "MCP")
-@org.osgi.annotation.versioning.Version("1.0")
-package io.openliberty.mcp.encoders;
+@org.osgi.annotation.versioning.Version("1.0.0")
+package com.ibm.ws.crypto.sample.customencryption;

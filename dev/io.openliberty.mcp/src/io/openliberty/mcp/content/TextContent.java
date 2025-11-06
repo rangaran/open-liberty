@@ -29,7 +29,8 @@ import io.openliberty.mcp.meta.MetaKey;
  * A text content provided to or from an LLM.
  *
  * @param text (must not be {@code null})
- * @param _meta the optional metadata
+ * @param _meta the optional metadata (may be {@code null})
+ * @param annotations the optional annotations (may be {@code null})
  */
 public record TextContent(String text, Map<MetaKey, Object> _meta, Annotations annotations) implements Content {
 

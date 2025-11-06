@@ -13,14 +13,16 @@
 package com.ibm.ws.logging.fat;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 import java.util.Random;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.junit.After;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -39,35 +41,50 @@ import componenttest.topology.impl.LibertyServerFactory;
  */
 @RunWith(FATRunner.class)
 public class LogThrottleTest {
-    private static final String SERVER_NAME_XML = "com.ibm.ws.logging.logThrottle";
+    private static final String DEFAULT_SERVER_NAME_XML = "com.ibm.ws.logging.logThrottle";
+    private static final String DISABLED_SERVER_NAME_XML = "com.ibm.ws.logging.logThrottleDisabled"; //Server starts with log throttling disabled due to some SOE builds spamming certain logs on startup
+
     private static final String HIGH_MAX_MESSAGES_XML = "server-highMaxMessages.xml";
     private static final String THROTTLING_DISABLED_XML = "server-throttlingDisabled.xml";
     private static final String THROTTLING_INVALID_CONFIG_XML = "server-invalidThrottlingConfig.xml";
     private static final String THROTTLING_FULL_MESSAGE_XML = "server-throttlingFullMessage.xml";
 
-    private static LibertyServer server;
+    private static final Logger LOG = Logger.getLogger(LogThrottleTest.class.getName());
+    private static final String CLASS_NAME = LogThrottleTest.class.getName();
+    private static final String TEST_SEPARATOR = "*******************";
+
+    private static LibertyServer defaultServer;
+    private static LibertyServer disabledServer;
+
+    private static LibertyServer serverInUse; // hold on to the server currently used so cleanUp knows which server to stop
 
     @BeforeClass
     public static void initialSetup() throws Exception {
-        server = LibertyServerFactory.getLibertyServer(SERVER_NAME_XML);
-        server.saveServerConfiguration();
-        ShrinkHelper.defaultDropinApp(server, "quicklogtest", "com.ibm.ws.logging.fat.quick.log.test");
+        defaultServer = LibertyServerFactory.getLibertyServer(DEFAULT_SERVER_NAME_XML);
+        disabledServer = LibertyServerFactory.getLibertyServer(DISABLED_SERVER_NAME_XML);
+
+        // Preserve the original server configuration
+        defaultServer.saveServerConfiguration();
+        disabledServer.saveServerConfiguration();
+
+        ShrinkHelper.defaultDropinApp(defaultServer, "quicklogtest", "com.ibm.ws.logging.fat.quick.log.test");
 
     }
 
-    @Before
-    public void setUp() throws Exception {
-        if (server != null && !server.isStarted()) {
+    public void setUp(LibertyServer server, String method) throws Exception {
+        LOG.logp(Level.INFO, CLASS_NAME, method, TEST_SEPARATOR + " TEST: " + method + " " + TEST_SEPARATOR);
+        serverInUse = server;
+        if (server != null && !serverInUse.isStarted()) {
             // Restore the original server configuration, before starting the server for each test case.
-            server.restoreServerConfiguration();
-            server.startServer();
+            serverInUse.restoreServerConfiguration();
+            serverInUse.startServer();
         }
     }
 
     @After
     public void cleanUp() throws Exception {
-        if (server != null && server.isStarted()) {
-            server.stopServer("CWWKG0032W", "CWWKG0083W", "TRAS3016W");
+        if (serverInUse != null && serverInUse.isStarted()) {
+            serverInUse.stopServer("CWWKG0032W", "CWWKG0083W", "TRAS3016W");
         }
     }
 
@@ -76,9 +93,10 @@ public class LogThrottleTest {
      */
     @Test
     public void testLogThrottlingWarningTriggered() throws Exception {
+        setUp(defaultServer, "testLogThrottlingWarningTriggered");
         spamServerConfigurationUpdates(6);
 
-        List<String> lines = server.findStringsInLogs("The logs are being throttled due to high volume");
+        List<String> lines = serverInUse.findStringsInLogs("The logs are being throttled due to high volume");
         spamServerConfigurationUpdates(6);
 
         assertEquals("The throttle log warning was not printed.", lines.size(), 1);
@@ -89,8 +107,9 @@ public class LogThrottleTest {
      */
     @Test
     public void testLogThrottlingActiveLowOccurrence() throws Exception {
+        setUp(defaultServer, "testLogThrottlingActiveLowOccurrence");
         spamServerConfigurationUpdates(6);
-        List<String> lines = server.findStringsInLogs("CWWKG0016I");
+        List<String> lines = serverInUse.findStringsInLogs("CWWKG0016I");
         assertEquals("Configuration updated message wasn't printed the correct number of times.", lines.size(), 5);
     }
 
@@ -99,8 +118,9 @@ public class LogThrottleTest {
      */
     @Test
     public void testLogThrottlingActiveHighOccurrence() throws Exception {
+        setUp(defaultServer, "testLogThrottlingActiveHighOccurrence");
         spamServerConfigurationUpdates(25);
-        List<String> lines = server.findStringsInLogs("CWWKG0016I");
+        List<String> lines = serverInUse.findStringsInLogs("CWWKG0016I");
         assertEquals("Configuration updated message wasn't printed the correct number of times.", lines.size(), 5);
     }
 
@@ -109,11 +129,12 @@ public class LogThrottleTest {
      */
     @Test
     public void testLogThrottlingHighMaxMessages() throws Exception {
-        server.setServerConfigurationFile(HIGH_MAX_MESSAGES_XML);
+        setUp(disabledServer, "testLogThrottlingHighMaxMessages");
+        serverInUse.setServerConfigurationFile(HIGH_MAX_MESSAGES_XML);
         spamServerConfigurationUpdates(6);
 
-        RemoteFile messagesLogFile = server.getDefaultLogFile();
-        String line = server.waitForStringInLog("The logs are being throttled due to high volume.", 5000, messagesLogFile);
+        RemoteFile messagesLogFile = serverInUse.getDefaultLogFile();
+        String line = serverInUse.waitForStringInLog("The logs are being throttled due to high volume.", 5000, messagesLogFile);
         assertNull("Log throttling incorrectly throttled prematurely.", line);
     }
 
@@ -122,13 +143,14 @@ public class LogThrottleTest {
      */
     @Test
     public void testLogThrottlingActiveFullMessage() throws Exception {
-        server.setServerConfigurationFile(THROTTLING_FULL_MESSAGE_XML);
+        setUp(defaultServer, "testLogThrottlingActiveFullMessage");
+        serverInUse.setServerConfigurationFile(THROTTLING_FULL_MESSAGE_XML);
         spamServerConfigurationUpdates(8);
-        List<String> lines = server.findStringsInLogs("CWWKG0016I");
-        List<String> lines2 = server.findStringsInLogs("CWWKG0017I");
+        List<String> lines = serverInUse.findStringsInLogs("CWWKG0016I");
+        List<String> lines2 = serverInUse.findStringsInLogs("CWWKG0017I");
 
         assertEquals("Configuration updated message wasn't printed the correct number of times.", lines.size(), 6);
-        assertEquals("Configuration updated message wasn't printed the correct number of times.", lines2.size(), 8); //This message shouldn't be getting throttled due to message variation
+        assertFalse("Configuration updated message wasn't printed the correct number of times.", lines2.size() == lines.size()); //This message shouldn't be getting throttled due to message variation
     }
 
     /*
@@ -136,11 +158,11 @@ public class LogThrottleTest {
      */
     @Test
     public void testLogThrottlingDisabled() throws Exception {
-        server.setServerConfigurationFile(THROTTLING_DISABLED_XML);
+        setUp(disabledServer, "testLogThrottlingDisabled");
         spamServerConfigurationUpdates(6);
 
-        RemoteFile messagesLogFile = server.getDefaultLogFile();
-        String line = server.waitForStringInLog("The logs are being throttled due to high volume.", 5000, messagesLogFile);
+        RemoteFile messagesLogFile = serverInUse.getDefaultLogFile();
+        String line = serverInUse.waitForStringInLog("The logs are being throttled due to high volume.", 5000, messagesLogFile);
         assertNull("Log Throttling was not disabled", line);
     }
 
@@ -149,11 +171,12 @@ public class LogThrottleTest {
      */
     @Test
     public void testInvalidLogThrottlingMaxMessagesConfig() throws Exception {
-        server.setServerConfigurationFile(THROTTLING_INVALID_CONFIG_XML);
+        setUp(defaultServer, "testInvalidLogThrottlingMaxMessagesConfig");
+        serverInUse.setServerConfigurationFile(THROTTLING_INVALID_CONFIG_XML);
         spamServerConfigurationUpdates(6);
 
-        RemoteFile messagesLogFile = server.getDefaultLogFile();
-        String line = server.waitForStringInLog("CWWKG0083W:", 5000, messagesLogFile);
+        RemoteFile messagesLogFile = serverInUse.getDefaultLogFile();
+        String line = serverInUse.waitForStringInLog("CWWKG0083W:", 5000, messagesLogFile);
         assertTrue("An invalid config attribute was not caught and set to the default.",
                    line.contains("A validation failure occurred while processing the [throttleMaxMessagesPerWindow] property, value = [-1]. Default value in use: [1000]."));
     }
@@ -163,17 +186,18 @@ public class LogThrottleTest {
      */
     @Test
     public void testInvalidLogThrottlingMessageTypeConfig() throws Exception {
-        server.setServerConfigurationFile(THROTTLING_INVALID_CONFIG_XML);
+        setUp(defaultServer, "testInvalidLogThrottlingMessageTypeConfig");
+        serverInUse.setServerConfigurationFile(THROTTLING_INVALID_CONFIG_XML);
         spamServerConfigurationUpdates(6);
 
-        RemoteFile messagesLogFile = server.getDefaultLogFile();
-        String line = server.waitForStringInLog("CWWKG0032W:", 5000, messagesLogFile);
+        RemoteFile messagesLogFile = serverInUse.getDefaultLogFile();
+        String line = serverInUse.waitForStringInLog("CWWKG0032W:", 5000, messagesLogFile);
         assertTrue("An invalid config attribute was not caught and set to the default.",
                    line.contains("Unexpected value specified for property [throttleType], value = [messageIDs]. Expected value(s) are: [messageID][message]. Default value in use: messageID."));
     }
 
     public void spamServerConfigurationUpdates(int numberOfUpdates) throws Exception {
-        ServerConfiguration serverConfig = server.getServerConfiguration();
+        ServerConfiguration serverConfig = serverInUse.getServerConfiguration();
         Logging loggingObj = serverConfig.getLogging();
         int lastInt = 1;
         Random rand = new Random();
@@ -186,7 +210,7 @@ public class LogThrottleTest {
 
             lastInt = newInt;
             loggingObj.setMaxFiles(newInt);
-            server.updateServerConfiguration(serverConfig);
+            serverInUse.updateServerConfiguration(serverConfig);
             Thread.sleep(1000);
         }
     }

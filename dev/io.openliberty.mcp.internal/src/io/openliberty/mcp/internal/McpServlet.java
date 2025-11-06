@@ -71,7 +71,7 @@ public class McpServlet extends HttpServlet {
     McpSessionStore sessionStore;
 
     @Inject
-    McpConnectionTracker connection;
+    McpRequestTracker requestTracker;
 
     @Override
     public void init(ServletConfig config) throws ServletException {
@@ -82,10 +82,10 @@ public class McpServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         McpTransport transport = new McpTransport(req, resp, jsonb);
-        String excpetionMesaage = Tr.formatMessage(tc, "CWMCM0009I.get.disallowed");
+        String excpetionMessage = Tr.formatMessage(tc, "CWMCM0009I.get.disallowed");
         HttpResponseException e = new HttpResponseException(
                                                             HttpServletResponse.SC_METHOD_NOT_ALLOWED,
-                                                            excpetionMesaage).withHeader("Allow", "POST");
+                                                            excpetionMessage).withHeader("Allow", "POST");
         transport.sendHttpException(e);
 
     }
@@ -161,7 +161,7 @@ public class McpServlet extends HttpServlet {
             McpSession session = sessionStore.getSession(sessionId);
 
             if (session != null) {
-                connection.cancelSessionRequests(session);
+                requestTracker.cancelSessionRequests(sessionId);
             }
             resp.setStatus(HttpServletResponse.SC_OK);
         } else {
@@ -174,17 +174,17 @@ public class McpServlet extends HttpServlet {
 
         ExecutionRequestId requestId = createOngoingRequestId(transport);
         McpToolCallParams params = transport.getParams(McpToolCallParams.class);
+
+        if (requestId != null && requestTracker.isOngoingRequest(requestId)) {
+            throw new JSONRPCException(JSONRPCErrorCode.INVALID_PARAMS,
+                                       Tr.formatMessage(tc, "CWMCM0008E.invalid.request.params", requestId.id()));
+        }
         try {
             if (params.getMetadata() == null) {
                 if (TraceComponent.isAnyTracingEnabled() && tc.isEventEnabled()) {
                     Tr.event(this, tc, "Attempt to call non-existant tool: " + params.getName());
                 }
                 throw new JSONRPCException(JSONRPCErrorCode.INVALID_PARAMS, List.of("Method " + params.getName() + " not found"));
-            }
-
-            McpSession sessionInfo = transport.getSession();
-            if (sessionInfo != null) {
-                sessionInfo.addRequest(requestId);
             }
 
             if (params.getMetadata().returnsCompletionStage()) {
@@ -206,6 +206,13 @@ public class McpServlet extends HttpServlet {
                                        Method method)
                     throws IllegalAccessException, IllegalArgumentException {
         CreationalContext<Object> cc = bm.createCreationalContext(null);
+
+        if (requestId != null) {
+            CancellationImpl cancellation = new CancellationImpl();
+            cancellation.setRequestId(requestId);
+            requestTracker.registerOngoingRequest(requestId, cancellation);
+        }
+
         try {
             Object bean = bm.getReference(params.getBean(), params.getBean().getBeanClass(), cc);
 
@@ -245,6 +252,13 @@ public class McpServlet extends HttpServlet {
                                                     Method method)
                     throws IllegalAccessException, IllegalArgumentException {
         CreationalContext<Object> cc = bm.createCreationalContext(null);
+
+        if (requestId != null) {
+            CancellationImpl cancellation = new CancellationImpl();
+            cancellation.setRequestId(requestId);
+            requestTracker.registerOngoingRequest(requestId, cancellation);
+        }
+
         try {
             Object bean = bm.getReference(params.getBean(), params.getBean().getBeanClass(), cc);
 
@@ -280,8 +294,8 @@ public class McpServlet extends HttpServlet {
     }
 
     private void cleanup(ExecutionRequestId requestId, CreationalContext<Object> cc, McpToolCallParams params) {
-        if (connection.isOngoingRequest(requestId)) {
-            connection.deregisterOngoingRequest(requestId);
+        if (requestId != null && requestTracker.isOngoingRequest(requestId)) {
+            requestTracker.deregisterOngoingRequest(requestId);
         }
         try {
             cc.release();
@@ -343,16 +357,24 @@ public class McpServlet extends HttpServlet {
      * @param requestId the ongoing request Id
      * @param toolMetadata the tool metadata
      */
-    private void addSpecialArguments(Object[] argumentsArray, ExecutionRequestId requestId, ToolMetadata toolMetadata) {
+    private void addSpecialArguments(Object[] argumentsArray,
+                                     ExecutionRequestId requestId,
+                                     ToolMetadata toolMetadata) {
         for (SpecialArgumentMetadata argMetadata : toolMetadata.specialArguments()) {
             switch (argMetadata.typeResolution().specialArgsType()) {
                 case CANCELLATION -> {
-                    CancellationImpl cancellation = new CancellationImpl();
-                    cancellation.setRequestId(requestId);
-                    connection.registerOngoingRequest(requestId, cancellation);
+                    CancellationImpl cancellation;
+                    if (requestId != null) {
+                        cancellation = (CancellationImpl) requestTracker.getOngoingRequestCancellation(requestId);
+                    } else {
+                        cancellation = new CancellationImpl();
+                    }
+
+                    // Always inject it into args
                     argumentsArray[argMetadata.index()] = cancellation;
                 }
                 default -> {
+
                 }
             }
         }
@@ -427,15 +449,21 @@ public class McpServlet extends HttpServlet {
 
     private void cancelRequest(McpTransport transport) {
         McpNotificationParams notificationParams = transport.getMcpRequest().getParams(McpNotificationParams.class, jsonb);
-        McpRequestId mcpRedId = notificationParams.getRequestId();
-        ExecutionRequestId requestId = new ExecutionRequestId(mcpRedId, transport.getSessionId());
+        McpRequestId mcpReqId = notificationParams.getRequestId();
+        String sessionId = transport.getSessionId();
+        if (sessionId == null) {
+            transport.sendEmptyResponse();
+            return;
+        }
+
+        ExecutionRequestId requestId = new ExecutionRequestId(mcpReqId, sessionId);
         Optional<String> reason = Optional.ofNullable(notificationParams.getReason());
 
         if (TraceComponent.isAnyTracingEnabled() && tc.isEventEnabled()) {
             Tr.event(this, tc, "Cancellation requested for " + requestId);
         }
 
-        Cancellation cancellation = connection.getOngoingRequestCancellation(requestId);
+        Cancellation cancellation = requestTracker.getOngoingRequestCancellation(requestId);
         if (cancellation != null) {
             if (TraceComponent.isAnyTracingEnabled() && tc.isEventEnabled()) {
                 Tr.event(this, tc, "Cancelling task");
@@ -446,7 +474,12 @@ public class McpServlet extends HttpServlet {
     }
 
     private ExecutionRequestId createOngoingRequestId(McpTransport transport) {
-        return new ExecutionRequestId(transport.getMcpRequest().id(),
-                                      transport.getSessionId());
+        String sessionId = transport.getSessionId();
+        if (sessionId != null) {
+            return new ExecutionRequestId(transport.getMcpRequest().id(),
+                                          sessionId);
+        } else {
+            return null;
+        }
     }
 }

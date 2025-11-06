@@ -32,7 +32,8 @@ public class Model {
     private UUID id;
 
     @JoinColumn(name = "manufacturer_id")
-    @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @ManyToOne(cascade = CascadeType.ALL,
+               fetch = FetchType.EAGER)
     private Manufacturer manufacturer;
 
     @Column(name = "name")

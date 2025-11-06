@@ -46,13 +46,15 @@ public class ToolTest extends FATServletClient {
 
     @BeforeClass
     public static void setup() throws Exception {
-        WebArchive war = ShrinkWrap.create(WebArchive.class, "toolTest.war").addPackage(BasicTools.class.getPackage());
+        WebArchive war = ShrinkWrap.create(WebArchive.class, "toolTest.war")
+                                   .addPackage(BasicTools.class.getPackage());
 
         ShrinkHelper.exportDropinAppToServer(server, war, SERVER_ONLY);
 
         server.startServer();
 
         assertNotNull(server.waitForStringInLog("MCP server endpoint: .*/mcp$")); // regex matches string that ends with /mcp e.g. "MCP server endpoint: http://macbookpro.home:8010/toolTest/mcp"
+
     }
 
     @AfterClass
@@ -1663,7 +1665,8 @@ public class ToolTest extends FATServletClient {
                                             "type": "array",
                                             "items": {
                                                 "$ref": "#/$defs/Person"
-                                            }
+                                            },
+                                            "description": "Returns list of person object"
                                         },
                                         "inputSchema": {
                                             "$defs": {
@@ -2983,5 +2986,36 @@ public class ToolTest extends FATServletClient {
                         }
                                                                                                 """;
         JSONAssert.assertEquals(expectedResponseString, response, true);
+    }
+
+    @Test
+    public void testReusingRequestIdAfterCompletionSucceeds() throws Exception {
+
+        String requestTemplate = """
+                        {
+                          "jsonrpc": "2.0",
+                          "id": "2",
+                          "method": "tools/call",
+                          "params": {
+                            "name": "echo",
+                            "arguments": {
+                              "input": "Hello"
+                            }
+                          }
+                        }
+                        """;
+
+        String expectedResponseString = """
+                        {"id":\"2\","jsonrpc":"2.0","result":{"content":[{"type":"text","text":"Hello"}], "isError": false}}
+                        """;
+
+        // First request call
+        String response = client.callMCP(requestTemplate);
+        JSONAssert.assertEquals(expectedResponseString, response, true);
+
+        // Second request - same ID
+        String duplicateResponse = client.callMCP(requestTemplate);
+
+        JSONAssert.assertEquals(expectedResponseString, duplicateResponse, true);
     }
 }

@@ -30,7 +30,8 @@ import io.openliberty.mcp.meta.MetaKey;
  *
  * @param data a base64-encoded string representing the audio data (must not be {@code null})
  * @param mimeType the mime type of the audio (must not be {@code null})
- * @param _meta the optional metadata
+ * @param _meta the optional metadata (may be {@code null})
+ * @param annotations the optional annotations (may be {@code null})
  */
 public record AudioContent(String data, String mimeType, Map<MetaKey, Object> _meta, Annotations annotations) implements Content {
 

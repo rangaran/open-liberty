@@ -33,13 +33,14 @@ import componenttest.annotation.Server;
 import componenttest.custom.junit.runner.FATRunner;
 import componenttest.topology.impl.LibertyServer;
 import componenttest.topology.utils.FATServletClient;
-import componenttest.topology.utils.HttpRequest;
 import io.openliberty.mcp.internal.fat.tool.asyncToolApp.AsyncTools;
-import io.openliberty.mcp.internal.fat.utils.AwaitToolServlet;
 import io.openliberty.mcp.internal.fat.utils.McpClient;
+import io.openliberty.mcp.internal.fat.utils.ToolStatus;
+import io.openliberty.mcp.internal.fat.utils.ToolStatusClient;
 
 @RunWith(FATRunner.class)
 public class AsyncToolCancellationTest extends FATServletClient {
+
     @Server("mcp-server-async")
     public static LibertyServer server;
     private static ExecutorService executor;
@@ -48,11 +49,14 @@ public class AsyncToolCancellationTest extends FATServletClient {
     @Rule
     public McpClient client = new McpClient(server, "/asyncToolCancellationTest");
 
+    @Rule
+    public ToolStatusClient toolStatus = new ToolStatusClient(server, "/asyncToolCancellationTest");
+
     @BeforeClass
     public static void setup() throws Exception {
         WebArchive war = ShrinkWrap.create(WebArchive.class, "asyncToolCancellationTest.war")
                                    .addPackage(AsyncTools.class.getPackage())
-                                   .addPackage(AwaitToolServlet.class.getPackage());
+                                   .addPackage(ToolStatus.class.getPackage());
 
         ShrinkHelper.exportDropinAppToServer(server, war, SERVER_ONLY);
 
@@ -69,6 +73,7 @@ public class AsyncToolCancellationTest extends FATServletClient {
 
     @Test
     public void testCancellationToolAsync() throws Exception {
+        final String latchName = "testCancellationToolAsync";
 
         Callable<String> threadCallingTool = () -> {
             try {
@@ -105,7 +110,7 @@ public class AsyncToolCancellationTest extends FATServletClient {
                         }
                         """;
 
-        new HttpRequest(server, "/asyncToolCancellationTest/awaitTool/testCancellationToolAsync").run(String.class);
+        toolStatus.awaitStarted(latchName);
 
         client.callMCPNotification(server, "/asyncToolCancellationTest", cancellationRequestNotification);
 

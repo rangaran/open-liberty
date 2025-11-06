@@ -569,9 +569,6 @@ public class RepositoryImpl<R> implements InvocationHandler {
 
                 failed = false;
             } finally {
-                if (em != null)
-                    em.close();
-
                 try {
                     if (startedTransaction) {
                         int status = provider.tranMgr.getStatus();
@@ -586,24 +583,45 @@ public class RepositoryImpl<R> implements InvocationHandler {
                                          Util.txStatusToString(status));
                             provider.tranMgr.commit();
                         }
+
+                        // TODO Is this necessary after a transaction?
+                        if (em != null && queryType.detachEntities) {
+                            // TODO 1.1 only detach if a stateless repository
+                            em.clear();
+                        }
                     } else {
-                        if (failed && Status.STATUS_ACTIVE == provider.tranMgr.getStatus()) {
-                            if (trace && tc.isDebugEnabled())
-                                Tr.debug(this, tc, "set rollback only");
-                            provider.tranMgr.setRollbackOnly();
+                        if (Status.STATUS_ACTIVE == provider.tranMgr.getStatus()) {
+                            if (failed) {
+                                if (trace && tc.isDebugEnabled())
+                                    Tr.debug(this, tc, "set rollback only");
+                                provider.tranMgr.setRollbackOnly();
+                            } else if (em != null && queryType.detachEntities) {
+                                // flush changes first because detach interferes with updates
+                                em.flush();
+                                // TODO 1.1 only detach if a stateless repository
+                                em.clear();
+                            }
+                        } else if (em != null && queryType.detachEntities) {
+                            // TODO 1.1 only detach if a stateless repository
+                            em.clear();
                         }
                     }
                 } finally {
-                    if (suspendedLTC != null) {
-                        if (trace && tc.isDebugEnabled())
-                            Tr.debug(this, tc, "resume LTC: " + suspendedLTC);
-                        provider.localTranCurrent.resume(suspendedLTC);
+                    try {
+                        if (suspendedLTC != null) {
+                            if (trace && tc.isDebugEnabled())
+                                Tr.debug(this, tc, "resume LTC: " + suspendedLTC);
+                            provider.localTranCurrent.resume(suspendedLTC);
+                        }
+                    } finally {
+                        if (em != null)
+                            em.close();
                     }
                 }
             }
 
             if (trace && tc.isEntryEnabled()) {
-                Object valueToLog = queryType.hideReturnValue //
+                Object valueToLog = queryType == null || queryType.hideReturnValue //
                                 ? provider.loggable(repositoryInterface, method, returnValue) //
                                 : returnValue;
                 Tr.exit(this, tc, "invoke " + repositoryInterface.getSimpleName() +

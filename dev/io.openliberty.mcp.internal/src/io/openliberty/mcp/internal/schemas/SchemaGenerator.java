@@ -19,6 +19,7 @@ import static io.openliberty.mcp.internal.schemas.JsonConstants.TYPE_OBJECT;
 import static io.openliberty.mcp.internal.schemas.SchemaDirection.INPUT;
 import static io.openliberty.mcp.internal.schemas.SchemaDirection.OUTPUT;
 
+import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.Type;
 import java.util.HashMap;
@@ -134,10 +135,13 @@ public class SchemaGenerator {
 
         Type returnType = toolMethod.getJavaMember().getGenericReturnType();
 
+        Method method = toolMethod.getJavaMember();
+        SchemaAnnotation schemaAnnotation = SchemaAnnotation.read(method);
+
         SchemaGenerationContext ctx = new SchemaGenerationContext(blueprintRegistry, OUTPUT);
         calculateClassFrequency(returnType, SchemaDirection.OUTPUT, ctx);
 
-        JsonObjectBuilder outputSchema = generateSubSchema(returnType, ctx, SchemaAnnotation.EMPTY);
+        JsonObjectBuilder outputSchema = generateSubSchema(returnType, ctx, schemaAnnotation);
         addDefs(outputSchema, ctx);
 
         return outputSchema.build();

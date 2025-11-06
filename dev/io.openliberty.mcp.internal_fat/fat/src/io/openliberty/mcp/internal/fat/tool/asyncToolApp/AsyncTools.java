@@ -9,6 +9,8 @@
  *******************************************************************************/
 package io.openliberty.mcp.internal.fat.tool.asyncToolApp;
 
+import static io.openliberty.mcp.internal.fat.utils.TestConstants.POSITIVE_TIMEOUT;
+
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -68,12 +70,12 @@ public class AsyncTools {
     public CompletionStage<String> asyncCancellationTool(Cancellation cancellation,
                                                          @ToolArg(name = "latchName", description = "name of countdown latch to use for test") String latchName) {
         LOG.info("[asyncCancellationTool] Starting");
-        toolStatus.setRunning(latchName);
+        toolStatus.signalStarted(latchName);
         return executor.supplyAsync(() -> {
-            int counter = 0;
-            while (counter++ < 20) {
+            long startTime = System.nanoTime();
+            while ((System.nanoTime() - startTime) < POSITIVE_TIMEOUT.toNanos()) {
                 try {
-                    TimeUnit.MILLISECONDS.sleep(500);
+                    TimeUnit.MILLISECONDS.sleep(100);
                 } catch (InterruptedException e) {
                     throw new RuntimeException();
                 }

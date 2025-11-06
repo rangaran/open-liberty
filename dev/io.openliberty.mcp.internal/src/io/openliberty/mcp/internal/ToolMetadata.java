@@ -53,8 +53,6 @@ public record ToolMetadata(Tool annotation, Bean<?> bean, AnnotatedMethod<?> met
         String name = annotation.name().equals(Tool.ELEMENT_NAME) ? method.getJavaMember().getName() : annotation.name();
         String title = annotation.title().isEmpty() ? null : annotation.title();
         String description = annotation.description().isEmpty() ? null : annotation.description();
-        Map<String, ArgumentMetadata> arguments = getArgumentMap(method);
-        List<SpecialArgumentMetadata> specialArguments = getSpecialArgumentList(method);
 
         Type returnType = method.getJavaMember().getGenericReturnType();
         Class<?> returnTypeClass = method.getJavaMember().getReturnType();

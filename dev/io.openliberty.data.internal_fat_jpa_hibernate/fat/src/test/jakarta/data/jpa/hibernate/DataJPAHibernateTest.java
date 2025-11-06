@@ -19,6 +19,7 @@ import org.junit.runner.RunWith;
 
 import com.ibm.websphere.simplicity.ShrinkHelper;
 
+import componenttest.annotation.MaximumJavaLevel;
 import componenttest.annotation.MinimumJavaLevel;
 import componenttest.annotation.Server;
 import componenttest.annotation.TestServlet;
@@ -30,6 +31,7 @@ import test.jakarta.data.jpa.hibernate.web.DataJPAHibernateTestServlet;
 
 @RunWith(FATRunner.class)
 @MinimumJavaLevel(javaLevel = 17)
+@MaximumJavaLevel(javaLevel = 25) // TODO remove once Hibernate upgrades their ByteBuddy dependency to a version that supports java 26+
 public class DataJPAHibernateTest extends FATServletClient {
     private static final String APP_NAME = "DataJPAHibernateTestApp";
 
