@@ -488,10 +488,15 @@ public class SecurityUtilityCreateSSLCertificateTest {
             // Check for common error messages
             String keystorePasswordError = "CWPKI0033E"; // Keystore password is incorrect
             String xmlParserError = "CWWKG0014E"; // XML parser error
+            String earddSuccessMessage = "CWWKZ0001I";
 
             assertTrue("The client has issues with the keystore",
                 !(clientStdout.contains(keystorePasswordError)) &&
                 !(clientStdout.contains(xmlParserError)));
+
+            assertTrue("The client has not started successfully",
+                (clientStdout.contains(earddSuccessMessage)));
+                
 
         } catch (Exception e) {
             // Suppress only CWWKS9702W warning failures (Open Liberty CSIv2 client policy)
