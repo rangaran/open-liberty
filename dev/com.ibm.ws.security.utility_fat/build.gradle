@@ -11,7 +11,7 @@
  *     IBM Corporation - Gradle conversion of build.xml
  *******************************************************************************/
 
-def puTestPublishDir = file("${projectDir}/../com.ibm.ws.security.utility_fat_one/build/libs/autoFVT/publish")
+def puTestPublishDir = file("${projectDir}/../com.ibm.ws.security.utility_fat/build/libs/autoFVT/publish")
 def puTestFeatureDir = file("${puTestPublishDir}/features")
 def puTestBundleDir  = file("${puTestPublishDir}/bundles")
 def puTestFilesDir   = file("${puTestPublishDir}/files")
