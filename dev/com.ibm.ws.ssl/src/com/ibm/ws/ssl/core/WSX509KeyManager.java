@@ -294,13 +294,13 @@ public final class WSX509KeyManager extends X509ExtendedKeyManager implements X5
                 }
             }
 
-            if (isPKIX && list != null) {
+            if (isPKIX) {
                 // error case, list of aliases is empty
-                // if (list == null || list.length == 0) {
-                //     if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled())
-                //         Tr.exit(tc, "chooseClientAlias (no aliases available)", null);
-                //     return null;
-                // }
+                if (list == null || list.length == 0) {
+                    if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled())
+                        Tr.exit(tc, "chooseClientAlias (no aliases available)", null);
+                    return null;
+                }
                 
                 // error case, alias not found in the list.
                 String prefixedClientAlias = clientAlias;
