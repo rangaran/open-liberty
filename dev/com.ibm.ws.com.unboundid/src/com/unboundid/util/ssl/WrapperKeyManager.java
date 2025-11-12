@@ -35,18 +35,12 @@
  */
 package com.unboundid.util.ssl;
 
-
-
 import java.net.Socket;
 import java.security.Principal;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.X509ExtendedKeyManager;
-import javax.net.ssl.X509KeyManager;
 
 import com.unboundid.util.NotExtensible;
 import com.unboundid.util.NotNull;
@@ -55,7 +49,13 @@ import com.unboundid.util.StaticUtils;
 import com.unboundid.util.ThreadSafety;
 import com.unboundid.util.ThreadSafetyLevel;
 
-
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.X509ExtendedKeyManager;
+import javax.net.ssl.X509KeyManager;
+import javax.net.ssl.SSLEngine;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * This class provides an SSL key manager that may be used to wrap a provided
@@ -67,6 +67,12 @@ import com.unboundid.util.ThreadSafetyLevel;
 public abstract class WrapperKeyManager
         extends X509ExtendedKeyManager
 {
+//    private String chosenClientCertificateAlias;
+    private String chosenServerCertificateAlias;
+
+    private String algorithm = KeyManagerFactory.getDefaultAlgorithm();
+    private boolean isPKIX = "PKIX".equalsIgnoreCase(algorithm);
+
     // The nickname of the certificate that should be selected.
     @Nullable private final String certificateAlias;
 
@@ -221,9 +227,23 @@ public abstract class WrapperKeyManager
                     {
                         for (final String alias : aliases)
                         {
-                            if (alias.equals(certificateAlias))
+                            // check if PKIX algorithm is used
+                            if (isPKIX)
                             {
-                                return certificateAlias;
+                                Pattern r = Pattern.compile("\\d+\\.\\d+\\." + certificateAlias + "$", Pattern.CASE_INSENSITIVE);
+                                Matcher matcher = r.matcher(alias);
+                                if (matcher.find())
+                                {
+//                                    chosenClientCertificateAlias = alias;
+                                    return certificateAlias;
+                                }
+                            }
+                            else
+                            {
+                                if (alias.equals(certificateAlias))
+                                {
+                                    return certificateAlias;
+                                }
                             }
                         }
                     }
@@ -386,20 +406,34 @@ public abstract class WrapperKeyManager
         }
         else
         {
-            for (final X509KeyManager m : keyManagers)
-            {
-                final String[] aliases = m.getServerAliases(keyType, issuers);
-                if (aliases != null)
+                for (final X509KeyManager m : keyManagers)
                 {
-                    for (final String alias : aliases)
+                    final String[] aliases = m.getServerAliases(keyType, issuers);
+                    if (aliases != null)
                     {
-                        if (alias.equals(certificateAlias))
+                        for (final String alias : aliases)
                         {
-                            return certificateAlias;
+                            // check if PKIX algorithm is used
+                            if (isPKIX)
+                            {
+                                Pattern r = Pattern.compile("\\d+\\.\\d+\\." + certificateAlias + "$", Pattern.CASE_INSENSITIVE);
+                                Matcher matcher = r.matcher(alias);
+                                if (matcher.find())
+                                {
+                                    chosenServerCertificateAlias = alias;
+                                    return certificateAlias;
+                                }
+                            }
+                            else
+                            {
+                                if (alias.equals(certificateAlias))
+                                {
+                                    return certificateAlias;
+                                }
+                            }
                         }
                     }
                 }
-            }
 
             return null;
         }
@@ -498,6 +532,12 @@ public abstract class WrapperKeyManager
             {
                 return chain;
             }
+            // check if PKIX algorithm is used, then check for PKIX prefix
+            else if (isPKIX)
+            {
+                final X509Certificate[] chain2 = m.getCertificateChain(chosenServerCertificateAlias);
+                return chain2;
+            }
         }
 
         return null;
@@ -525,6 +565,12 @@ public abstract class WrapperKeyManager
             if (key != null)
             {
                 return key;
+            }
+            // check if PKIX algorithm is used, then check for PKIX prefix
+            else if (isPKIX)
+            {
+                final PrivateKey key2 = m.getPrivateKey(chosenServerCertificateAlias);
+                return key2;
             }
         }
 
