@@ -37,7 +37,7 @@ public class InactiveCdiTest extends FATServletClient {
     @Server("mcp-server")
     public static LibertyServer server;
 
-    private static final String CDI_INACTIVE_WARNING_MESSAGE = "CWMCM0017W: CDI is not active, skipping MCP servlet registration";
+    private static final String CDI_INACTIVE_WARNING_MESSAGE = "CWMCM0017W: CDI is not active. The MCP server cannot start.";
     private static final String FILE_NOT_FOUND_ERROR_MESSAGE = "SRVE0190E: File not found: /mcp";
 
     @BeforeClass
