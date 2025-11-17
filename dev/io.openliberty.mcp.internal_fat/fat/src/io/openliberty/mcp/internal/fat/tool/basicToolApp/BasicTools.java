@@ -440,4 +440,21 @@ public class BasicTools {
         employeeList.add(person.get());
         return employeeList;
     }
+
+//TODO support for concrete generic parameters
+//    public static class MyClass<T> {
+//        @Tool(name = "addGenericToGenericArray", title = "adds generic to generic Array", description = "adds person to Generic Array, returns nothing")
+//        public @Schema(description = "Returns list of  object") List<T> addGenericToGenericArray(@ToolArg(name = "generic list 1",
+//                                                                                                          description = "List of generics 1") T[] list1,
+//                                                                                                 @ToolArg(name = "generic list 2",
+//                                                                                                          description = "List of generics 1 ") List<T>[] list2,
+//                                                                                                 @ToolArg(name = "generic", description = "Generic object") T item) {
+//            return null;
+//            //comment
+//        }
+//    }
+//
+//    @ApplicationScoped
+//    public static class MyBean extends MyClass<String> {}
+
 }
