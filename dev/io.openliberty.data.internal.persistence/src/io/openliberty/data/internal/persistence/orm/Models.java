@@ -55,6 +55,10 @@ public class Models {
             return this.kind() == AttributeKind.ELEMENT_COLLECTION;
         }
 
+        public boolean isId() {
+            return this.kind == AttributeKind.EMBEDDED_ID || this.kind == AttributeKind.ID;
+        }
+
         public boolean rejectsNull() {
             return this.type().isPrimitive() && this.kind != AttributeKind.EMBEDDED;
         }

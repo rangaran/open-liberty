@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
 
 /**
  *
@@ -38,7 +39,7 @@ class Relationships {
     }
 
     // ASSOCIATIONS
-    public void entityHasMappedSuperclass(Class<?> mappedSuperclass, Class<?> entity) {
+    public void entityHasMappedSuperclass(Class<?> entity, Class<?> mappedSuperclass) {
         mappedSuperclassToEntity.computeIfAbsent(mappedSuperclass, set -> {
             Set<Class<?>> newSet = new HashSet<>();
             newSet.add(entity);
@@ -85,5 +86,12 @@ class Relationships {
             return embedToEntity.get(entity);
         }
         return Set.of();
+    }
+
+    public Set<Class<?>> superclassesForEntity(Class<?> entity) {
+        return mappedSuperclassToEntity.entrySet().stream()//
+                        .filter(entry -> entry.getValue().contains(entity))//
+                        .map(entry -> entry.getKey())//
+                        .collect(Collectors.toSet());
     }
 }

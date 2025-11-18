@@ -9,19 +9,26 @@
  *******************************************************************************/
 package io.openliberty.data.internal.persistence.orm;
 
+import static io.openliberty.data.internal.persistence.cdi.DataExtension.exc;
+
 import java.beans.IntrospectionException;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
 import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.RecordComponent;
+import java.lang.reflect.Type;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import io.openliberty.data.internal.persistence.Util;
 import io.openliberty.data.internal.persistence.orm.Models.AccessType;
@@ -38,11 +45,14 @@ import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 
 /**
- * TODO find converters in annotated entities but do not record the entity itself
  * TODO handle records
- * TODO verify that every entity has an id attribute in itself or a mapped superclass
  */
 public class EntityParser {
+
+    // State of the parser
+    private enum STATE {
+        INIT, PARSING, GENERATING
+    };
 
     // ORM sets
     private final SortedSet<MappedSuperclass> mappedSuperclasses;
@@ -50,29 +60,37 @@ public class EntityParser {
     private final SortedSet<EmbeddableRecord> embeddables;
     private final SortedSet<Converter> converters;
 
+    private final Set<Class<?>> convertibles;
+
     // Relationships
     private final Relationships relate;
 
     // Global configurations
     private final String tablePrefix;
 
-    // State
-    private boolean finished = false;
+    // State controls flow from initialization to generation
+    private final AtomicReference<STATE> state;
+
+    // Current entity being parsed
+    private Class<?> currentEntity;
+    private Set<Attribute> idAttributes;
 
     public EntityParser(String tablePrefix) {
         this.mappedSuperclasses = new TreeSet<>();
         this.entities = new TreeSet<>();
         this.embeddables = new TreeSet<>();
         this.converters = new TreeSet<>();
-
+        this.convertibles = new HashSet<>();
         this.relate = new Relationships();
-
         this.tablePrefix = tablePrefix;
+        this.state = new AtomicReference<>(STATE.INIT);
     }
 
     public void parse(Class<?> entity) {
-        if (finished) {
-            return; // fail?
+        state.compareAndSet(STATE.INIT, STATE.PARSING);
+        if (state.get() != STATE.PARSING) {
+            // Internal exception
+            throw new IllegalStateException("Attempted to parse an entity while EntityParser was in state: " + state.get());
         }
 
         // If the entity was annotated with @Entity
@@ -84,9 +102,12 @@ public class EntityParser {
 
         // If entity was unannotated then we must
         // construct an object relational mapping
-        String tableName = tablePrefix + entity.getSimpleName();
+        this.currentEntity = entity;
+        this.idAttributes = new HashSet<>();
 
-        for (Class<?> superclass = entity; //
+        String tableName = tablePrefix + currentEntity.getSimpleName();
+
+        for (Class<?> superclass = currentEntity; //
                         superclass != null && superclass != Object.class; //
                         superclass = superclass.getSuperclass()) {
 
@@ -94,7 +115,7 @@ public class EntityParser {
                 recordConverter(convert);
             }
 
-            if (superclass == entity) {
+            if (superclass == currentEntity) {
                 // Record entity and any embeddables found along the way
                 entities.add(new EntityRecord(superclass, tableName, finalizeAttributes(superclass, findAttributes(superclass))));
                 continue;
@@ -102,7 +123,10 @@ public class EntityParser {
 
             // Record all mapped superclasses and any embeddables found along the way
             mappedSuperclasses.add(new MappedSuperclass(superclass, finalizeAttributes(superclass, findAttributes(superclass))));
+            relate.entityHasMappedSuperclass(currentEntity, superclass);
         }
+
+        verify();
     }
 
     private Set<IncompleteAttribute> findAttributes(Class<?> c) {
@@ -227,15 +251,25 @@ public class EntityParser {
                     kind = AttributeKind.EMBEDDED;
             }
 
+            Attribute finalized;
+
             if (kind == AttributeKind.EMBEDDED || kind == AttributeKind.EMBEDDED_ID) {
                 Set<Attribute> embedAttributes = finalizeAttributes(c, findAttributes(type));
 
-                attributes.add(new Attribute(attr, kind, embedAttributes));
+                finalized = new Attribute(attr, kind, embedAttributes);
+                attributes.add(finalized);
+
                 embeddables.add(new EmbeddableRecord(type, embedAttributes));
 
                 relate.entityHasEmbed(c, type);
             } else {
-                attributes.add(new Attribute(attr, kind, Set.of()));
+                finalized = new Attribute(attr, kind, Set.of());
+                attributes.add(finalized);
+            }
+
+            // Found id attribute, record it for verification and witness any overwritten ids
+            if (finalized.isId()) {
+                idAttributes.add(finalized);
             }
         }
 
@@ -243,12 +277,72 @@ public class EntityParser {
     }
 
     private void recordConverter(Convert convert) {
-        if (convert.converter() != null && convert.converter() != AttributeConverter.class)
+        if (convert.converter() != null && convert.converter() != AttributeConverter.class) {
+            Class<?> converterType = convert.converter();
+
+            for (Class<?> c = converterType; c != null; c = c.getSuperclass())
+                for (Type ifc : c.getGenericInterfaces())
+                    if (ifc instanceof ParameterizedType type &&
+                        ifc.getTypeName().startsWith(Util.ATTR_CONVERTER_CLASS_NAME)) {
+                        Type[] typeParams = type.getActualTypeArguments();
+                        if (Util.UNSUPPORTED_ATTR_TYPES.contains(typeParams[1]))
+                            throw exc(MappingException.class,
+                                      "CWWKD1111.unsupported.convert",
+                                      converterType.getName(),
+                                      typeParams[0].getTypeName(),
+                                      typeParams[1].getTypeName(),
+                                      Util.SUPPORTED_TEMPORAL_TYPES,
+                                      Util.SUPPORTED_BASIC_TYPES);
+
+                        if (typeParams[0] instanceof Class)
+                            convertibles.add((Class<?>) typeParams[0]);
+                    }
             converters.add(new Converter(convert.converter()));
+        }
     }
 
-    // Termination point
+    private void verify() {
+
+        if (idAttributes.isEmpty()) {
+            // Costly operations, only do for error state
+            EntityRecord invalid = entities.stream()//
+                            .filter(e -> e.type() == currentEntity)//
+                            .findFirst()//
+                            .orElseThrow();
+            Set<Class<?>> supers = relate.superclassesForEntity(currentEntity);
+            Set<MappedSuperclass> invalidSupers = supers.isEmpty() ? Set.of() : mappedSuperclasses.stream()//
+                            .filter(e -> supers.contains(e.type()))//
+                            .collect(Collectors.toSet());
+
+            //TODO NLS
+            throw new MappingException("The entity " + invalid + " had no id attribute"
+                                       + (invalidSupers.isEmpty() ? " " : " nor was any id attribute found on any mapped superclass " + invalidSupers));
+        }
+
+        if (idAttributes.size() > 1) {
+            // Costly operations, only do for error state
+            EntityRecord invalid = entities.stream()//
+                            .filter(e -> e.type() == currentEntity)//
+                            .findFirst()//
+                            .orElseThrow();
+            Set<Class<?>> supers = relate.superclassesForEntity(currentEntity);
+            Set<MappedSuperclass> invalidSupers = supers.isEmpty() ? Set.of() : mappedSuperclasses.stream()//
+                            .filter(e -> supers.contains(e.type()))//
+                            .collect(Collectors.toSet());
+
+            //TODO NLS
+            throw new MappingException("The entity " + invalid + " had more than one id attribute due to a combination of the entity's own attributes"
+                                       + " and the attributes of the entity's mapped superclasses " + invalidSupers + ". "
+                                       + "The id attributes are: " + idAttributes);
+        }
+    }
+
     public List<String> generateView() {
+        if (!state.compareAndSet(STATE.PARSING, STATE.GENERATING)) {
+            // Internal exception
+            throw new IllegalStateException("Attempted to generate EntityParser view while EntityParser was in state: " + state.get());
+        }
+
         View view = new View(mappedSuperclasses.size() + entities.size() + embeddables.size() + converters.size());
 
         for (MappedSuperclass sc : mappedSuperclasses) {
@@ -267,7 +361,6 @@ public class EntityParser {
             view.converter(con);
         }
 
-        finished = true;
         return view.get();
     }
 }

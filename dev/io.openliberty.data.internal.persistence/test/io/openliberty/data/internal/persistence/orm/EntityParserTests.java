@@ -48,6 +48,32 @@ public class EntityParserTests {
     }
 
     @Test
+    public void simpleEntityWithPrefixTest() {
+        EntityParser p = new EntityParser("prefix");
+        p.parse(Simple.class);
+        List<String> xmls = p.generateView();
+
+        assertEquals(1, xmls.size());
+
+        final String expected = """
+                          <entity class="io.openliberty.data.internal.persistence.orm.Simple">
+                            <table name="prefixSimple"/>
+                            <attributes>
+                              <id name="id" access="FIELD">
+                                <column nullable="false"/>
+                              </id>
+                              <basic name="firstName" access="FIELD">
+                              </basic>
+                              <basic name="lastName" access="FIELD">
+                              </basic>
+                            </attributes>
+                          </entity>
+                        """;
+
+        assertEquals(expected, xmls.get(0));
+    }
+
+    @Test
     public void versionedEntityTest() {
         EntityParser p = new EntityParser("");
         p.parse(Versioned.class);

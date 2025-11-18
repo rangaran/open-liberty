@@ -9,6 +9,11 @@
  *******************************************************************************/
 package io.openliberty.data.internal.persistence.orm;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 
@@ -57,5 +62,33 @@ public class TestConverters {
         public String convertToEntityAttribute(String data) {
             return data.substring(1);
         }
+    }
+
+    /*
+     * Calendar is not a valid attribute type
+     */
+    @Converter
+    public static class InvalidConverter implements AttributeConverter<String, Calendar> {
+
+        @Override
+        public Calendar convertToDatabaseColumn(String attribute) {
+            String formatPattern = "yyyy-MM-dd HH:mm:ss";
+            SimpleDateFormat formatter = new SimpleDateFormat(formatPattern);
+            Date date;
+            try {
+                date = formatter.parse(attribute);
+            } catch (ParseException e) {
+                throw new RuntimeException(e);
+            }
+            Calendar cal = Calendar.getInstance();
+            cal.setTime(date);
+            return cal;
+        }
+
+        @Override
+        public String convertToEntityAttribute(Calendar data) {
+            return data.toString();
+        }
+
     }
 }
