@@ -29,17 +29,17 @@ class Relationships {
     private final ConcurrentMap<Class<?>, Set<Class<?>>> embedToEntity;
 
     // one-to-one relationship between record and entity class;
-    private final Map<Class<?>, Class<?>> recordToEntity;
+    private final Map<Class<?>, Class<?>> entityToRecord;
 
     public Relationships() {
         this.mappedSuperclassToEntity = new ConcurrentHashMap<>();
         this.entityToEmbed = new ConcurrentHashMap<>();
         this.embedToEntity = new ConcurrentHashMap<>();
-        this.recordToEntity = new HashMap<>();
+        this.entityToRecord = new HashMap<>();
     }
 
     // ASSOCIATIONS
-    public void entityHasMappedSuperclass(Class<?> entity, Class<?> mappedSuperclass) {
+    public void entityToMappedSuperclass(Class<?> entity, Class<?> mappedSuperclass) {
         mappedSuperclassToEntity.computeIfAbsent(mappedSuperclass, set -> {
             Set<Class<?>> newSet = new HashSet<>();
             newSet.add(entity);
@@ -52,7 +52,7 @@ class Relationships {
         });
     }
 
-    public void entityHasEmbed(Class<?> entity, Class<?> embed) {
+    public void entityToEmbed(Class<?> entity, Class<?> embed) {
         entityToEmbed.computeIfAbsent(entity, set -> {
             Set<Class<?>> newSet = new HashSet<>();
             newSet.add(embed);
@@ -76,8 +76,8 @@ class Relationships {
         });
     }
 
-    public void recordHasEntity(Class<?> rec, Class<?> entity) {
-        recordToEntity.put(rec, entity);
+    public void entityToRecord(Class<?> entity, Class<?> rec) {
+        entityToRecord.put(entity, rec);
     }
 
     // Predicates
@@ -93,5 +93,13 @@ class Relationships {
                         .filter(entry -> entry.getValue().contains(entity))//
                         .map(entry -> entry.getKey())//
                         .collect(Collectors.toSet());
+    }
+
+    public Class<?> recordForEntity(Class<?> entity) {
+        return entityToRecord.get(entity);
+    }
+
+    public boolean entityHasRecord(Class<?> entity) {
+        return entityToRecord.containsKey(entity);
     }
 }

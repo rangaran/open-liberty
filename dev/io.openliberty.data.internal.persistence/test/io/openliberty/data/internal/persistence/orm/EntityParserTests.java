@@ -24,7 +24,7 @@ public class EntityParserTests {
     @Test
     public void simpleEntityTest() {
         EntityParser p = new EntityParser("");
-        p.parse(Simple.class);
+        p.parseUnannotatedEntity(Simple.class);
         List<String> xmls = p.generateView();
 
         assertEquals(1, xmls.size());
@@ -50,7 +50,7 @@ public class EntityParserTests {
     @Test
     public void simpleEntityWithPrefixTest() {
         EntityParser p = new EntityParser("prefix");
-        p.parse(Simple.class);
+        p.parseUnannotatedEntity(Simple.class);
         List<String> xmls = p.generateView();
 
         assertEquals(1, xmls.size());
@@ -76,7 +76,7 @@ public class EntityParserTests {
     @Test
     public void versionedEntityTest() {
         EntityParser p = new EntityParser("");
-        p.parse(Versioned.class);
+        p.parseUnannotatedEntity(Versioned.class);
         List<String> xmls = p.generateView();
 
         assertEquals(1, xmls.size());
@@ -101,9 +101,82 @@ public class EntityParserTests {
     }
 
     @Test
+    public void recordEntityTest() {
+        EntityParser p = new EntityParser("");
+        p.parseRecord(RecordEntity.class, RecordEntityEntity.class);
+        List<String> xmls = p.generateView();
+
+        assertEquals(1, xmls.size());
+
+        final String expected = """
+                          <entity class="io.openliberty.data.internal.persistence.orm.RecordEntityEntity">
+                            <table name="RecordEntity"/>
+                            <attributes>
+                              <id name="id" access="FIELD">
+                                <column nullable="false"/>
+                              </id>
+                              <basic name="firstName" access="FIELD">
+                              </basic>
+                              <basic name="lastName" access="FIELD">
+                              </basic>
+                              <version name="version" access="FIELD">
+                              </version>
+                            </attributes>
+                          </entity>
+                        """;
+
+        assertEquals(expected, xmls.get(0));
+    }
+
+    @Test
+    public void recordComplexEntityTest() {
+        EntityParser p = new EntityParser("");
+        p.parseRecord(RecordComplex.class, RecordComplexEntity.class);
+        List<String> xmls = p.generateView();
+
+        assertEquals(2, xmls.size());
+
+        String expected = """
+                          <entity class="io.openliberty.data.internal.persistence.orm.RecordComplexEntity">
+                            <table name="RecordComplex"/>
+                            <attributes>
+                              <id name="id" access="FIELD">
+                                <column nullable="false"/>
+                              </id>
+                              <version name="version" access="FIELD">
+                              </version>
+                              <element-collection name="aliases" access="FIELD" fetch="EAGER">
+                              </element-collection>
+                              <embedded name="name" access="FIELD">
+                                <attribute-override name="firstName">
+                                  <column name="NAME_FIRSTNAME"/>
+                                </attribute-override>
+                                <attribute-override name="lastName">
+                                  <column name="NAME_LASTNAME"/>
+                                </attribute-override>
+                              </embedded>
+                            </attributes>
+                          </entity>
+                        """;
+        assertEquals(expected, xmls.get(0));
+
+        expected = """
+                          <embeddable class="io.openliberty.data.internal.persistence.orm.RecordComplex$Name">
+                            <attributes>
+                              <basic name="firstName" access="FIELD">
+                              </basic>
+                              <basic name="lastName" access="FIELD">
+                              </basic>
+                            </attributes>
+                          </embeddable>
+                        """;
+        assertEquals(expected, xmls.get(1));
+    }
+
+    @Test
     public void collectionEntityTest() {
         EntityParser p = new EntityParser("");
-        p.parse(Collection.class);
+        p.parseUnannotatedEntity(Collection.class);
         List<String> xmls = p.generateView();
 
         assertEquals(1, xmls.size());
@@ -131,7 +204,7 @@ public class EntityParserTests {
     @Test
     public void propertyEntityTest() {
         EntityParser p = new EntityParser("");
-        p.parse(Property.class);
+        p.parseUnannotatedEntity(Property.class);
         List<String> xmls = p.generateView();
 
         assertEquals(1, xmls.size());
@@ -161,7 +234,7 @@ public class EntityParserTests {
     @Test
     public void embeddedEntityTest() {
         EntityParser p = new EntityParser("");
-        p.parse(WithEmbedded.class);
+        p.parseUnannotatedEntity(WithEmbedded.class);
         List<String> xmls = p.generateView();
 
         assertEquals(2, xmls.size());
@@ -202,7 +275,7 @@ public class EntityParserTests {
     @Test
     public void embeddedIdEntityTest() {
         EntityParser p = new EntityParser("");
-        p.parse(WithEmbeddedId.class);
+        p.parseUnannotatedEntity(WithEmbeddedId.class);
         List<String> xmls = p.generateView();
 
         assertEquals(2, xmls.size());
@@ -242,7 +315,7 @@ public class EntityParserTests {
     @Test
     public void mappedSuperClassEntityTest() {
         EntityParser p = new EntityParser("");
-        p.parse(WithMappedSuperclass.class);
+        p.parseUnannotatedEntity(WithMappedSuperclass.class);
         List<String> xmls = p.generateView();
 
         assertEquals(5, xmls.size());
@@ -318,7 +391,7 @@ public class EntityParserTests {
     @Test
     public void mappedSuperClassEmbeddedIdEntityTest() {
         EntityParser p = new EntityParser("");
-        p.parse(WithMappedSuperclassPrime.class);
+        p.parseUnannotatedEntity(WithMappedSuperclassPrime.class);
         List<String> xmls = p.generateView();
 
         assertEquals(6, xmls.size());
@@ -412,7 +485,7 @@ public class EntityParserTests {
     @Test
     public void converterEntityTest() {
         EntityParser p = new EntityParser("");
-        p.parse(WithConverter.class);
+        p.parseUnannotatedEntity(WithConverter.class);
         List<String> xmls = p.generateView();
 
         assertEquals(4, xmls.size());
@@ -459,7 +532,7 @@ public class EntityParserTests {
     @Test
     public void converterComplexEntityTest() {
         EntityParser p = new EntityParser("");
-        p.parse(WithConverterComplex.class);
+        p.parseUnannotatedEntity(WithConverterComplex.class);
         List<String> xmls = p.generateView();
 
         assertEquals(6, xmls.size());

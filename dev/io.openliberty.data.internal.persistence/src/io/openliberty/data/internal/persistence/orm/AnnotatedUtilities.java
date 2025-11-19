@@ -26,6 +26,8 @@ import jakarta.persistence.EmbeddedId;
  */
 public class AnnotatedUtilities {
 
+    //TODO find unannotated entities indirectly referenced via relationships
+
     public static void findConvertersInEntity(Class<?> entity, SortedSet<Converter> converters) {
         for (Class<?> superclass = entity; //
                         superclass != null && superclass != Object.class; //

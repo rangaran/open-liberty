@@ -27,7 +27,7 @@ public class EntityParserErrorTests {
         EntityParser p = new EntityParser("");
 
         try {
-            p.parse(WithoutId.class);
+            p.parseUnannotatedEntity(WithoutId.class);
             fail("Should not have been able to parse an entity without an id atribute");
         } catch (MappingException e) {
             assertTrue("Error message should have contained entity class name " + WithoutId.class.getName() + " but was " + e.getMessage(),
@@ -40,7 +40,7 @@ public class EntityParserErrorTests {
         EntityParser p = new EntityParser("");
 
         try {
-            p.parse(WithoutIdMappedSuperclass.class);
+            p.parseUnannotatedEntity(WithoutIdMappedSuperclass.class);
             fail("Should not have been able to parse an entity without an id atribute");
         } catch (MappingException e) {
             assertTrue("Error message should have contained entity class name " + WithoutIdMappedSuperclass.class.getName() + " but was " + e.getMessage(),
@@ -56,7 +56,7 @@ public class EntityParserErrorTests {
         EntityParser p = new EntityParser("");
 
         try {
-            p.parse(WithMultipleIds.class);
+            p.parseUnannotatedEntity(WithMultipleIds.class);
             fail("Should not have been able to parse an entity with multiple id atributes");
         } catch (MappingException e) {
             assertTrue("Error message should have contained entity class name " + WithMultipleIds.class.getName() + " but was " + e.getMessage(),
@@ -72,7 +72,7 @@ public class EntityParserErrorTests {
         EntityParser p = new EntityParser("");
 
         try {
-            p.parse(WithConverterInvalid.class);
+            p.parseUnannotatedEntity(WithConverterInvalid.class);
             fail("Should not have been able to parse an entity with a converter for the Calendar type.");
         } catch (MappingException e) {
             assertTrue("Error message should have contained converter class name " + InvalidConverter.class.getName() + " but was " + e.getMessage(),

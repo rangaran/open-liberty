@@ -42,10 +42,9 @@ import io.openliberty.data.internal.persistence.orm.Models.MappedSuperclass;
 import jakarta.data.exceptions.MappingException;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Convert;
-import jakarta.persistence.Entity;
 
 /**
- * TODO handle records
+ * TODO javadoc and trace
  */
 public class EntityParser {
 
@@ -60,6 +59,7 @@ public class EntityParser {
     private final SortedSet<EmbeddableRecord> embeddables;
     private final SortedSet<Converter> converters;
 
+    // Convertible classes
     private final Set<Class<?>> convertibles;
 
     // Relationships
@@ -86,26 +86,50 @@ public class EntityParser {
         this.state = new AtomicReference<>(STATE.INIT);
     }
 
-    public void parse(Class<?> entity) {
+    public void parseAnnotatedEntity(Class<?> annotatedEntity) {
         state.compareAndSet(STATE.INIT, STATE.PARSING);
         if (state.get() != STATE.PARSING) {
             // Internal exception
             throw new IllegalStateException("Attempted to parse an entity while EntityParser was in state: " + state.get());
         }
 
-        // If the entity was annotated with @Entity
-        // only search for converters.
-        if (entity.isAnnotationPresent(Entity.class)) {
-            AnnotatedUtilities.findConvertersInEntity(entity, converters);
-            return;
+        AnnotatedUtilities.findConvertersInEntity(annotatedEntity, converters);
+    }
+
+    public void parseRecord(Class<?> record, Class<?> generatedEntity) {
+        state.compareAndSet(STATE.INIT, STATE.PARSING);
+        if (state.get() != STATE.PARSING) {
+            // Internal exception
+            throw new IllegalStateException("Attempted to parse an entity while EntityParser was in state: " + state.get());
+        }
+
+        relate.entityToRecord(generatedEntity, record);
+
+        parse(generatedEntity, tablePrefix + record.getSimpleName());
+    }
+
+    public void parseUnannotatedEntity(Class<?> entity) {
+        state.compareAndSet(STATE.INIT, STATE.PARSING);
+        if (state.get() != STATE.PARSING) {
+            // Internal exception
+            throw new IllegalStateException("Attempted to parse an entity while EntityParser was in state: " + state.get());
+        }
+
+        parse(entity, tablePrefix + entity.getSimpleName());
+
+    }
+
+    private void parse(Class<?> entity, String tableName) {
+        state.compareAndSet(STATE.INIT, STATE.PARSING);
+        if (state.get() != STATE.PARSING) {
+            // Internal exception
+            throw new IllegalStateException("Attempted to parse an entity while EntityParser was in state: " + state.get());
         }
 
         // If entity was unannotated then we must
         // construct an object relational mapping
         this.currentEntity = entity;
         this.idAttributes = new HashSet<>();
-
-        String tableName = tablePrefix + currentEntity.getSimpleName();
 
         for (Class<?> superclass = currentEntity; //
                         superclass != null && superclass != Object.class; //
@@ -122,8 +146,8 @@ public class EntityParser {
             }
 
             // Record all mapped superclasses and any embeddables found along the way
+            relate.entityToMappedSuperclass(currentEntity, superclass);
             mappedSuperclasses.add(new MappedSuperclass(superclass, finalizeAttributes(superclass, findAttributes(superclass))));
-            relate.entityHasMappedSuperclass(currentEntity, superclass);
         }
 
         verify();
@@ -132,9 +156,10 @@ public class EntityParser {
     private Set<IncompleteAttribute> findAttributes(Class<?> c) {
         SortedSet<IncompleteAttribute> attributes = new TreeSet<>();
 
-        if (c.isRecord()) {
-            for (RecordComponent r : c.getRecordComponents())
-                attributes.add(new IncompleteAttribute(r.getType(), r.getName(), AccessType.FIELD));
+        if (relate.entityHasRecord(c)) {
+            Class<?> r = relate.recordForEntity(c);
+            for (RecordComponent rc : r.getRecordComponents())
+                attributes.add(new IncompleteAttribute(rc.getType(), rc.getName(), AccessType.FIELD));
         } else {
             for (Field f : c.getDeclaredFields()) {
                 if (Modifier.isPublic(f.getModifiers())) {
@@ -261,7 +286,7 @@ public class EntityParser {
 
                 embeddables.add(new EmbeddableRecord(type, embedAttributes));
 
-                relate.entityHasEmbed(c, type);
+                relate.entityToEmbed(c, type);
             } else {
                 finalized = new Attribute(attr, kind, Set.of());
                 attributes.add(finalized);
@@ -302,7 +327,6 @@ public class EntityParser {
     }
 
     private void verify() {
-
         if (idAttributes.isEmpty()) {
             // Costly operations, only do for error state
             EntityRecord invalid = entities.stream()//
@@ -338,7 +362,8 @@ public class EntityParser {
     }
 
     public List<String> generateView() {
-        if (!state.compareAndSet(STATE.PARSING, STATE.GENERATING)) {
+        state.compareAndSet(STATE.PARSING, STATE.GENERATING);
+        if (state.get() != STATE.GENERATING) {
             // Internal exception
             throw new IllegalStateException("Attempted to generate EntityParser view while EntityParser was in state: " + state.get());
         }
@@ -362,5 +387,14 @@ public class EntityParser {
         }
 
         return view.get();
+    }
+
+    public Set<Class<?>> getConvertibiles() {
+        state.compareAndSet(STATE.PARSING, STATE.GENERATING);
+        if (state.get() != STATE.GENERATING) {
+            // Internal exception
+            throw new IllegalStateException("Attempted to generate EntityParser view while EntityParser was in state: " + state.get());
+        }
+        return convertibles;
     }
 }
