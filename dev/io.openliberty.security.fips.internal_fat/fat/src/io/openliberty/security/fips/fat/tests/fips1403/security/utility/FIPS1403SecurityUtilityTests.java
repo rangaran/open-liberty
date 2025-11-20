@@ -280,6 +280,46 @@ public class FIPS1403SecurityUtilityTests {
 
     }
 
+    @Test
+    public void invalidServerNameTest() throws Exception {
+        // Test server names that start with a hyphen
+        ProgramOutput po = runSecurityUtilityCommand(new String[] {SEC_CONF_FIPS_COMMAND, OPT_SERVER + "-invalidServer"});
+        assertEquals("securityUtility configureFIPS should return error code for invalid server name", 7, po.getReturnCode());
+        assertTrue("Output should contain invalid server name message", po.getStdout().contains("invalidServerName"));
+
+        // Test server names that start with a dot
+        po = runSecurityUtilityCommand(new String[] {SEC_CONF_FIPS_COMMAND, OPT_SERVER + ".invalidServer"});
+        assertEquals("securityUtility configureFIPS should return error code for invalid server name", 7, po.getReturnCode());
+        assertTrue("Output should contain invalid server name message", po.getStdout().contains("invalidServerName"));
+
+        // Test valid server names (should fail for different reason - server not found)
+        po = runSecurityUtilityCommand(new String[] {SEC_CONF_FIPS_COMMAND, OPT_SERVER + "=validServer123"});
+        assertEquals("securityUtility configureFIPS should return error code for server not found", 2, po.getReturnCode());
+
+        po = runSecurityUtilityCommand(new String[] {SEC_CONF_FIPS_COMMAND, OPT_SERVER + "=valid.server_name-123"});
+        assertEquals("securityUtility configureFIPS should accept valid server names", 0, po.getReturnCode());
+    }
+
+    @Test
+    public void invalidClientNameTest() throws Exception {
+        // Test client names that start with a hyphen
+        ProgramOutput po = runSecurityUtilityCommand(new String[] {SEC_CONF_FIPS_COMMAND, OPT_CLIENT + "-invalidClient"});
+        assertEquals("securityUtility configureFIPS should return error code for invalid client name", 6, po.getReturnCode());
+        assertTrue("Output should contain invalid client name message", po.getStdout().contains("invalidClientName"));
+
+        // Test client names that start with a dot
+        po = runSecurityUtilityCommand(new String[] {SEC_CONF_FIPS_COMMAND, OPT_CLIENT + ".invalidClient"});
+        assertEquals("securityUtility configureFIPS should return error code for invalid client name", 6, po.getReturnCode());
+        assertTrue("Output should contain invalid client name message", po.getStdout().contains("invalidClientName"));
+
+        // Test valid client names (should fail for different reason - client not found)
+        po = runSecurityUtilityCommand(new String[] {SEC_CONF_FIPS_COMMAND, OPT_CLIENT + "=validClient123"});
+        assertEquals("securityUtility configureFIPS should return error code for client not found", 3, po.getReturnCode());
+
+        po = runSecurityUtilityCommand(new String[] {SEC_CONF_FIPS_COMMAND, OPT_CLIENT + "=valid.client_name-123"});
+        assertEquals("securityUtility configureFIPS should accept valid client names", 0, po.getReturnCode());
+    }
+
     @After
     public void teardown() throws Exception {
         server.stopServer();
