@@ -95,7 +95,6 @@ import jakarta.data.repository.Param;
 import jakarta.data.repository.Query;
 import jakarta.data.repository.Save;
 import jakarta.data.repository.Update;
-import jakarta.persistence.CacheRetrieveMode;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.TypedQuery;
@@ -912,11 +911,6 @@ public class QueryInfo {
         TypedQuery<Long> query = em.createQuery(jpql, Long.class);
         setParameters(query, args);
 
-        // TODO #33189 why are EntityManager.setCacheRetrieveMode and
-        // Query.setCacheRetrieveMode unable to set this instead?
-        query.setHint("jakarta.persistence.cache.retrieveMode",
-                      CacheRetrieveMode.BYPASS);
-
         Long count = query.getSingleResult();
 
         Object returnValue;
@@ -1700,11 +1694,6 @@ public class QueryInfo {
         query.setMaxResults(1);
         setParameters(query, args);
 
-        // TODO #33189 why are EntityManager.setCacheRetrieveMode and
-        // Query.setCacheRetrieveMode unable to set this instead?
-        query.setHint("jakarta.persistence.cache.retrieveMode",
-                      CacheRetrieveMode.BYPASS);
-
         List<?> results = query.getResultList();
         boolean found = !results.isEmpty();
 
@@ -1919,11 +1908,6 @@ public class QueryInfo {
 
             if (entityInfo.loadGraph != null)
                 query.setHint(Util.LOADGRAPH, entityInfo.loadGraph);
-
-            // TODO #33189 why are EntityManager.setCacheRetrieveMode and
-            // Query.setCacheRetrieveMode unable to set this instead?
-            query.setHint("jakarta.persistence.cache.retrieveMode",
-                          CacheRetrieveMode.BYPASS);
 
             if (type == FIND_AND_DELETE)
                 query.setLockMode(LockModeType.PESSIMISTIC_WRITE);
@@ -3835,7 +3819,7 @@ public class QueryInfo {
             if (modifyAt.isEmpty() || entityInfo.recordClass == null)
                 jpql = ql;
             else
-                jpql = replaceQuery(ql, -1, modifyAt);
+                jpql = replaceQuery(ql, modifyAt);
         } else if (firstChar == 'U' || firstChar == 'u') {
             // UPDATE EntityName[ SET ... WHERE ...]
             int entityNameStartAt = -1;
@@ -3874,7 +3858,7 @@ public class QueryInfo {
             if (entityInfo.recordClass == null)
                 jpql = ql;
             else
-                jpql = replaceQuery(ql, -1, modifyAt);
+                jpql = replaceQuery(ql, modifyAt);
         } else { // SELECT ... or FROM ... or WHERE ... or ORDER BY ...
             type = FIND;
 
@@ -3892,7 +3876,7 @@ public class QueryInfo {
             if (entityInfo == null)
                 setEntityInfo(entityInfos, primaryEntityInfoFuture);
 
-            jpql = replaceQuery(ql, select0, modifyAt);
+            jpql = replaceQuery(ql, modifyAt);
         }
 
         // Find out how many parameters the method supplies to the query
@@ -4675,43 +4659,20 @@ public class QueryInfo {
         TreeMap<Integer, QueryEdit> modifyAt = new TreeMap<>();
 
         int length = ql.length();
-        int i = startAt;
-        boolean isCursoredPage;
-        boolean countPages;
-        boolean countMustOmitSelect;
-        boolean needsConstructorEnd = false;
+        boolean hasTopLevelSelectClause = findQueryStartsWithSelect == Boolean.TRUE;
+        boolean isCursoredPage = CursoredPage.class.equals(multiType);
+        boolean countPages = isCursoredPage || Page.class.equals(multiType);
+        int countReplacesFirstSelectAt = hasTopLevelSelectClause && countPages //
+                        ? startAt // position after SELECT
+                        : -1; // SELECT clause is not present
+        int countReplacesFirstSelectEndingAt = -1;
+        int numTopLevelFromClauses = 0;
+        boolean insertRecordConstructors = producer.compat().atLeast(1, 1) &&
+                                           singleType.isRecord();
         boolean needsParenthesesEnd = false;
-
-        if (findQueryStartsWithSelect == null) {
-            // not a SELECT statement
-            isCursoredPage = false;
-            countPages = false;
-            countMustOmitSelect = false;
-        } else {
-            isCursoredPage = CursoredPage.class.equals(multiType);
-            countPages = isCursoredPage || Page.class.equals(multiType);
-
-            if (findQueryStartsWithSelect == Boolean.TRUE) {
-                countMustOmitSelect = countPages;
-                if (producer.compat().atLeast(1, 1) &&
-                    singleType.isRecord()) {
-                    while (i < length && Character.isWhitespace(ql.charAt(i)))
-                        i++;
-                    if (i + 3 < length &&
-                        !Character.isJavaIdentifierPart(ql.charAt(i + 3)) &&
-                        ql.regionMatches(true, i, "NEW", 0, 3)) {
-                        // already has constructor syntax
-                        i += 3;
-                    } else {
-                        modifyAt.put(i, QueryEdit.ADD_CONSTRUCTOR_BEGIN);
-                        needsConstructorEnd = true;
-                    }
-                }
-            } else { // findQueryStartsWithSelect == Boolean.FALSE
-                countMustOmitSelect = false;
-                modifyAt.put(QueryEdit.BEFORE_QUERY, QueryEdit.ADD_SELECT_IF_NEEDED);
-            }
-        }
+        boolean needsConstructorEnd = hasTopLevelSelectClause &&
+                                      insertRecordConstructors &&
+                                      parseSelectForConstructor(ql, startAt, modifyAt);
 
         Integer addFromAt = findQueryStartsWithSelect == null //
                         ? -1 // never, it's a DELETE or UPDATE so it always has FROM
@@ -4720,7 +4681,7 @@ public class QueryInfo {
         boolean isLiteral = false;
         StringBuilder paramName = null;
 
-        for (; i < length; i++) {
+        for (int i = startAt; i < length; i++) {
             char ch = ql.charAt(i);
             if (!isLiteral && ch == ':') {
                 paramName = new StringBuilder(30);
@@ -4747,20 +4708,20 @@ public class QueryInfo {
                         !Character.isJavaIdentifierPart(ql.charAt(i + 4)) &&
                         ql.regionMatches(true, i, "FROM", 0, 4)) {
 
-                        if (depth == 0 && // avoids SELECT EXTRACT(YEAR FROM d) WHERE ...
-                            addFromAt == null)
-                            addFromAt = -1;
-                        if (depth == 0 &&
-                            countMustOmitSelect) {
-                            countMustOmitSelect = false;
-                            modifyAt.put(-i, // avoid possible collision
-                                         QueryEdit.OMIT_SELECT_IN_COUNT);
-                        }
-                        if (depth == 0 &&
-                            needsConstructorEnd) {
-                            needsConstructorEnd = false;
-                            modifyAt.put(i - 1,
-                                         QueryEdit.ADD_CONSTRUCTOR_END);
+                        if (depth == 0) { // avoids EXTRACT(YEAR FROM d)
+                            numTopLevelFromClauses++;
+                            if (addFromAt == null) {
+                                addFromAt = -1;
+                            }
+                            if (hasTopLevelSelectClause &&
+                                countReplacesFirstSelectEndingAt < 0) {
+                                countReplacesFirstSelectEndingAt = i;
+                            }
+                            if (needsConstructorEnd) {
+                                needsConstructorEnd = false;
+                                modifyAt.put(i - 1,
+                                             QueryEdit.ADD_CONSTRUCTOR_END);
+                            }
                         }
 
                         i += 4;
@@ -4792,7 +4753,7 @@ public class QueryInfo {
                         }
                         i--; // balances loop increment when already positioned correctly
                     } else if (depth == 0) {
-                        boolean isWhere = false, isOrder = false;
+                        boolean isSelect = false, isWhere = false, isOrder = false;
                         int l; // keyword length
                         if (i + (l = 5) < length &&
                             !Character.isJavaIdentifierPart(ql.charAt(i + l)) &&
@@ -4803,28 +4764,28 @@ public class QueryInfo {
                             ||
                             (i + (l = 6) < length &&
                              !Character.isJavaIdentifierPart(ql.charAt(i + l)) &&
-                             (ql.regionMatches(true, i, "HAVING", 0, l) ||
+                             ((isSelect = ql.regionMatches(true, i, "SELECT", 0, l)) ||
+                              ql.regionMatches(true, i, "HAVING", 0, l) ||
                               ql.regionMatches(true, i, "EXCEPT", 0, l)))
                             ||
                             (i + (l = 9) < length &&
                              !Character.isJavaIdentifierPart(ql.charAt(i + l)) &&
                              ql.regionMatches(true, i, "INTERSECT", 0, l))) {
 
-                            if (isCursoredPage && !isWhere && !isOrder)
+                            if (isCursoredPage && !isSelect && !isWhere && !isOrder)
                                 // ORDER BY isn't allowed with cursored pagination
-                                // either, but has a better error message for it
-                                // elsewhere that points out the correct ways to
-                                // specify order
+                                // either, nor is SELECT positioned after WHERE,
+                                // but those patterns have a better error message
+                                // elsewhere that points out the correct usage
                                 throw exc(UnsupportedOperationException.class,
                                           "CWWKD1120.cursor.keyword.mismatch",
                                           method.getName(),
                                           repositoryInterface.getName(),
                                           ql.substring(i, i + l),
                                           ql);
-                            if (countMustOmitSelect) {
-                                countMustOmitSelect = false;
-                                modifyAt.put(-i, // avoid possible collision
-                                             QueryEdit.OMIT_SELECT_IN_COUNT);
+                            if (hasTopLevelSelectClause &&
+                                countReplacesFirstSelectEndingAt < 0) {
+                                countReplacesFirstSelectEndingAt = i;
                             }
                             if (needsConstructorEnd) {
                                 needsConstructorEnd = false;
@@ -4838,7 +4799,7 @@ public class QueryInfo {
                                     throw excCursorPaginationNotAllowed(ql, i, isOrder);
                             }
                             if (addFromAt == null)
-                                addFromAt = i;
+                                addFromAt = isSelect ? 0 : i;
                             i += l;
                             if (isWhere) {
                                 hasWhere = true;
@@ -4846,6 +4807,14 @@ public class QueryInfo {
                                     modifyAt.put(i, QueryEdit.ADD_PARENTHESIS_BEGIN);
                                     needsParenthesesEnd = true;
                                 }
+                            } else if (isSelect) {
+                                hasTopLevelSelectClause = true;
+
+                                if (insertRecordConstructors)
+                                    needsConstructorEnd = parseSelectForConstructor(ql, i, modifyAt);
+
+                                if (countReplacesFirstSelectAt < 0)
+                                    countReplacesFirstSelectAt = i;
                             } else if (isOrder) {
                                 if (countPages)
                                     modifyAt.put(-i, // avoid possible collision
@@ -4880,9 +4849,18 @@ public class QueryInfo {
         if (paramName != null)
             qlParamNames.add(paramName.toString());
 
-        if (countMustOmitSelect)
-            modifyAt.put(-length, // avoid possible collision
-                         QueryEdit.OMIT_SELECT_IN_COUNT);
+        if (countPages && countReplacesFirstSelectAt >= 0) {
+            modifyAt.put(countReplacesFirstSelectAt,
+                         QueryEdit.REPLACE_SELECT_IN_COUNT_BEGIN);
+            if (countReplacesFirstSelectEndingAt < 0)
+                countReplacesFirstSelectEndingAt = length;
+            modifyAt.put(-countReplacesFirstSelectEndingAt, // avoid possible collision
+                         QueryEdit.REPLACE_SELECT_IN_COUNT_END);
+        }
+
+        if (!hasTopLevelSelectClause && findQueryStartsWithSelect == Boolean.FALSE)
+            modifyAt.put(QueryEdit.BEFORE_QUERY,
+                         QueryEdit.ADD_SELECT_IF_NEEDED);
 
         if (addFromAt == null)
             if (findQueryStartsWithSelect == Boolean.TRUE)
@@ -4908,15 +4886,46 @@ public class QueryInfo {
     }
 
     /**
+     * Inspects the beginning of a SELECT clause to determine if constructor
+     * syntax (NEW) is present. If not present, add an instruction to insert it.
+     *
+     * @param ql       the query.
+     * @param i        position in the query after SELECT.
+     * @param modifyAt indices at which to perform modifications.
+     * @return true if this method added the ADD_CONSTRUCTOR_BEGIN instruction
+     *         which needs to be paired with ADD_CONSTRUCTOR_END.
+     */
+    @Trivial
+    private boolean parseSelectForConstructor(String ql,
+                                              int i,
+                                              Map<Integer, QueryEdit> modifyAt) {
+        boolean needsConstructorEnd = false;
+        int length = ql.length();
+
+        while (i < length && Character.isWhitespace(ql.charAt(i)))
+            i++;
+
+        if (i + 3 < length &&
+            !Character.isJavaIdentifierPart(ql.charAt(i + 3)) &&
+            ql.regionMatches(true, i, "NEW", 0, 3)) {
+            // already has constructor syntax
+            i += 3;
+        } else {
+            modifyAt.put(i, QueryEdit.ADD_CONSTRUCTOR_BEGIN);
+            needsConstructorEnd = true;
+        }
+
+        return needsConstructorEnd;
+    }
+
+    /**
      * Replaces the given query with one that includes the requested modifications.
      *
-     * @param ql                 the query.
-     * @param selectItemsStartAt the position after the SELECT keyword. Otherwise -1.
-     * @param modifyAt           indices at which to perform modifications.
+     * @param ql       the query.
+     * @param modifyAt indices at which to perform modifications.
      * @return a query that contains the requested modifications.
      */
     private String replaceQuery(String ql,
-                                int selectItemsStartAt,
                                 TreeMap<Integer, QueryEdit> modifyAt) {
 
         final String recordName = entityInfo.recordClass == null //
@@ -4940,19 +4949,24 @@ public class QueryInfo {
                                            : null;
         int cStartAt = 0; // index into the original query (ql)
         int cEndAt = qlLen;
+        int cSelectClauseEndAt = -1;
 
         for (Entry<Integer, QueryEdit> mod : modifyAt.entrySet()) {
             int m = mod.getKey();
             switch (mod.getValue()) {
-                case OMIT_SELECT_IN_COUNT:
+                case REPLACE_SELECT_IN_COUNT_END:
+                    cSelectClauseEndAt = -m; // position at end of SELECT clause
+                    break;
+                case REPLACE_SELECT_IN_COUNT_BEGIN:
                     if (c != null) {
-                        cStartAt = -m; // position after end of SELECT clause
-                        int selectItemsLength = cStartAt - selectItemsStartAt;
-                        c.append("SELECT COUNT(");
+                        c.append(ql.substring(cStartAt, cStartAt = m)); // SELECT
+                        c.append(" COUNT(");
+                        int selectItemsLength = cSelectClauseEndAt - cStartAt;
                         c.append(inferCountFromSelect(ql,
-                                                      selectItemsStartAt,
+                                                      cStartAt,
                                                       selectItemsLength));
                         c.append(") ");
+                        cStartAt = cSelectClauseEndAt;
                     }
                     break;
                 case OMIT_ORDER_IN_COUNT:

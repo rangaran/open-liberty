@@ -21,12 +21,6 @@ src: \
 
 fat.project: true
 
-# Do not release this project's bundles to the bnd repository.
-# If has a test bundle whose name is shared with another project.
-# Because of that you can get a build error that the bundle
-# is already published when doing parallel builds in gradle.
--releaserepo:
-
 tested.features: mpOpenTracing-3.0, mprestclient-3.0
 
 -buildpath: \

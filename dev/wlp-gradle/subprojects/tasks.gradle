@@ -243,6 +243,13 @@ task buildfat {
   group = "build"
 }
 
+// Only release bundles that are non test projects unless the project is explicitly
+// marked to generate a replacement which means we need to release the bundle(s).
+release {
+  def testProject = 'true'.equals(bnd.get('test.project', bnd.get('fat.project', 'false')))
+  enabled = (!testProject || bnd.is('generate.replacement'))
+}
+
 if (bnd.get('publish.wlp.jar.suffix', 'lib').contains('api/ibm') || bnd.get('publish.wlp.jar.suffix', 'lib').contains('spi/ibm')) {
   task apiSpiJavadoc(type: Javadoc) {
     dependsOn jar

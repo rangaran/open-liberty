@@ -106,7 +106,7 @@ public class AssertionBuilderRegistryImpl extends AssertionBuilderFactoryImpl im
             if (!alreadyWarned) {
                 ignored.add(qname);
                 Message m = new Message("NO_ASSERTIONBUILDER_EXC", BUNDLE, qname.toString());
-               
+                
                 // Liberty Change Start: Don't log warning for custom CXF policy assertions
                 if(qname.toString().contains("http://cxf.apache.org/custom/security-policy")) {
                     LOG.finest(m.toString());

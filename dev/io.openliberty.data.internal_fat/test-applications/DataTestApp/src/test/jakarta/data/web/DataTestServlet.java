@@ -640,9 +640,6 @@ public class DataTestServlet extends FATServlet {
      */
     @Test
     public void testConvertLongValue() throws Exception {
-        if (skipForHibernate("https://github.com/OpenLiberty/open-liberty/issues/33182")) {
-            return; //TODO remove skip when fixed in Hibernate or Liberty
-        }
 
         assertEquals(47L,
                      primes.numberAsBigDecimal(47).longValue());
@@ -665,11 +662,15 @@ public class DataTestServlet extends FATServlet {
                                      .floatValue(),
                      0.01f);
 
-        assertEquals(31,
-                     primes.numberAsInt(31));
+        if (skipForHibernate("https://github.com/OpenLiberty/open-liberty/issues/33182")) {
+            //TODO remove skip when fixed in Hibernate
+        } else {
+            assertEquals(31,
+                         primes.numberAsInt(31));
 
-        assertEquals(29,
-                     primes.numberAsInteger(29L).orElseThrow().intValue());
+            assertEquals(29,
+                         primes.numberAsInteger(29L).orElseThrow().intValue());
+        }
 
         assertEquals(23L,
                      primes.numberAsLong(23));
@@ -677,15 +678,18 @@ public class DataTestServlet extends FATServlet {
         assertEquals(19L,
                      primes.numberAsLongWrapper(19).orElseThrow().longValue());
 
-        assertEquals((short) 4013,
-                     primes.numberAsShort(4013));
+        if (skipForHibernate("https://github.com/OpenLiberty/open-liberty/issues/33182")) {
+            //TODO remove skip when fixed in Hibernate
+        } else {
+            assertEquals((short) 4013,
+                         primes.numberAsShort(4013));
+        }
 
         assertEquals((short) 4007,
                      primes.numberAsShortWrapper(4007).orElseThrow().shortValue());
 
         assertEquals(false,
                      primes.numberAsShortWrapper(27).isPresent());
-
     }
 
     /**
@@ -2225,9 +2229,6 @@ public class DataTestServlet extends FATServlet {
      */
     @Test
     public void testFromClauseIdentifiesEntity() {
-        if (skipForHibernate("https://github.com/OpenLiberty/open-liberty/issues/33182")) {
-            return; //TODO remove skip when fixed in Hibernate or Liberty
-        }
 
         products.clear();
 
@@ -2249,7 +2250,11 @@ public class DataTestServlet extends FATServlet {
         prod3.price = 16.99f;
         prod3 = multi.create(prod3);
 
-        assertEquals(3L, multi.countEverything());
+        if (skipForHibernate("https://github.com/OpenLiberty/open-liberty/issues/33182")) {
+            //TODO remove skip when fixed in Hibernate or Liberty
+        } else {
+            assertEquals(3L, multi.countEverything());
+        }
 
         assertEquals(1L, multi.discount("TestFromClauseIdentifiesEntity-Product-3", 0.30f));
         assertEquals(3L, multi.discount("TestFromClauseIdentifiesEntity-Product-_", 0.20f));
@@ -2260,7 +2265,11 @@ public class DataTestServlet extends FATServlet {
 
         assertEquals(3L, multi.destroy("TestFromClauseIdentifiesEntity-%"));
 
-        assertEquals(0L, multi.countEverything());
+        if (skipForHibernate("https://github.com/OpenLiberty/open-liberty/issues/33182")) {
+            //TODO remove skip when fixed in Hibernate or Liberty
+        } else {
+            assertEquals(0L, multi.countEverything());
+        }
     }
 
     /**
@@ -2269,9 +2278,6 @@ public class DataTestServlet extends FATServlet {
      */
     @Test
     public void testFunctionWithIdThisArg() {
-        if (skipForHibernate("https://github.com/OpenLiberty/open-liberty/issues/33182")) {
-            return; //TODO remove skip when fixed in Hibernate or Liberty
-        }
 
         vehicles.delete();
 
@@ -3848,9 +3854,6 @@ public class DataTestServlet extends FATServlet {
      */
     @Test
     public void testNamedParametersFromMethodParameterNames() {
-        if (skipForHibernate("https://github.com/OpenLiberty/open-liberty/issues/33182")) {
-            return; //TODO remove skip when fixed in Hibernate or Liberty
-        }
 
         assertArrayEquals(new long[] { 19, 29, 43, 47 },
                           primes.matchAny(19, "XLVII", "2B", "twenty-nine"));
@@ -3939,9 +3942,6 @@ public class DataTestServlet extends FATServlet {
      */
     @Test
     public void testOrderByIdFunction() {
-        if (skipForHibernate("https://github.com/OpenLiberty/open-liberty/issues/33182")) {
-            return; //TODO remove skip when fixed in Hibernate or Liberty
-        }
 
         assertIterableEquals(List.of(19L, 17L, 13L, 11L, 7L, 5L, 3L, 2L),
                              primes.below(20L));
@@ -4239,9 +4239,6 @@ public class DataTestServlet extends FATServlet {
      */
     @Test
     public void testQueryByMethodNameWithoutBy() {
-        if (skipForHibernateByDatabase("derby", "https://github.com/OpenLiberty/open-liberty/issues/33287")) {
-            return; //TODO remove skip when fixed in Hibernate or Liberty
-        }
 
         vehicles.delete();
 
@@ -4318,20 +4315,26 @@ public class DataTestServlet extends FATServlet {
                                      .map(v -> v.model)
                                      .collect(Collectors.toList()));
 
-        assertEquals(List.of("Impreza", "HR-V"),
-                     vehicles.deleteFoundOrderByPriceAscVinIdAsc(Limit.of(2))
-                                     .stream()
-                                     .map(v -> v.model)
-                                     .collect(Collectors.toList()));
+        if (skipForHibernateByDatabase("derby", "https://github.com/OpenLiberty/open-liberty/issues/33287")) {
+            //TODO remove skip when fixed in Hibernate or Liberty
+            assertEquals(5L, vehicles.delete());
+            assertEquals(0L, vehicles.countEverything());
+        } else {
+            assertEquals(List.of("Impreza", "HR-V"),
+                         vehicles.deleteFoundOrderByPriceAscVinIdAsc(Limit.of(2))
+                                         .stream()
+                                         .map(v -> v.model)
+                                         .collect(Collectors.toList()));
 
-        assertEquals(3L, vehicles.countEverything());
+            assertEquals(3L, vehicles.countEverything());
 
-        assertEquals(List.of("CR-V", "Explorer", "Outback"),
-                     vehicles.deleteAll()
-                                     .stream()
-                                     .map(v -> v.model)
-                                     .sorted()
-                                     .collect(Collectors.toList()));
+            assertEquals(List.of("CR-V", "Explorer", "Outback"),
+                         vehicles.deleteAll()
+                                         .stream()
+                                         .map(v -> v.model)
+                                         .sorted()
+                                         .collect(Collectors.toList()));
+        }
 
         assertEquals(false, vehicles.existsAny());
         assertEquals(0L, vehicles.findAll().count());
@@ -4997,9 +5000,6 @@ public class DataTestServlet extends FATServlet {
      */
     @Test
     public void testSingularResultPageOfBoolean() {
-        if (skipForHibernate("https://github.com/OpenLiberty/open-liberty/issues/33182")) {
-            return; //TODO remove skip when fixed in Hibernate or Liberty
-        }
 
         PageRequest pageReq = PageRequest.ofSize(6);
         Page<Boolean> page = primes.pageOfExists(pageReq);
@@ -5017,9 +5017,6 @@ public class DataTestServlet extends FATServlet {
      */
     @Test
     public void testSingularResultPageNumeric() {
-        if (skipForHibernate("https://github.com/OpenLiberty/open-liberty/issues/33182")) {
-            return; //TODO remove skip when fixed in Hibernate or Liberty
-        }
 
         Page<Long> page = primes.pageOfCountUpTo(20L, PageRequest.ofSize(4));
 
@@ -5635,10 +5632,6 @@ public class DataTestServlet extends FATServlet {
     public void testTransactional() throws ExecutionException, IllegalStateException, InterruptedException, //
                     NotSupportedException, SecurityException, SystemException, TimeoutException {
 
-        if (skipForHibernate("https://github.com/OpenLiberty/open-liberty/issues/33182")) {
-            return; //TODO remove skip when fixed in Hibernate or Liberty
-        }
-
         personnel.removeAll().get(TIMEOUT_MINUTES, TimeUnit.MINUTES);
 
         Person p1 = new Person();
@@ -5883,9 +5876,6 @@ public class DataTestServlet extends FATServlet {
      */
     @Test
     public void testUpdateMultiple() {
-        if (skipForHibernate("https://github.com/OpenLiberty/open-liberty/issues/33277")) {
-            return; //TODO remove skip when fixed in Hibernate or Liberty
-        }
 
         products.clear();
 
@@ -6061,9 +6051,6 @@ public class DataTestServlet extends FATServlet {
      */
     @Test
     public void testVersionedUpdateViaQuery() {
-        if (skipForHibernate("https://github.com/OpenLiberty/open-liberty/issues/33277")) {
-            return; //TODO remove skip when fixed in Hibernate or Liberty
-        }
 
         Product prod1 = new Product();
         prod1.pk = UUID.nameUUIDFromBytes("Q6008-U8-21001".getBytes());

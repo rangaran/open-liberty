@@ -65,7 +65,7 @@ public interface Primes {
     @Query("SELECT (num.name) FROM Prime As num")
     Page<String> all(Sort<Prime> sort, PageRequest pagination);
 
-    @Query("SELECT ID(THIS) WHERE ID(THIS) < ?1 ORDER BY ID(THIS) DESC")
+    @Query("SELECT ID(this) WHERE ID(this) < ?1 ORDER BY ID(this) DESC")
     List<Long> below(long exclusiveMax);
 
     @Query("SELECT binaryDigits WHERE numberId <= :max")
@@ -278,12 +278,12 @@ public interface Primes {
     Page<String> lengthBasedQuery(PageRequest pageRequest);
 
     @OrderBy(ID)
-    @Query("SELECT ID(THIS)" +
+    @Query("SELECT ID(this)" +
            "  FROM Prime" +
            " WHERE (name = :numberName" +
            "     OR :numeral=romanNumeral" +
            "     OR hex =:hex" +
-           "     OR ID(THIS)=:num)")
+           "     OR ID(this)=:num)")
     long[] matchAny(long num, String numeral, String hex, String numberName);
 
     @OrderBy(ID)
@@ -403,10 +403,10 @@ public interface Primes {
     double numberAsDouble(long num);
 
     @Asynchronous
-    @Query("SELECT numberId WHERE id(THIS)=?1")
+    @Query("SELECT numberId WHERE id(this)=?1")
     CompletableFuture<Optional<Float>> numberAsFloatWrapper(long num);
 
-    @Query("SELECT numberId WHERE Id(This)=?1")
+    @Query("SELECT numberId WHERE id(THIS)=?1")
     int numberAsInt(long num);
 
     @Query("SELECT numberId WHERE Id(This)=:num")
@@ -421,7 +421,7 @@ public interface Primes {
     @Query("SELECT numberId WHERE ID(THIS)=?1")
     short numberAsShort(long num);
 
-    @Query("SELECT numberId WHERE ID(THIS)=:num")
+    @Query("SELECT numberId WHERE ID(this)=:num")
     Optional<Short> numberAsShortWrapper(long num);
 
     @Query("""
@@ -437,11 +437,11 @@ public interface Primes {
     );
 
     // discouraged usage, but testing what happens
-    @Query("SELECT COUNT(THIS) WHERE ID(THIS) < :max")
+    @Query("SELECT COUNT(this) WHERE ID(this) < :max")
     Page<Long> pageOfCountUpTo(long max, PageRequest pageReq);
 
     // discouraged usage, but testing what happens
-    @Query("SELECT CASE WHEN COUNT(THIS) > 0 THEN TRUE ELSE FALSE END")
+    @Query("SELECT CASE WHEN COUNT(this) > 0 THEN TRUE ELSE FALSE END")
     Page<Boolean> pageOfExists(PageRequest pageReq);
 
     @Insert

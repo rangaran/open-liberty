@@ -220,15 +220,13 @@ task createGradleBootstrap {
         def depsList = []
         gradleBndProjects.each { projectName ->
             def bndProject = bndWorkspace.getProject(projectName)
-            // If the project doesn't have any bundles or if the bundles are not
-            // released, then skip the project
-            if (!bndProject.isNoBundles() && !bndProject.get('-releaserepo').isEmpty()) {
-                String org
-                if ('true'.equals(bndProject.get('test.project', bndProject.get('fat.project', 'false')))) {
-                    org = 'test'
-                } else {
-                    org = 'dev'
-                }
+            // Only add the bundle to the gradle bootstrap if there are bundles in
+            // the project and it is not a test project or we are generating
+            // replacement if it is a test project.
+            boolean testProject = 'true'.equals(bndProject.get('test.project', bndProject.get('fat.project', 'false')))
+            boolean generateReplacement = 'true'.equals(bndProject.get('generate.replacement', testProject ? 'false' : 'true'))
+            if (!bndProject.isNoBundles() && generateReplacement) {
+                String org = testProject ? 'test' : 'dev'
                 for (String bsn : bndProject.getBsns()) {
                     String version = null
                     try {
@@ -313,12 +311,7 @@ task createGeneratedReplacementProjects {
             if (!generateReplacement) {
                 return
             }
-            String org
-            if (testProject) {
-                org = 'test'
-            } else {
-                org = 'dev'
-            }
+            String org = testProject ? 'test' : 'dev'
             List bsns = bndProject.getBsns()
             int bsnCount = bndProject.isNoBundles() ? 0 : bsns.size()
             String classpathEntries = ""

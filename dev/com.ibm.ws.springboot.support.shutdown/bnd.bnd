@@ -24,7 +24,7 @@ Private-Package: com.ibm.ws.springboot.support.osgi.shutdown.*
 
 Include-Resource: springBootCloser.jar
 
-Provide-Capability: spring.boot.support; jars:List<String>=springBootCloser.jar; version:Version=1.0
+Provide-Capability: spring.boot.support; jars:List<String>=springBootCloser.jar
 
 instrument.disabled: true
 

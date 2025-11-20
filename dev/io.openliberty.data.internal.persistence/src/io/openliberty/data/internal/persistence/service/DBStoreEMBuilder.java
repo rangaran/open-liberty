@@ -83,6 +83,7 @@ import io.openliberty.data.internal.persistence.EntityManagerBuilder;
 import io.openliberty.data.internal.persistence.Util;
 import jakarta.data.exceptions.DataException;
 import jakarta.data.exceptions.MappingException;
+import jakarta.persistence.CacheRetrieveMode;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.Embedded;
@@ -580,6 +581,7 @@ public class DBStoreEMBuilder extends EntityManagerBuilder implements DDLGenerat
     @Trivial
     public EntityManager createEntityManager() {
         EntityManager em = persistenceServiceUnit.createEntityManager();
+        em.setCacheRetrieveMode(CacheRetrieveMode.BYPASS);
 
         if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
             Tr.debug(this, tc, "createEntityManager: " + em);

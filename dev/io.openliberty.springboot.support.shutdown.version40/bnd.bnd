@@ -27,10 +27,6 @@ Bundle-SymbolicName: io.openliberty.springboot.support.shutdown.version40
 Bundle-Description: WebSphere Spring Boot 4 Application Closer, version ${bVersion}
 Private-Package: io.openliberty.springboot.support.osgi.shutdown.*
 
-Include-Resource: springBoot40Closer.jar
-
-Provide-Capability: spring.boot.support; jars:List<String>=springBoot40Closer.jar; version:Version=1.0
-
 Export-Package: io.openliberty.springboot.support.shutdown
 
 instrument.disabled: true
@@ -62,5 +58,3 @@ instrument.disabled: true
 
 -dsannotations: io.openliberty.springboot.support.osgi.shutdown.ShutdownSpringBootSupport
 -dsannotations-inherit: true
-
--make= (*).(jar); type=bnd; recipe="bnd/$1.bnd"

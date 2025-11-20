@@ -265,8 +265,7 @@ public class DataStoreTestServlet extends FATServlet {
 
         tx.begin();
         try (EntityManager em = persistenceUnitRepo.entityManager()) {
-            // TODO #33189 the following is not honored:
-            //em.setCacheRetrieveMode(CacheRetrieveMode.BYPASS);
+            em.setCacheRetrieveMode(CacheRetrieveMode.BYPASS);
 
             Query update = em.createQuery("""
                             UPDATE PersistenceUnitEntity
@@ -281,13 +280,6 @@ public class DataStoreTestServlet extends FATServlet {
                              WHERE id = ?1
                             """);
             query.setParameter(1, id);
-
-            // TODO #33189 the following is not honored:
-            // query.setCacheRetrieveMode(CacheRetrieveMode.BYPASS);
-            // TODO #33189 should be able to replace the following setHint with either
-            // of the preceding TODOs that use em/query.setCacheRetrieveMode.
-            query.setHint("jakarta.persistence.cache.retrieveMode",
-                          CacheRetrieveMode.BYPASS);
 
             List<?> results = query.getResultList();
             assertEquals(1,

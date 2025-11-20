@@ -89,8 +89,12 @@ public class GenerateAesKeyTask extends BaseCommandTask {
         if (builder.getFilePath() == null) {
             stdout.println(builder.getKey());
         } else {
-            builder.generateXML();
-            stdout.println(getMessage("generate.success", new File(builder.getFilePath()).getAbsolutePath()));
+            if (builder.generateXML()) {
+                stdout.println(getMessage("generate.success", new File(builder.getFilePath()).getAbsolutePath()));
+            } else {
+                // no need to print additional information, file utility will explain why the file write failed.
+                return SecurityUtilityReturnCodes.ERR_GENERIC;
+            }
         }
         return SecurityUtilityReturnCodes.OK;
 
@@ -251,8 +255,8 @@ public class GenerateAesKeyTask extends BaseCommandTask {
          * @throws NoSuchAlgorithmException
          *
          */
-        public void generateXML() throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
-            generateXML(this.getKey(), this.filePath);
+        public boolean generateXML() throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+            return generateXML(this.getKey(), this.filePath);
         }
 
         /**
@@ -263,10 +267,17 @@ public class GenerateAesKeyTask extends BaseCommandTask {
          * @throws IOException
          * @throws InvalidKeySpecException
          * @throws NoSuchAlgorithmException
+         * @returns true if the file was created successfully, false if the file couldn't be created.
          */
-        private void generateXML(String key, String filePath) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+        private boolean generateXML(String key, String filePath) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
             String xmlContent = formatXml(AESKeyManager.NAME_WLP_BASE64_AES_ENCRYPTION_KEY, key);
-            fileUtil.writeToFile(stderr, xmlContent, new File(filePath));
+            File outFile = new File(filePath);
+
+            if (!fileUtil.createParentDirectory(stderr, outFile)) {
+                throw new IOException(getMessage("fileUtility.failedDirCreate", filePath));
+            }
+            return fileUtil.writeToFile(stderr, xmlContent, outFile);
+
         }
 
         /**
