@@ -881,23 +881,29 @@ public class CreateSSLCertificateTaskTest {
      * .
      */
     @Test
-    public void handleTask_serverNameisInvalid() throws Exception {
-        String[] args = new String[] { task.getTaskName(),
-                                       "--validity=" + VALIDITY,
-                                       "--password=" + PLAINTEXT,
-                                       "--subject=" + SUBJECT_DN,
-                                       "--server=" + "." };
+    public void handleTask_serverNameIsInvalid() throws Exception {
+    String[] invalidServerNames = { ".", "..", "-invalid", ".invalid" };
 
-        mock.checking(new Expectations() {
-            {
-                one(fileUtil).exists(with(any(String.class)));
-                will(returnValue(false));
-                one(stdout).println("Aborting certificate creation:");
-                one(stdout).println("The specified server " + SERVER_NAME + " is not a valid server name.");
-            }
-        });
+    for (String name : invalidServerNames) {
+        String[] args = {
+                task.getTaskName(),
+                "--validity=" + VALIDITY,
+                "--password=" + PLAINTEXT,
+                "--subject=" + SUBJECT_DN,
+                "--server=" + name
+        };
+
+        mock.checking(new Expectations() {{
+            one(fileUtil).exists(with(any(String.class)));
+            will(returnValue(false));
+
+            one(stdout).println("Aborting certificate creation:");
+            one(stdout).println("The specified server " + name + " is not a valid server name.");
+        }});
 
         task.handleTask(stdin, stdout, stderr, args);
+        mock.assertIsSatisfied();
+        }
     }
 
     /**
@@ -906,23 +912,29 @@ public class CreateSSLCertificateTaskTest {
      * .
      */
     @Test
-    public void handleTask_clientNameisInvalid() throws Exception {
-        String[] args = new String[] { task.getTaskName(),
-                                       "--validity=" + VALIDITY,
-                                       "--password=" + PLAINTEXT,
-                                       "--subject=" + SUBJECT_DN,
-                                       "--server=" + "." };
+    public void handleTask_clientNameIsInvalid() throws Exception {
+        String[] invalidClientNames = { ".", "..", "-invalid", ".invalid" };
 
-        mock.checking(new Expectations() {
-            {
+        for (String name : invalidClientNames) {
+            String[] args = {
+                    task.getTaskName(),
+                    "--validity=" + VALIDITY,
+                    "--password=" + PLAINTEXT,
+                    "--subject=" + SUBJECT_DN,
+                    "--client=" + name
+            };
+
+            mock.checking(new Expectations() {{
                 one(fileUtil).exists(with(any(String.class)));
                 will(returnValue(false));
-                one(stdout).println("Aborting certificate creation:");
-                one(stdout).println("The specified server " + SERVER_NAME + " is not a valid client name.");
-            }
-        });
 
-        task.handleTask(stdin, stdout, stderr, args);
+                one(stdout).println("Aborting certificate creation:");
+                one(stdout).println("The specified client " + name + " is not a valid client name.");
+            }});
+
+            task.handleTask(stdin, stdout, stderr, args);
+            mock.assertIsSatisfied();
+        }
     }
 
     /**

@@ -290,6 +290,14 @@ public class FIPS1403SecurityUtilityTests {
         po = runSecurityUtilityCommand(new String[] {SEC_CONF_FIPS_COMMAND, OPT_SERVER + "=.invalidServer"});
         assertEquals("securityUtility configureFIPS should return error code for invalid server name", 7, po.getReturnCode());
 
+        // Test server name ..
+        po = runSecurityUtilityCommand(new String[] {SEC_CONF_FIPS_COMMAND, OPT_SERVER + "=.."});
+        assertEquals("securityUtility configureFIPS should return error code for invalid server name", 7, po.getReturnCode());
+
+        // Test server name  -
+        po = runSecurityUtilityCommand(new String[] {SEC_CONF_FIPS_COMMAND, OPT_SERVER + "=-"});
+        assertEquals("securityUtility configureFIPS should return error code for invalid server name", 7, po.getReturnCode());
+
         // Test valid server names (should fail for different reason - server not found)
         po = runSecurityUtilityCommand(new String[] {SEC_CONF_FIPS_COMMAND, OPT_SERVER + "=validServer123"});
         assertEquals("securityUtility configureFIPS should return error code for server not found", 2, po.getReturnCode());
@@ -304,6 +312,14 @@ public class FIPS1403SecurityUtilityTests {
 
         // Test client names that start with a dot
         po = runSecurityUtilityCommand(new String[] {SEC_CONF_FIPS_COMMAND, OPT_CLIENT + "=.invalidClient"});
+        assertEquals("securityUtility configureFIPS should return error code for invalid client name", 6, po.getReturnCode());
+
+        // Test client name ..
+        po = runSecurityUtilityCommand(new String[] {SEC_CONF_FIPS_COMMAND, OPT_CLIENT + "=.."});
+        assertEquals("securityUtility configureFIPS should return error code for invalid client name", 6, po.getReturnCode());
+
+        // Test client name -
+        po = runSecurityUtilityCommand(new String[] {SEC_CONF_FIPS_COMMAND, OPT_CLIENT + "=-"});
         assertEquals("securityUtility configureFIPS should return error code for invalid client name", 6, po.getReturnCode());
 
         // Test valid client names (should fail for different reason - client not found)

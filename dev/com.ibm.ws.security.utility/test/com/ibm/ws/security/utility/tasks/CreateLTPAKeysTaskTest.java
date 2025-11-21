@@ -556,23 +556,33 @@ public class CreateLTPAKeysTaskTest {
  */
 @Test
 public void handleTask_specifiedServer_serverNameInvalid() throws Exception {
-    CreateLTPAKeysTask task = new CreateLTPAKeysTask(ltpaKeyFileUtil, fileUtil, TEST_UTILITY_NAME);
-    String[] args = new String[] { "securityUtility", "--password=Liberty", "--server=." };
+    CreateLTPAKeysTask task =
+            new CreateLTPAKeysTask(ltpaKeyFileUtil, fileUtil, TEST_UTILITY_NAME);
 
-    mock.checking(new Expectations() {
-        {
+    String[] invalidNames = { ".", "..", "-invalid", ".invalid" };
+
+    for (String name : invalidNames) {
+        String[] args = {
+                "securityUtility",
+                "--password=Liberty",
+                "--server=" + name
+        };
+
+        mock.checking(new Expectations() {{
             // No file system access should occur
             never(fileUtil).exists(with(any(String.class)));
             never(fileUtil).resolvePath(with(any(String.class)));
 
             one(stdout).println(with(stringContaining("LTPA")));
-            one(stdout).println(with(stringContaining("The specified server . is not a valid server name")));
-        }
-    });
+            one(stdout).println(with(stringContaining(name + " is not a valid server name")));
+        }});
 
-    assertEquals("FAIL: The task did not report execution error due to invalid server name",
-                 SecurityUtilityReturnCodes.ERR_INVALID_SERVER_NAME,
-                 task.handleTask(stdin, stdout, stderr, args));
+        assertEquals(
+                "FAIL: The task did not report execution error for invalid server name: " + name,
+                SecurityUtilityReturnCodes.ERR_INVALID_SERVER_NAME,
+                task.handleTask(stdin, stdout, stderr, args)
+        );
+    }
 }
     /**
      * Test method for
