@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -74,10 +75,16 @@ public class MergeProcessorImpl implements MergeProcessor {
 
     private static final Info MERGED_INFO;
 
+    private static final Set<String> EXTENSIONS_NOT_CHEKCED_FOR_DUPLICATES = new HashSet<>();
+
     static {
         MERGED_INFO = OASFactory.createInfo();
         MERGED_INFO.setTitle(Constants.MERGED_OPENAPI_DOC_TITLE);
         MERGED_INFO.setVersion(Constants.DEFAULT_OPENAPI_DOC_VERSION);
+
+        //if there are merge conflicts in x-ibm-zcon-roles-allowed they will be handled in the second pass
+        // Documentation for x-ibm-zcon-roles-allowed is at https://www.ibm.com/docs/en/zos-connect/3.0.0?topic=authorization-how-define-roles
+        EXTENSIONS_NOT_CHEKCED_FOR_DUPLICATES.add("x-ibm-zcon-roles-allowed");
     }
 
     @Reference
@@ -336,6 +343,8 @@ public class MergeProcessorImpl implements MergeProcessor {
                 return false;
             }
 
+            EXTENSIONS_NOT_CHEKCED_FOR_DUPLICATES.stream().forEach(extensions::remove);
+
             boolean clashesFound = false;
             for (Entry<OpenAPIProvider, Map<String, Object>> entry : this.topLevelExtensions.entrySet()) {
                 OpenAPIProvider otherProvider = entry.getKey();
@@ -437,6 +446,7 @@ public class MergeProcessorImpl implements MergeProcessor {
 
             document.setSecurity(null);
         }
+
     }
 
     /**
