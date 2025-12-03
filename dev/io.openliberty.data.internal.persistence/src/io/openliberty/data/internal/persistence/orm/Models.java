@@ -23,6 +23,9 @@ import com.ibm.websphere.ras.annotation.Trivial;
  *
  * As well as sub-model types of these managed objects for the orm
  * - Attribute
+ *
+ * Each model extends comparable so that model objects are ordered as they
+ * are discovered.
  */
 public class Models {
     @Trivial
@@ -30,6 +33,10 @@ public class Models {
         FIELD, PROPERTY;
     }
 
+    /**
+     * Describes the kind of attributes found under the `attributes` element.
+     * Note: the order of this enum is used to order each attribute.
+     */
     @Trivial
     enum AttributeKind {
         ID, EMBEDDED_ID, BASIC, VERSION, BASIC$ELEMENT_COLLECTION, EMBEDDED$ELEMENT_COLLECTION, EMBEDDED;

@@ -165,7 +165,6 @@ public class EntityParser {
             throw new IllegalStateException("Attempted to parse an entity after generating mapping");
         }
 
-        this.tableNames.add(tablePrefix + entity.getSimpleName());
         parse(entity, tablePrefix + entity.getSimpleName());
     }
 
@@ -220,6 +219,9 @@ public class EntityParser {
         if (relate.entityHasRecord(c)) {
             Class<?> r = relate.recordForEntity(c);
             for (RecordComponent rc : r.getRecordComponents())
+                attributes.add(new Attribute(rc.getType(), rc.getGenericType(), rc.getName(), AccessType.FIELD));
+        } else if (c.isRecord()) {
+            for (RecordComponent rc : c.getRecordComponents())
                 attributes.add(new Attribute(rc.getType(), rc.getGenericType(), rc.getName(), AccessType.FIELD));
         } else {
             for (Field f : c.getDeclaredFields()) {

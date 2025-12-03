@@ -16,7 +16,7 @@ import java.util.List;
 import org.junit.Test;
 
 /**
- * TODO test an element collection of embeddables
+ * TODO test a multilevel embedded entity
  * TODO test an annotated entity
  */
 public class EntityParserTests {
@@ -351,6 +351,49 @@ public class EntityParserTests {
                               <basic name="firstName" access="PROPERTY">
                               </basic>
                               <basic name="lastName" access="PROPERTY">
+                              </basic>
+                            </attributes>
+                          </embeddable>
+                        """;
+        assertEquals(expected, xmls.get(1));
+    }
+
+    @Test
+    public void embeddedRecordEntityTest() {
+        EntityParser p = new EntityParser("");
+        p.parseUnannotatedEntity(WithEmbeddedRecord.class);
+        List<String> xmls = p.generateView();
+
+        assertEquals(2, xmls.size());
+
+        String expected = """
+                          <entity class="io.openliberty.data.internal.persistence.orm.WithEmbeddedRecord">
+                            <table name="WithEmbeddedRecord"/>
+                            <attributes>
+                              <id name="id" access="FIELD">
+                                <column nullable="false"/>
+                              </id>
+                              <version name="version" access="FIELD">
+                              </version>
+                              <embedded name="name" access="FIELD">
+                                <attribute-override name="firstName">
+                                  <column name="NAME_FIRSTNAME"/>
+                                </attribute-override>
+                                <attribute-override name="lastName">
+                                  <column name="NAME_LASTNAME"/>
+                                </attribute-override>
+                              </embedded>
+                            </attributes>
+                          </entity>
+                        """;
+        assertEquals(expected, xmls.get(0));
+
+        expected = """
+                          <embeddable class="io.openliberty.data.internal.persistence.orm.WithEmbeddedRecord$Name">
+                            <attributes>
+                              <basic name="firstName" access="FIELD">
+                              </basic>
+                              <basic name="lastName" access="FIELD">
                               </basic>
                             </attributes>
                           </embeddable>
