@@ -202,7 +202,7 @@ public class View {
 
         xml.append(indent(5)) //
                         .append("<column name=\"").append(attr.name().toUpperCase())//
-                        .append('_').append(override.name().toUpperCase()) //
+                        .append('_').append(override.name().toUpperCase().replace('.', '_')) //
                         .append("\"/>").append(EOLN);
 
         xml.append(indent(4))//

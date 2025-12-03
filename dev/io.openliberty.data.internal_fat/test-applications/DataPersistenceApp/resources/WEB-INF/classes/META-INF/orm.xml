@@ -188,7 +188,7 @@
  <entity class="test.jakarta.data.web.Participant">
   <table name="Participant"/>
   <attributes>
-   <id name="pID">
+   <id name="PID">
    </id>
    <embedded name="name">
     <attribute-override name="first">

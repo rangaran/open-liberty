@@ -272,58 +272,63 @@ public class EntityParser {
      * @param incompletes the incomplete attributes of c
      * @return set of complete attributes
      */
-    private Set<Attribute> finalizeAttributes(Class<?> c, Set<Attribute> incompletes) {
+    private Set<Attribute> finalizeAttributes(Class<?> entity, Set<Attribute> incompletes) {
         Attribute id = null;
         Attribute version = null;
 
-        // Determine which attribute is the id and version (optional).
-        // Id precedence:
-        // (1) name is id, ignoring case.
-        // (2) name ends with _id, ignoring case.
-        // (3) name ends with Id or ID.
-        // (4) type is UUID.
-        // Version precedence (if also a valid version type):
-        // (1) name is version, ignoring case.
-        // (2) name is _version, ignoring case.
-        int idPrecedence = 10;
-        int vPrecedence = 10;
-        for (Attribute attr : incompletes) {
-            String name = attr.name();
-            Class<?> type = attr.type();
-            int len = name.length();
+        boolean rootHolder = isRootEntityOrMappedSuperclass(entity);
 
-            if (idPrecedence > 1 &&
-                len >= 2 &&
-                name.regionMatches(true, len - 2, "id", 0, 2)) {
-                if (name.length() == 2) {
+        if (rootHolder) {
+
+            // Determine which attribute is the id and version (optional).
+            // Id precedence:
+            // (1) name is id, ignoring case.
+            // (2) name ends with _id, ignoring case.
+            // (3) name ends with Id or ID.
+            // (4) type is UUID.
+            // Version precedence (if also a valid version type):
+            // (1) name is version, ignoring case.
+            // (2) name is _version, ignoring case.
+            int idPrecedence = 10;
+            int vPrecedence = 10;
+            for (Attribute attr : incompletes) {
+                String name = attr.name();
+                Class<?> type = attr.type();
+                int len = name.length();
+
+                if (idPrecedence > 1 &&
+                    len >= 2 &&
+                    name.regionMatches(true, len - 2, "id", 0, 2)) {
+                    if (name.length() == 2) {
+                        id = attr;
+                        idPrecedence = 1;
+                    } else if (idPrecedence > 2 &&
+                               name.charAt(len - 3) == '_') {
+                        id = attr;
+                        idPrecedence = 2;
+                    } else if (idPrecedence > 3 &&
+                               name.charAt(len - 2) == 'I') {
+                        id = attr;
+                        idPrecedence = 3;
+                    }
+                } else if (idPrecedence > 4 && UUID.class.equals(type)) {
                     id = attr;
-                    idPrecedence = 1;
-                } else if (idPrecedence > 2 &&
-                           name.charAt(len - 3) == '_') {
-                    id = attr;
-                    idPrecedence = 2;
-                } else if (idPrecedence > 3 &&
-                           name.charAt(len - 2) == 'I') {
-                    id = attr;
-                    idPrecedence = 3;
+                    idPrecedence = 4;
                 }
-            } else if (idPrecedence > 4 && UUID.class.equals(type)) {
-                id = attr;
-                idPrecedence = 4;
-            }
 
-            if (vPrecedence > 1 &&
-                len == 7 &&
-                Util.VERSION_TYPES.contains(type) &&
-                "version".equalsIgnoreCase(name)) {
-                version = attr;
-                vPrecedence = 1;
-            } else if (vPrecedence > 2 &&
-                       len == 8 &&
-                       Util.VERSION_TYPES.contains(type) &&
-                       "_version".equalsIgnoreCase(name)) {
-                version = attr;
-                vPrecedence = 2;
+                if (vPrecedence > 1 &&
+                    len == 7 &&
+                    Util.VERSION_TYPES.contains(type) &&
+                    "version".equalsIgnoreCase(name)) {
+                    version = attr;
+                    vPrecedence = 1;
+                } else if (vPrecedence > 2 &&
+                           len == 8 &&
+                           Util.VERSION_TYPES.contains(type) &&
+                           "_version".equalsIgnoreCase(name)) {
+                    version = attr;
+                    vPrecedence = 2;
+                }
             }
         }
 
@@ -365,28 +370,30 @@ public class EntityParser {
             }
             attr.setKind(kind);
 
+            // overrides should be in embeddable attributes in root entity or root mapped superclass
             if (attr.isEmbedded()) {
-                if (relate.embedHasEntity(type)) {
-                    relate.entityToEmbed(c, type);
-                } else {
-                    Set<Attribute> overrides = finalizeAttributes(c, findAttributes(type));
-                    attr.setOverrides(overrides);
+                // Build the attributes for the embeddable type itself
+                Set<Attribute> embAttrs = finalizeAttributes(type, findAttributes(type));
 
-                    embeddables.add(new EmbeddableRecord(type, overrides));
-                    relate.entityToEmbed(c, type);
+                // Record relationship and embeddable definition
+                relate.entityToEmbed(currentEntity, type);
+                embeddables.add(new EmbeddableRecord(type, embAttrs));
+
+                // Only root entity / mapped superclass gets attribute-override entries
+                if (rootHolder) {
+                    attr.setOverrides(buildOverridesForType(type));
                 }
             }
 
             if (attr.isEmbeddedCollection()) {
-                if (relate.embedHasEntity(collectionType)) {
-                    relate.entityToEmbed(c, collectionType);
-                } else {
-                    Set<Attribute> overrides = finalizeAttributes(c, findAttributes(collectionType));
-                    attr.setOverrides(overrides);
-                    attr.setCollectionId(id);
+                Set<Attribute> embAttrs = finalizeAttributes(collectionType, findAttributes(collectionType));
 
-                    embeddables.add(new EmbeddableRecord(collectionType, overrides));
-                    relate.entityToEmbed(c, collectionType);
+                relate.entityToEmbed(currentEntity, collectionType);
+                embeddables.add(new EmbeddableRecord(collectionType, embAttrs));
+
+                if (rootHolder) {
+                    attr.setOverrides(buildOverridesForType(collectionType));
+                    attr.setCollectionId(id);
                 }
             }
 
@@ -396,6 +403,86 @@ public class EntityParser {
         }
 
         return new TreeSet<Attribute>(incompletes);
+    }
+
+    /**
+     * Returns true if the given holder is the current entity or one of its
+     * mapped superclasses. In that case, overrides belong on its embedded
+     * attributes.
+     */
+    private boolean isRootEntityOrMappedSuperclass(Class<?> holder) {
+        if (currentEntity == null || holder == null) {
+            return false;
+        }
+        // holder == currentEntity  -> entity itself
+        // holder.isAssignableFrom(currentEntity) -> mapped superclass of entity
+        return holder == currentEntity || holder.isAssignableFrom(currentEntity);
+    }
+
+    /**
+     * Builds the set of attribute-override entries for a given embeddable type.
+     * The returned Attributes have their names flattened using dot notation:
+     * Coordinate(x,y) -> x, y
+     * Side(a:Coordinate,b:Coordinate) -> a.x, a.y, b.x, b.y
+     */
+    private SortedSet<Attribute> buildOverridesForType(Class<?> embeddableType) {
+        SortedSet<Attribute> result = new TreeSet<>();
+        buildOverridesForType(embeddableType, "", result, new HashSet<>());
+        return result;
+    }
+
+    private void buildOverridesForType(Class<?> type,
+                                       String prefix,
+                                       SortedSet<Attribute> result,
+                                       Set<Class<?>> visiting) {
+
+        // Guard against accidental cycles
+        if (!visiting.add(type)) {
+            return;
+        }
+
+        // Reuse the same attribute discovery logic we already have
+        Set<Attribute> attrs = findAttributes(type);
+
+        for (Attribute attr : attrs) {
+            Class<?> at = attr.type();
+
+            boolean isCollection = Collection.class.isAssignableFrom(at);
+            Class<?> elementType = null;
+            boolean elementBasic = false;
+            if (isCollection && attr.genericType() instanceof ParameterizedType pt) {
+                Type t = pt.getActualTypeArguments()[0];
+                if (t instanceof Class<?>) {
+                    elementType = (Class<?>) t;
+                    elementBasic = elementType.isPrimitive()
+                                   || elementType.isInterface()
+                                   || Serializable.class.isAssignableFrom(elementType);
+                }
+            }
+
+            boolean isBasic = at.isPrimitive()
+                              || at.isInterface()
+                              || Serializable.class.isAssignableFrom(at);
+
+            String namePrefix = prefix.isEmpty() ? "" : prefix + ".";
+
+            if (isCollection && !elementBasic && elementType != null) {
+                // Collection of embeddables: recurse into the element type
+                buildOverridesForType(elementType, namePrefix + attr.name(), result, visiting);
+            } else if (!isCollection && !isBasic) {
+                // Single embedded object: recurse into its type
+                buildOverridesForType(at, namePrefix + attr.name(), result, visiting);
+            } else {
+                // Leaf attribute (basic or collection of basic): add as override
+                String overrideName = namePrefix + attr.name();
+                Class<?> leafType = isCollection && elementType != null ? elementType : at;
+                // For overrides we only really need the type and name; access=FIELD is fine
+                // TODO
+                result.add(new Attribute(leafType, attr.genericType(), overrideName, AccessType.FIELD));
+            }
+        }
+
+        visiting.remove(type);
     }
 
     /**
