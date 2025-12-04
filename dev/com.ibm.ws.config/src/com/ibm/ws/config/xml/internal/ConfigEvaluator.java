@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2010, 2025 IBM Corporation and others.
+ * Copyright (c) 2010, 2023 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -226,19 +226,11 @@ class ConfigEvaluator {
         return context.getEvaluationResult();
     }
 
-    void issueError(String label, Object... args) throws ConfigEvaluatorException {
-        switch (ErrorHandler.INSTANCE.getOnError()) {
-            case FAIL:
-                Tr.error(tc, label, args);                
-                serverXMLConfig.setConfigReadTime(-1);  // Invalidate the config cache
-                throw new ConfigEvaluatorException(Tr.formatMessage(tc, label, args));
-            case WARN:
-                Tr.error(tc, label, args);
-                serverXMLConfig.setConfigReadTime(-1);  // Invalidate the config cache
-                break;
-            case IGNORE:
-                break;
-        }
+    void issueError(String label, Object... args) {
+        Tr.error(tc, label, args);
+        // Invalidate the config cache
+        serverXMLConfig.setConfigReadTime(-1);
+
     }
 
     void issueWarning(String label, Object... args) {
