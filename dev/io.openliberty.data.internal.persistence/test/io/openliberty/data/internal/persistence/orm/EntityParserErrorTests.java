@@ -24,7 +24,7 @@ public class EntityParserErrorTests {
 
     @Test
     public void noIdEntityTest() {
-        EntityParser p = new EntityParser("");
+        EntityParser p = new EntityParser("", null);
 
         try {
             p.parseUnannotatedEntity(WithoutId.class);
@@ -37,7 +37,7 @@ public class EntityParserErrorTests {
 
     @Test
     public void noIdInMappedSuperclassEntityTest() {
-        EntityParser p = new EntityParser("");
+        EntityParser p = new EntityParser("", null);
 
         try {
             p.parseUnannotatedEntity(WithoutIdMappedSuperclass.class);
@@ -53,7 +53,7 @@ public class EntityParserErrorTests {
 
     @Test
     public void multipleIdInMappedSuperclassEntityTest() {
-        EntityParser p = new EntityParser("");
+        EntityParser p = new EntityParser("", null);
 
         try {
             p.parseUnannotatedEntity(WithMultipleIds.class);
@@ -69,7 +69,7 @@ public class EntityParserErrorTests {
 
     @Test
     public void invalidConverterEntityTest() {
-        EntityParser p = new EntityParser("");
+        EntityParser p = new EntityParser("", null);
 
         try {
             p.parseUnannotatedEntity(WithConverterInvalid.class);
