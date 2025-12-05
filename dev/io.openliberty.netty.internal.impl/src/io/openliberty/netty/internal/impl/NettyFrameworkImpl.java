@@ -429,7 +429,6 @@ public class NettyFrameworkImpl implements ServerQuiesceListener, NettyFramework
                     quiesce.startTasks();
                 } catch (Exception e) {
                     if (TraceComponent.isAnyTracingEnabled() && tc.isEventEnabled()) {
-                        //TODO: change to same log used in traditional channel.
                         Tr.event(this, tc, "Exception occurred on quiesce", e);
                     }
                 }
