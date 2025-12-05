@@ -24,6 +24,7 @@ import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 
 import com.ibm.websphere.simplicity.ShrinkHelper;
+import com.ibm.websphere.simplicity.ShrinkHelper.DeployOptions;
 
 import componenttest.annotation.MinimumJavaLevel;
 import componenttest.annotation.Server;
@@ -95,6 +96,14 @@ public class ConcurrentCDITest extends FATServletClient {
 
         // Create concurrentCDIWeb2.war
         ShrinkHelper.defaultDropinApp(server, WEBAPP_NAME_EE10, "concurrent.cdi4.webapp");
+
+        // Create concurrentCDIShared.jar
+        JavaArchive concurrentCDIShared = ShrinkHelper.buildJavaArchive("concurrentCDIShared", "concurrent.ejb.shared");
+        ShrinkHelper.exportToServer(server, "lib", concurrentCDIShared, DeployOptions.SERVER_ONLY);
+
+        // Create concurrentCDIEJBStandalone.jar
+        JavaArchive concurrentCDIEJBStandalone = ShrinkHelper.buildJavaArchive("concurrentCDIEJBStandalone", "concurrent.ejb.standalone.jar");
+        ShrinkHelper.exportAppToServer(server, concurrentCDIEJBStandalone);
 
         server.startServer();
         runTest(server, APP_NAME_EE10 + '/' + ConcurrentCDI4Servlet.class.getSimpleName(), "initTransactionService");

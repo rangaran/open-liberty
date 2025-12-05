@@ -19,6 +19,8 @@ src:\
     test-applications/concurrentCDI3App/src,\
     test-applications/concurrentCDI4App/src,\
     test-applications/concurrentCDI4WebApp/src,\
+    test-applications/concurrentCDIEJBStandalone/src,\
+    test-applications/concurrentCDIShared/src,\
     test-applications/concurrentCDIWeb/src
 
 fat.project: true
