@@ -679,8 +679,8 @@ public class MergeProcessorImpl implements MergeProcessor {
 
     private static boolean isZConRolesAllowedIdentical(List<InProgressModel> models) {
         List<Object> zconExtensions = models.stream().map(d -> d.model.getExtensions())
-                                            .filter(Objects::nonNull).map(e -> e.get("x-ibm-zcon-roles-allowed")).collect(toList());
-        return models.size() == zconExtensions.size() && allEqual(zconExtensions, ModelEquality::equals);
+                                            .filter(Objects::nonNull).map(e -> e.get("x-ibm-zcon-roles-allowed")).filter(Objects::nonNull).collect(toList());
+        return zconExtensions.size() >= 1 && models.size() == zconExtensions.size() && allEqual(zconExtensions, ModelEquality::equals);
     }
 
     private static boolean isSecurityIdentical(List<InProgressModel> models) {
