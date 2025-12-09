@@ -17,6 +17,7 @@ import java.util.Locale;
 
 import com.ibm.websphere.ras.Tr;
 import com.ibm.websphere.ras.TraceComponent;
+import com.ibm.websphere.ras.annotation.IgnoreNonStaticTraceComponent;
 import com.ibm.ws.security.common.lang.LocalesModifier;
 
 /**
@@ -25,39 +26,31 @@ import com.ibm.ws.security.common.lang.LocalesModifier;
  * other line is updated at some point.
  */
 public class BrowserAndServerLogMessage {
-    /*
-     * WORKAROUND for Liberty bytecode instrumentation limitation:
-     *
-     * The instrumentation tool requires TraceComponent fields to be 'private static final'.
-     * However, this class needs instance-specific trace components to support different
-     * OAuth providers and localized error messages.
-     *
-     * Solution: Declare a dummy static TraceComponent to satisfy instrumentation, then store
-     * the actual instance TraceComponent as Object type (which instrumentation doesn't check).
-     * The tc() helper method casts it back to TraceComponent when needed for message formatting.
-     */
+    // Static TraceComponent for general class tracing
     private static final TraceComponent tcStatic = Tr.register(BrowserAndServerLogMessage.class);
-    private final Object tcInstance;
+    
+    // Instance-specific TraceComponent for different OAuth providers
+    // The @IgnoreNonStaticTraceComponent annotation tells the instrumentation tool
+    // that this non-static field is intentional and should not trigger warnings
+    @IgnoreNonStaticTraceComponent
+    private final TraceComponent tc;
+    
     private Enumeration<Locale> requestLocales = null;
     private final String msgKey;
     private final Object[] inserts;
 
     public BrowserAndServerLogMessage(TraceComponent tc, String msgKey, Object... inserts) {
-        this.tcInstance = tc;
+        this.tc = tc;
         this.msgKey = msgKey;
         this.inserts = inserts;
     }
-    
-    private TraceComponent tc() {
-        return (TraceComponent) tcInstance;
-    }
 
     public String getBrowserErrorMessage() {
-        return Tr.formatMessage(tc(), LocalesModifier.getPrimaryLocale(requestLocales), msgKey, inserts);
+        return Tr.formatMessage(tc, LocalesModifier.getPrimaryLocale(requestLocales), msgKey, inserts);
     }
 
     public String getServerErrorMessage() {
-        return Tr.formatMessage(tc(), msgKey, inserts);
+        return Tr.formatMessage(tc, msgKey, inserts);
     }
 
     public void setLocales(Enumeration<Locale> requestLocales) {
