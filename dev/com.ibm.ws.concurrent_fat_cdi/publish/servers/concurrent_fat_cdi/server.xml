@@ -19,6 +19,7 @@
         <feature>componenttest-2.0</feature>
         <feature>enterpriseBeansLite-4.0</feature>
         <feature>jndi-1.0</feature>
+        <feature>connectors-2.1</feature>
     </featureManager>
 
     <include location="../fatTestPorts.xml"/>
@@ -30,6 +31,9 @@
     <ejbApplication location="concurrentCDIEJBStandalone.jar">
         <classloader commonLibraryRef="concurrentCDIShared"/>
     </ejbApplication>
+    
+    <resourceAdapter location="${server.config.dir}connectors/concurrentCDIRAR.rar" autoStart="true">
+    </resourceAdapter>
 
     <!-- fake third-party context provider -->
     <library id="location-context">
