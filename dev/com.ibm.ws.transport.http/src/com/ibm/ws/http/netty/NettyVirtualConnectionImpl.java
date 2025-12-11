@@ -12,10 +12,14 @@ package com.ibm.ws.http.netty;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.ibm.websphere.ras.Tr;
+import com.ibm.websphere.ras.TraceComponent;
+import com.ibm.ws.http.channel.internal.HttpMessages;
 import com.ibm.wsspi.channelfw.ConnectionDescriptor;
 import com.ibm.wsspi.channelfw.VirtualConnection;
 
 public class NettyVirtualConnectionImpl implements VirtualConnection {
+    private static final TraceComponent tc = Tr.register(NettyVirtualConnectionImpl.class, HttpMessages.HTTP_TRACE_NAME, HttpMessages.HTTP_BUNDLE);
     public static final NettyVirtualConnectionImpl DUMMY_NETTY_VC;
 
     static {
@@ -46,6 +50,9 @@ public class NettyVirtualConnectionImpl implements VirtualConnection {
 
     @Override
     public Map<Object, Object> getStateMap() {
+        if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+            Tr.debug(tc, "getStateMap, stateStore [" + this.stateStore + "]"); 
+        }
         return stateStore;
     }
 
@@ -118,6 +125,10 @@ public class NettyVirtualConnectionImpl implements VirtualConnection {
     @Override
     public void setInetAddressingValid(boolean _newValue) {
         this.inetAddressingValid = _newValue;
+        
+        if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+            Tr.debug(tc, "setInetAddressingValid, inetAddressingValid [" + this.inetAddressingValid + "]");
+        }
     }
 
     @Override
@@ -128,6 +139,10 @@ public class NettyVirtualConnectionImpl implements VirtualConnection {
     @Override
     public void setConnectionDescriptor(ConnectionDescriptor _newObject) {
         this.connDesc = _newObject;
+        
+        if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+            Tr.debug(tc, "setConnectionDescriptor, connDesc [" + this.connDesc + "]");
+        }
     }
 
     @Override
