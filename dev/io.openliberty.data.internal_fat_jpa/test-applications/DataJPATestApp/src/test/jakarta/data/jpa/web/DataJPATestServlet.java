@@ -1626,35 +1626,29 @@ public class DataJPATestServlet extends FATServlet {
 
         assertEquals(3, segments.countByPointAXLessThan(1));
 
-        // TODO enable for EclipseLink once #29460 is fixed
-        if (isHibernate()) {
-            assertEquals(List.of(s5.id, s6.id, s3.id, s4.id, s2.id),
-                         segments.endingSouthOf(175)
-                                         .map(s -> s.id)
-                                         .collect(Collectors.toList()));
+        assertEquals(List.of(s5.id, s6.id, s3.id, s4.id, s2.id),
+                     segments.endingSouthOf(175)
+                                     .map(s -> s.id)
+                                     .collect(Collectors.toList()));
 
-            assertEquals(List.of(-20, 0, 24),
-                         segments.longerThan(200, Sort.asc("pointA.x"))
-                                         .stream()
-                                         .map(s -> s.pointA.x())
-                                         .collect(Collectors.toList()));
+        assertEquals(List.of(-20, 0, 24),
+                     segments.longerThan(200, Sort.asc("pointA.x"))
+                                     .stream()
+                                     .map(s -> s.pointA.x())
+                                     .collect(Collectors.toList()));
 
-            s3.pointB = new Point(s3.pointB.x() - s3.pointA.x(), s3.pointB.y() - s3.pointA.y());
-            s3.pointA = new Point(0, 0);
-            s3 = segments.addOrModify(s3);
+        s3.pointB = new Point(s3.pointB.x() - s3.pointA.x(), s3.pointB.y() - s3.pointA.y());
+        s3.pointA = new Point(0, 0);
+        s3 = segments.addOrModify(s3);
 
-            // removes s1 and s3
-            assertEquals(2L, segments.removeStartingAt(0, 0));
+        // removes s1 and s3
+        assertEquals(2L, segments.removeStartingAt(0, 0));
 
-            Point s2pointB = segments.terminalPoint(s2.id).orElseThrow();
-            assertEquals(120, s2pointB.x());
-            assertEquals(171, s2pointB.y());
-            assertEquals(4L,
-                         segments.erase());
-        } else {
-            assertEquals(6L,
-                         segments.erase());
-        }
+        Point s2pointB = segments.terminalPoint(s2.id).orElseThrow();
+        assertEquals(120, s2pointB.x());
+        assertEquals(171, s2pointB.y());
+        assertEquals(4L,
+                     segments.erase());
     }
 
     /**
@@ -2209,7 +2203,6 @@ public class DataJPATestServlet extends FATServlet {
                                          " ORDER BY this.pointB.y ASC, this.id ASC");
             query.setParameter("yExclusiveMax", 200);
 
-            // TODO enable once #29460 is fixed
             @SuppressWarnings("unchecked")
             Stream<Segment> results = query.getResultStream();
 
