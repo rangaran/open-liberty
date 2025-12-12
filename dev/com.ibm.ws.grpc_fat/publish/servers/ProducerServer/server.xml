@@ -27,6 +27,9 @@
                   host="*"
                   httpPort="${bvt.prop.HTTP_secondary}"
                   httpsPort="${bvt.prop.HTTP_secondary.secure}"/>
+
+    <tcpOptions id="defaultTCPOptions" portOpenRetries="60"/>
+
     <keyStore id="defaultKeyStore" password="passw0rd" />
 
     <javaPermission className="java.security.AllPermission"
