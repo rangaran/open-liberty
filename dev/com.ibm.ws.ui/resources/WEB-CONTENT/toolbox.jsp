@@ -191,7 +191,6 @@ BIDI_PREFS_STRING = '<%=line%>';
     window.addEventListener("hashchange", () => {
         const token = getCookie("csrfToken");
         if (!isValidCsrf(token)) {
-            alert("Your session has expired for security reasons.");
             window.location.href = "/adminCenter/login.jsp";
             return;
         }

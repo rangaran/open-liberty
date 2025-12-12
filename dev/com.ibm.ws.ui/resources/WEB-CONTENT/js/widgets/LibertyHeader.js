@@ -84,27 +84,10 @@ define([
     // Add Logout to DOM and submit
     document.body.appendChild(logoutForm);
     document.getElementById('doLogout').submit();
-    // clearAllCookies();
-    deleteCookieDojo("csrfToken");
+    deleteCookie("csrfToken");
   }
 
-  // function clearAllCookies() {
-  //   document.cookie.split(";").forEach(cookie => {
-  //       const [name] = cookie.split("=").map(c => c.trim());
-        
-  //       // Clear for root
-  //       document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
-
-  //       // Clear for all path levels
-  //       let path = location.pathname;
-  //       while (path.includes("/")) {
-  //           document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path}`;
-  //           path = path.substring(0, path.lastIndexOf("/"));
-  //       }
-  //   });
-  // }
-
-  function deleteCookieDojo(name) {
+  function deleteCookie(name) {
     require(["dojo/cookie"], function(cookie) {
         cookie(name, null, { expires: -1 });
         cookie(name, null, { expires: -1, path: "/" });
