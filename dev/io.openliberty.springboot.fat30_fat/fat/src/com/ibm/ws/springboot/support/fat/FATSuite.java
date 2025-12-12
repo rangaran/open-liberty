@@ -18,6 +18,8 @@ import org.junit.runners.Suite.SuiteClasses;
 
 import com.ibm.ws.springboot.support.fat.utility.SpringBootUtilityThinTest;
 
+import componenttest.containers.TestContainerSuite;
+
 @RunWith(Suite.class)
 @SuiteClasses({
                 CommonWebServerTests30.class,
@@ -86,6 +88,6 @@ import com.ibm.ws.springboot.support.fat.utility.SpringBootUtilityThinTest;
                 HTTPMetricsWithContextRootTest.class
 })
 
-public class FATSuite {
+public class FATSuite extends TestContainerSuite {
     // Empty
 }
