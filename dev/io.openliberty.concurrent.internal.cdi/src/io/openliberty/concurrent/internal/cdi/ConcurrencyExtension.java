@@ -24,7 +24,6 @@ import com.ibm.websphere.ras.Tr;
 import com.ibm.websphere.ras.TraceComponent;
 import com.ibm.websphere.ras.annotation.Trivial;
 import com.ibm.ws.cdi.CDIServiceUtils;
-import com.ibm.ws.ffdc.annotation.FFDCIgnore;
 import com.ibm.ws.kernel.service.util.ServiceCaller;
 import com.ibm.ws.runtime.metadata.ApplicationMetaData;
 import com.ibm.ws.runtime.metadata.ComponentMetaData;
@@ -92,7 +91,6 @@ public class ConcurrencyExtension implements Extension {
      * @param event
      * @param beanManager
      */
-    @FFDCIgnore(IllegalStateException.class)
     public void afterBeanDiscovery(@Observes AfterBeanDiscovery event, BeanManager beanManager) {
 
         ComponentMetaData cmd = ComponentMetaDataAccessorImpl.getComponentMetaDataAccessor().getComponentMetaData();
