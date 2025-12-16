@@ -56,6 +56,12 @@ public class FailedApplicationStartTest {
 
     private final String HEALTH_ENDPOINT = "/health";
 
+    private final String READY_ENDPOINT = "/health/ready";
+
+    private final String LIVE_ENDPOINT = "/health/live";
+
+    private final String STARTED_ENDPOINT = "/health/started";
+
     @Server(SERVER_NAME_DROPINS)
     public static LibertyServer serverDropins;
 
@@ -109,6 +115,33 @@ public class FailedApplicationStartTest {
         assertTrue("The JSON response was not empty.", checks.isEmpty());
         assertEquals("The status of the (overall) health check was epected to be DOWN, but we received UP.", jsonResponse.getString("status"), "DOWN");
 
+        // Check /health/started -> expect that we report DOWN.
+        // Must skip for mpHealth-2.0 and mpHealth-3.1, does not contain start health check
+        if (!server.getServerConfiguration().getFeatureManager().getFeatures().contains("mpHealth-2.0") &&
+            !server.getServerConfiguration().getFeatureManager().getFeatures().contains("mpHealth-3.0")) {
+            connhealth = HttpUtils.getHttpConnectionWithAnyResponseCode(server, STARTED_ENDPOINT);
+            jsonResponse = getJSONPayload(connhealth);
+            checks = (JsonArray) jsonResponse.get("checks");
+            assertTrue("The JSON response was not empty.", checks.isEmpty());
+            assertEquals("The status of the started health check was epected to be DOWN, but we received UP.", jsonResponse.getString("status"), "DOWN");
+        } else {
+            log("webModuleStartsandFailsTest_dropins", "mpHealth-2.0 detected, skipping on checking the /health/started endpoint");
+        }
+
+        // Check /health/ready -> expect that we report DOWN.
+        connhealth = HttpUtils.getHttpConnectionWithAnyResponseCode(server, READY_ENDPOINT);
+        jsonResponse = getJSONPayload(connhealth);
+        checks = (JsonArray) jsonResponse.get("checks");
+        assertTrue("The JSON response was not empty.", checks.isEmpty());
+        assertEquals("The status of the ready health check was epected to be DOWN, but we received UP.", jsonResponse.getString("status"), "DOWN");
+
+        // Check /health/live -> expect that we report UP.
+        connhealth = HttpUtils.getHttpConnectionWithAnyResponseCode(server, LIVE_ENDPOINT);
+        jsonResponse = getJSONPayload(connhealth);
+        checks = (JsonArray) jsonResponse.get("checks");
+        assertTrue("The JSON response was not empty.", checks.isEmpty());
+        assertEquals("The status of the live health check was epected to be UP, but we received DOWN.", jsonResponse.getString("status"), "UP");
+
     }
 
     /**
@@ -144,6 +177,33 @@ public class FailedApplicationStartTest {
         assertTrue("The JSON response was not empty.", checks.isEmpty());
         assertEquals("The status of the (overall) health check was epected to be DOWN, but we received UP.", jsonResponse.getString("status"), "DOWN");
 
+        // Check /health/started -> expect that we report DOWN.
+        // Must skip for mpHealth-2.0, does not contain start health check
+        if (!server.getServerConfiguration().getFeatureManager().getFeatures().contains("mpHealth-2.0") &&
+            !server.getServerConfiguration().getFeatureManager().getFeatures().contains("mpHealth-3.0")) {
+            connhealth = HttpUtils.getHttpConnectionWithAnyResponseCode(server, STARTED_ENDPOINT);
+            jsonResponse = getJSONPayload(connhealth);
+            checks = (JsonArray) jsonResponse.get("checks");
+            assertTrue("The JSON response was not empty.", checks.isEmpty());
+            assertEquals("The status of the started health check was epected to be DOWN, but we received UP.", jsonResponse.getString("status"), "DOWN");
+        } else {
+            log("webModuleStartsandFailsTest_dropins", "mpHealth-2.0 detected, skipping on checking the /health/started endpoint");
+        }
+
+        // Check /health/ready -> expect that we report DOWN.
+        connhealth = HttpUtils.getHttpConnectionWithAnyResponseCode(server, READY_ENDPOINT);
+        jsonResponse = getJSONPayload(connhealth);
+        checks = (JsonArray) jsonResponse.get("checks");
+        assertTrue("The JSON response was not empty.", checks.isEmpty());
+        assertEquals("The status of the ready health check was epected to be DOWN, but we received UP.", jsonResponse.getString("status"), "DOWN");
+
+        // Check /health/live -> expect that we report UP.
+        connhealth = HttpUtils.getHttpConnectionWithAnyResponseCode(server, LIVE_ENDPOINT);
+        jsonResponse = getJSONPayload(connhealth);
+        checks = (JsonArray) jsonResponse.get("checks");
+        assertTrue("The JSON response was not empty.", checks.isEmpty());
+        assertEquals("The status of the live health check was epected to be UP, but we received DOWN.", jsonResponse.getString("status"), "UP");
+
     }
 
     @After
@@ -153,8 +213,9 @@ public class FailedApplicationStartTest {
          * CWWKZ0012I -> These tests are meant to fail so that the app does not start, we expect this Warning/Error.
          * CWMMH0053W -> MpHealth-3.x can throw CWMMH0053W (double M) if ready is DOWN for ANY endpoint (not just only when checking /ready)
          * CWMMH0053W -> MpHealth-2.x can throw CWMH0053W (single M) if ready is DOWN for ANY endpoint (not just only when checking /ready)
+         * CWMMH0054W -> When querying /started, we expect this to be thrown since app did not start.
          */
-        server.stopServer("CWWKZ0012I", "CWMMH0053W", "CWMH0053W");
+        server.stopServer("CWWKZ0012I", "CWMMH0053W", "CWMH0053W", "CWMMH0054W");
     }
 
     public JsonObject getJSONPayload(HttpURLConnection con) throws Exception {
