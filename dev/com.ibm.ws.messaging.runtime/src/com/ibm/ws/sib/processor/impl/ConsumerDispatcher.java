@@ -104,6 +104,8 @@ public class ConsumerDispatcher
                 extends AbstractConsumerManager
                 implements OutputHandler, MessageEventListener, ControllableSubscription, JSConsumerManager, TransactionCallback
 {
+	
+	public static final ConsumerDispatcher DUMMY_INSTANCE = new ConsumerDispatcher();
 
     //Trace
     private static final TraceComponent tc =
@@ -293,6 +295,12 @@ public class ConsumerDispatcher
         if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled())
             SibTr.exit(tc, "ConsumerDispatcher", this);
     }
+    
+    private ConsumerDispatcher() {
+		this.readyFwdScanningCPs = null;
+  	  //Used to create dummy objects to untangle a type abuse in PubSubRealization
+    }
+    
 
     /**
      * Create a pt-pt ConsumerDispatcher

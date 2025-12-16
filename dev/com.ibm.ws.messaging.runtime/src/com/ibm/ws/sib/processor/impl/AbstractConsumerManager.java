@@ -70,6 +70,10 @@ public abstract class AbstractConsumerManager
   /** A map of all currently attached ordering consumerKey groups */
   private HashMap<OrderingContextImpl, JSKeyGroup> keyGroups = new HashMap<OrderingContextImpl, JSKeyGroup>();
 
+  @Deprecated
+  public AbstractConsumerManager() {
+	  //Used to create dummy objects to untangle a type abuse in PubSubRealization
+  }
   
   public AbstractConsumerManager(BaseDestinationHandler bdh)
   {

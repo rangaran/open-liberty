@@ -162,7 +162,7 @@ public final class DestinationManager extends SIMPItemStream
      * subscriptions. This MUST be available to every TopicSpace since a
      * subsriptionId is unique across the system.
      */
-    private HashMap durableSubscriptions;
+    private HashMap<String, ConsumerDispatcher> durableSubscriptions;
 
     /**
      * The destination manager maintains an ME-wide hashmap for nondurable
@@ -1880,7 +1880,7 @@ public final class DestinationManager extends SIMPItemStream
      * @return durableSubHashMap
      */
 
-    public HashMap getDurableSubscriptionsTable()
+    public HashMap<String, ConsumerDispatcher> getDurableSubscriptionsTable()
     {
         return durableSubscriptions;
     }
