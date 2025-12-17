@@ -76,9 +76,15 @@ public class SibIntrospectorImpl implements Introspector {
 			JsMessagingEngine engine = null; // The API returns a list but the impl is hardcoded to one.
 			while (engines.hasMoreElements()) {
 				engine = engines.nextElement();
+				
 
 				if (engine instanceof JsMessagingEngineImpl) {
 					JsMessagingEngineImpl jsEngine = (JsMessagingEngineImpl) engine;
+
+					out.println("Engine name: " + engine.getName());//hardcoded but why not
+					out.println("Engine UUID: " + engine.getUuid());
+					out.println("Engine state: " + jsEngine.getState());
+					out.println("Treshhold: " + jsEngine.getMEThreshold());
 
 					jsEngine.dump(DUMP_SPEC, fw, new Date(), false);
 
