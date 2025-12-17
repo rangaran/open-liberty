@@ -19,8 +19,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
-import static test.jakarta.data.web.Assertions.assertIterableEquals;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -139,8 +139,8 @@ public class DataEclipseLinkServlet extends FATServlet {
      */
     @Test
     public void testFindAndDeleteRecords() {
-        assertIterableEquals(Collections.EMPTY_SET,
-                             receipts.discardFor("C1510-13-999"));
+        assertEquals(Collections.EMPTY_LIST,
+                     new ArrayList<>(receipts.discardFor("C1510-13-999")));
 
         receipts.save(new Receipt(909L, "C1510-13-999", 9.09f));
         receipts.save(new Receipt(900L, "C1510-13-900", 9.00f));
@@ -252,8 +252,7 @@ public class DataEclipseLinkServlet extends FATServlet {
 
         assertEquals(false, animals.existsById(redSquirrel.id()));
 
-        //found = animals.findAll().toList(); TODO replace next line
-        found = List.of(redFox, grayFox, graySquirrel);
+        found = animals.findAll().toList();
         assertEquals(found.toString(), 3, found.size());
         animals.deleteAll(found);
     }
@@ -311,25 +310,25 @@ public class DataEclipseLinkServlet extends FATServlet {
         Receipt receipt = receipts.findById(200L).orElseThrow();
         assertEquals(202.40f, receipt.total(), 0.001f);
 
-        assertIterableEquals(List.of("C0013-00-031:300",
-                                     "C0022-00-022:200",
-                                     "C0045-00-054:500"),
-                             receipts.findByPurchaseIdIn(List.of(200L, 300L, 500L))
-                                             .map(r -> r.customer() + ":" +
-                                                       r.purchaseId())
-                                             .sorted()
-                                             .collect(Collectors.toList()));
+        assertEquals(List.of("C0013-00-031:300",
+                             "C0022-00-022:200",
+                             "C0045-00-054:500"),
+                     receipts.findByPurchaseIdIn(List.of(200L, 300L, 500L))
+                                     .map(r -> r.customer() + ":" +
+                                               r.purchaseId())
+                                     .sorted()
+                                     .collect(Collectors.toList()));
 
         receipts.deleteByPurchaseIdIn(List.of(200L, 500L));
 
-        assertIterableEquals(List.of("C0013-00-031:100",
-                                     "C0013-00-031:300",
-                                     "C0045-00-054:400"),
-                             receipts.findAll()
-                                             .map(r -> r.customer() + ":" +
-                                                       r.purchaseId())
-                                             .sorted()
-                                             .collect(Collectors.toList()));
+        assertEquals(List.of("C0013-00-031:100",
+                             "C0013-00-031:300",
+                             "C0045-00-054:400"),
+                     receipts.findAll()
+                                     .map(r -> r.customer() + ":" +
+                                               r.purchaseId())
+                                     .sorted()
+                                     .collect(Collectors.toList()));
 
         receipts.deleteById(100L);
 
