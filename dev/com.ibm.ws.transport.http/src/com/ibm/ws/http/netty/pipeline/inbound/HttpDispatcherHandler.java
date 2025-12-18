@@ -10,6 +10,7 @@
 package com.ibm.ws.http.netty.pipeline.inbound;
 
 import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
 import com.ibm.websphere.ras.Tr;
@@ -25,11 +26,13 @@ import com.ibm.wsspi.bytebuffer.WsByteBufferUtils;
 import com.ibm.wsspi.http.channel.error.HttpError;
 import com.ibm.wsspi.http.channel.error.HttpErrorPageProvider;
 import com.ibm.wsspi.http.channel.error.HttpErrorPageService;
+import com.ibm.wsspi.http.channel.values.HttpHeaderKeys;
 import com.ibm.wsspi.http.channel.values.StatusCodes;
 
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import  io.netty.handler.codec.TooLongFrameException;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -76,7 +79,19 @@ public class HttpDispatcherHandler extends SimpleChannelInboundHandler<FullHttpR
     @Override
     protected void channelRead0(ChannelHandlerContext context, FullHttpRequest request) throws Exception {
         if (request.decoderResult().isFinished() && request.decoderResult().isSuccess()) {
-
+            // Verify if the request expects 100 continue
+            // At this point, the validation of the message size is already done by the aggregator
+            if (HttpUtil.is100ContinueExpected(request)) {
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                    Tr.debug(tc, "Request contains [Expect: 100-continue]");
+                }
+                DefaultFullHttpResponse continueResponse = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CONTINUE);
+                HttpUtil.setContentLength(continueResponse, 0);
+                byte[] date = HttpDispatcher.getDateFormatter().getRFC1123TimeAsBytes(config.getDateHeaderRange());
+                continueResponse.headers().set(HttpHeaderKeys.HDR_DATE.getName(),
+                                new String(date, StandardCharsets.UTF_8));
+                context.writeAndFlush(continueResponse);
+            }
             FullHttpRequest msg = request;
             HttpDispatcher.getExecutorService().execute(new Runnable() {
                 @Override
@@ -167,8 +182,23 @@ public class HttpDispatcherHandler extends SimpleChannelInboundHandler<FullHttpR
                 sendErrorMessage(cause);
             }
              
+        } else if(cause instanceof TooLongFrameException) { 
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                Tr.debug(tc, "exceptionCaught encountered an TooLongFrameException : " + cause);
+            }
+            sendErrorMessage(StatusCodes.ENTITY_TOO_LARGE, cause);
+            return;
         }
         context.close();
+    }
+
+    private void sendErrorMessage(StatusCodes code, Throwable cause) {
+        if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+            Tr.debug(tc, "Sending a " + code +  " for throwable [" + cause + "]");
+        }
+        loadErrorPage(code.getHttpError());
+        HttpUtil.setKeepAlive(errorResponse, false);
+        this.context.writeAndFlush(errorResponse);
     }
 
     private void sendErrorMessage(Throwable cause) {

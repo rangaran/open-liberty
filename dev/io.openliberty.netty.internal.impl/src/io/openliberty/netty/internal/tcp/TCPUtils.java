@@ -28,7 +28,6 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.util.concurrent.GlobalEventExecutor;
 import io.openliberty.netty.internal.BootstrapConfiguration;
 import io.openliberty.netty.internal.BootstrapExtended;
 import io.openliberty.netty.internal.ChannelInitializerWrapper;
@@ -57,7 +56,7 @@ public class TCPUtils {
         BootstrapConfiguration config = new TCPConfigurationImpl(tcpOptions, true);
         ServerBootstrapExtended bs = new ServerBootstrapExtended();
         bs.group(framework.getParentGroup(), framework.getChildGroup());
-        bs.channel(NioServerSocketChannel.class);
+        bs.channel(framework.getServerSocketChannelClass());
         // apply the existing user config to the Netty TCP channel
         bs.applyConfiguration(config);
         ChannelInitializerWrapper tcpInitializer = new TCPChannelInitializerImpl(config, framework);
@@ -78,7 +77,7 @@ public class TCPUtils {
         BootstrapConfiguration config = new TCPConfigurationImpl(tcpOptions, false);
         BootstrapExtended bs = new BootstrapExtended();
         bs.group(framework.getChildGroup());
-        bs.channel(NioSocketChannel.class);
+        bs.channel(framework.getSocketChannelClass());
         // apply the existing user config to the Netty TCP channel
         bs.applyConfiguration(config);
         ChannelInitializerWrapper tcpInitializer = new TCPChannelInitializerImpl(config, framework);
@@ -130,7 +129,7 @@ public class TCPUtils {
                         Tr.debug(tc, "Adding new channel group for " + channel);
                     }
                     synchronized (framework.getActiveChannelsMap()) {
-                        framework.getActiveChannelsMap().put(channel, new DefaultChannelGroup(GlobalEventExecutor.INSTANCE));
+                        framework.getActiveChannelsMap().put(channel, new DefaultChannelGroup(framework.getChildGroup().next()));
                     }
                 } else {
                     synchronized (framework.getOutboundConnections()) {

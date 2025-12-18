@@ -1,14 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2014, 2015 IBM Corporation and others.
+ * Copyright (c) 2014, 2025 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-2.0/
- * 
- * SPDX-License-Identifier: EPL-2.0
  *
- * Contributors:
- *     IBM Corporation - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package com.ibm.ws.webcontainer.servlet_31_fat.cdi12testv2upgrade.war.cdi.upgrade.handlers;
 
@@ -24,6 +21,11 @@ import javax.servlet.http.WebConnection;
  */
 public class CDITestWriteListener implements WriteListener {
     public static final String LOG_CLASS_NAME = "CDITestWriteListener";
+
+    //This flag control whether the test bean should be logged if the WL already closed
+    //There is an intermittent issue that can cause the "java.io.IOException: Broken pipe!".
+    //When pipe is broken AFTER the WL is closed/null out, the test bean should NOT be logged with the "WE"
+    private boolean closedWriteListener = true;
 
     private void logEntry(String methodName) {
         // System.out.println(LOG_CLASS_NAME + " " + methodName + " " + "ENTRY");
@@ -58,6 +60,7 @@ public class CDITestWriteListener implements WriteListener {
 
         this.webConnection = webConnection;
         this.requestOutput = this.webConnection.getOutputStream(); // throws IOException
+        this.closedWriteListener = false;
 
         // Assigning the write listener spawns a new thread,
         // which may run before or after this method exits.
@@ -96,8 +99,10 @@ public class CDITestWriteListener implements WriteListener {
     public void onWritePossible() throws IOException {
         String methodName = "onWritePossible";
         logEntry(methodName);
+        logInfo(methodName, "this [" + this + "]");
 
         logBeanActivity(methodName, "Entry");
+        logInfo(methodName, "appendBeanData [WP]");
         appendBeanData("WP"); // 'W' for "WriteListener"; 'P' for "Possible"
 
         boolean nextIsNumbers = false;
@@ -164,7 +169,12 @@ public class CDITestWriteListener implements WriteListener {
         logEntry(methodName);
 
         logBeanActivity(methodName, "Entry");
-        appendBeanData("WE"); // 'W' for "WriteListener"; 'E' for "Error"
+
+        //Only log WE to the test BeanData if this writeListener is still active.  Do not log if WL already nulled out or closed
+        if (!closedWriteListener) {
+            logInfo(methodName, "appendBeanData [WE]");
+            appendBeanData("WE"); // 'W' for "WriteListener"; 'E' for "Error"
+        }
 
         try {
             webConnection.close(); // throws Exception
@@ -176,5 +186,10 @@ public class CDITestWriteListener implements WriteListener {
         logBeanState(methodName);
 
         logExit(methodName);
+    }
+
+    public void setCloseWriteListener() {
+        logInfo("setCloseWriteListener", "close this WL [" + this + "]");
+        this.closedWriteListener = true;
     }
 }
