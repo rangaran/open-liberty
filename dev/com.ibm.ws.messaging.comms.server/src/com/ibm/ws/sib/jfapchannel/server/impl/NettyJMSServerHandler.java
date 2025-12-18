@@ -185,8 +185,15 @@ public class NettyJMSServerHandler extends SimpleChannelInboundHandler<WsByteBuf
 		Attribute<Connection> attr = ctx.channel().attr(NettyNetworkConnectionFactory.CONNECTION);
 		Connection connection = attr.get();
 
-		//TODO: Check if connection is closed
 		if (connection != null) {
+
+            if( connection.isClosed() || connection.isCloseDeferred() ) {
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+			        SibTr.debug(this, tc, "Connecion is closed or close deferred.");
+		        }
+                return; 
+            }
+
 			IOReadCompletedCallback callback = connection.getReadCompletedCallback();
 			IOReadRequestContext readCtx = connection.getReadRequestContext();
 			NetworkConnection networkConnection = connection.getNetworkConnection();
