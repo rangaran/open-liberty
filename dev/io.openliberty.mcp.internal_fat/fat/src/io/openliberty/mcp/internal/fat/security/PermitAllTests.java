@@ -37,7 +37,7 @@ public class PermitAllTests extends AbstractPermitAll {
 
     @Server("mcp-server-auth")
     public static LibertyServer server;
-    Logger logger = Logger.getLogger(PermitAllTestsStateless.class.getName());
+    Logger logger = Logger.getLogger(PermitAllTests.class.getName());
 
     @Rule
     public McpClient client = new McpClient(server, "/permitAllTools");

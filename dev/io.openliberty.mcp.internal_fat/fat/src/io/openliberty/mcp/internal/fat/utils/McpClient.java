@@ -48,7 +48,6 @@ import componenttest.topology.utils.HttpRequest;
 public class McpClient extends ExternalResource {
 
     private boolean sessionDeleted = false;
-
     private String sessionId;
     private LibertyServer server;
     private String path;
@@ -119,8 +118,8 @@ public class McpClient extends ExternalResource {
                         """;
         JSONAssert.assertEquals(expectedResponse, response, JSONCompareMode.LENIENT);
 
-        sessionId = httpRequest.getResponseHeader(MCP_SESSION_ID);
         if (mode.equals(Mode.STATEFUL)) {
+            sessionId = httpRequest.getResponseHeader(MCP_SESSION_ID);
             assertNotNull(sessionId);
         }
 
@@ -140,11 +139,10 @@ public class McpClient extends ExternalResource {
 
     @Override
     protected void after() {
-
-        if (sessionDeleted) {
-            return;
-        }
         if (mode.equals(Mode.STATEFUL)) {
+            if (sessionDeleted) {
+                return;
+            }
             try {
                 new HttpRequest(server, path + "/mcp").requestProp(MCP_SESSION_ID, sessionId)
                                                       .method("DELETE")
@@ -181,13 +179,14 @@ public class McpClient extends ExternalResource {
      * @throws Exception
      */
     private String setupAndRunRequest(final HttpRequest request, String jsonRequestBody) throws Exception {
+        request.requestProp(ACCEPT, VALUE_ACCEPT_DEFAULT)
+               .requestProp(MCP_PROTOCOL_VERSION, VALUE_MCP_PROTOCOL_VERSION)
+               .jsonBody(jsonRequestBody)
+               .method("POST");
+
         if (mode.equals(Mode.STATEFUL)) {
             request.requestProp(MCP_SESSION_ID, sessionId);
         }
-        request.requestProp(ACCEPT, VALUE_ACCEPT_DEFAULT);
-        request.requestProp(MCP_PROTOCOL_VERSION, VALUE_MCP_PROTOCOL_VERSION);
-        request.jsonBody(jsonRequestBody);
-        request.method("POST");
 
         return request.run(String.class);
     }
@@ -224,7 +223,6 @@ public class McpClient extends ExternalResource {
     public String callMCPCustomized(String jsonRequestBody, String appendPath, int expectedCode) throws Exception {
         final HttpRequest request = new HttpRequest(server, path + appendPath).expectCode(expectedCode);
         return setupAndRunRequest(request, jsonRequestBody);
-
     }
 
     /**

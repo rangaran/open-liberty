@@ -18,6 +18,7 @@ import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.runner.RunWith;
 
 import com.ibm.websphere.simplicity.ShrinkHelper;
@@ -26,6 +27,7 @@ import componenttest.annotation.Server;
 import componenttest.custom.junit.runner.FATRunner;
 import componenttest.topology.impl.LibertyServer;
 import io.openliberty.mcp.internal.fat.tool.securityApps.DenyAllTools;
+import io.openliberty.mcp.internal.fat.utils.McpClient;
 
 /**
  *
@@ -37,14 +39,13 @@ public class DenyAllTests extends AbstractDenyAll {
     public static LibertyServer server;
     Logger logger = Logger.getLogger(DenyAllTests.class.getName());
 
-    @Override
-    protected LibertyServer getServer() {
-        return server;
-    }
+    @Rule
+    public McpClient client = new McpClient(server, "/denyAllTools");
 
+    /** {@inheritDoc} */
     @Override
-    protected String getMCPClientPath() {
-        return "/denyAllTools";
+    McpClient getClient() {
+        return client;
     }
 
     @BeforeClass
@@ -59,5 +60,4 @@ public class DenyAllTests extends AbstractDenyAll {
     public static void teardown() throws Exception {
         server.stopServer();
     }
-
 }

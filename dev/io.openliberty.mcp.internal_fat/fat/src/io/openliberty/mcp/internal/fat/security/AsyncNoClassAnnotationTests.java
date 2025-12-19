@@ -48,7 +48,7 @@ public class AsyncNoClassAnnotationTests extends FATServletClient {
 
     @BeforeClass
     public static void setup() throws Exception {
-        WebArchive war = ShrinkWrap.create(WebArchive.class, "asyncNoClassAnnotationTools.war").addPackage(AsyncNoClassAnnotationTools.class.getPackage());
+        WebArchive war = ShrinkWrap.create(WebArchive.class, "asyncNoClassAnnotationTools.war").addClass(AsyncNoClassAnnotationTools.class);
         ShrinkHelper.exportDropinAppToServer(server, war, SERVER_ONLY);
         server.startServer();
         assertNotNull(server.findStringsInLogs("MCP server endpoint: .*/mcp$")); // regex matches string that ends with /mcp e.g. "MCP server endpoint: http://macbookpro.home:8010/toolTest/mcp"
