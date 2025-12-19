@@ -13,6 +13,7 @@ import java.io.PrintWriter;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.osgi.framework.Constants;
@@ -28,6 +29,8 @@ import com.ibm.ws.sib.admin.JsMessagingEngine;
 import com.ibm.ws.sib.processor.impl.ConsumerDispatcher;
 import com.ibm.ws.sib.processor.impl.DestinationManager;
 import com.ibm.ws.sib.processor.impl.MessageProcessor;
+import com.ibm.ws.sib.processor.impl.indexes.DestinationIndex;
+import com.ibm.ws.sib.processor.impl.interfaces.DestinationHandler;
 import com.ibm.ws.sib.processor.runtime.SIMPIterator;
 import com.ibm.ws.sib.processor.runtime.impl.ControlAdapter;
 import com.ibm.ws.sib.processor.runtime.impl.MessageProcessorControl;
@@ -92,18 +95,18 @@ public class SibIntrospectorImpl implements Introspector {
 
 					jsEngine.dump(DUMP_SPEC, fw, new Date(), false);
 
+					// Next lets add info about the prepared transactions.
+
+					out.println("=== prepared transactions ===");
+					Optional<String[]> preparedTransactions = Optional.ofNullable(((JsMessagingEngineImpl) engine).listPreparedTransactions());
+					preparedTransactions.ifPresent(s -> out.println(String.join(", ", s)));
+					out.println();
+
+
 				}
 			}
 			out.println();
-
-			// Next lets add info about the prepared transactions.
-
-			out.println("=== prepared transactions ===");
-			out.println(String.join(", ", ((JsMessagingEngineImpl) engine).listPreparedTransactions()));
-			out.println();
-
-			// Next lets add info about the destinations.
-			out.println("=== destinations ===");
+			
 			JsEngineComponent messageProcessor = engine.getMessageProcessor(); //Note that there is one engine, and it has one MessageProcessor
 			if (messageProcessor != null && messageProcessor instanceof MessageProcessor) {
 
@@ -119,6 +122,18 @@ public class SibIntrospectorImpl implements Introspector {
 				out.println("=== Nondurable Subscriptions ===");
 				ConcurrentHashMap<String, ConsumerDispatcher> nonDurableSubscirptions = destinationManager.getNondurableSharedSubscriptions();
 				nonDurableSubscirptions.entrySet().stream().forEach(entry -> out.println(entry.getKey() + " : " + entry.getValue()));
+				
+				out.println("=== Destinations ===");
+				DestinationIndex destinationIndex = destinationManager.getDestinationIndex();
+				SIMPIterator destinationIterator = destinationIndex.iterator();
+				while (destinationIterator.hasNext()) {
+					Object destiation = destinationIterator.next();
+					
+					if (destiation instanceof DestinationHandler) {
+						DestinationHandler destinationHandler = (DestinationHandler) destiation;
+						out.println("Destination. Name: " + destinationHandler.getName() + " description : "+ destinationHandler.getDescription() +  "alias? " + destinationHandler.isAlias());
+					}
+				}
 				
 				
 				//Connectivity
