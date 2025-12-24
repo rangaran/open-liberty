@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2015, 2025 IBM Corporation and others.
+ * Copyright (c) 2015, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -12,6 +12,7 @@
  *******************************************************************************/
 package com.ibm.ws.cdi.impl.weld;
 
+import java.io.PrintWriter;
 import java.net.URL;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
@@ -1150,6 +1151,125 @@ public class BeanDeploymentArchiveImpl implements WebSphereBeanDeploymentArchive
                 return null;
             }
         });
+    }
+
+    @Override
+    public void introspect(PrintWriter out) {
+        try {
+            out.println("=========== Beginning Introspection of " + getHumanReadableName() + " =================");
+
+            out.println("++++ id:" + id + "++++");
+
+            out.println("++++ archiveClassNames ++++");
+            if (archiveClassNames != null)
+                archiveClassNames.stream().forEach(e -> out.println("archiveClassName: " + e));
+
+            out.println("++++ allClasses ++++");
+            if (allClasses != null)
+                allClasses.stream().forEach(e -> out.println("class: " + e));
+
+            out.println("++++ beanClasses ++++");
+            if (beanClasses != null)
+                beanClasses.entrySet().stream().forEach(e -> out.println("beanClass: " + e.getKey() + " : " + e.getValue().getName()));
+
+            if (classloader != null)
+                out.println("++++ classloader:" + classloader + "++++");
+
+            out.println("++++ ejbClasses ++++");
+            if (ejbClasses != null)
+                ejbClasses.stream().forEach(c -> out.println("ejbClasses: " + c.getName()));
+
+            out.println("++++ managedBeanClasses ++++");
+            if (managedBeanClasses != null)
+                managedBeanClasses.stream().forEach(c -> out.println("managedBeanClass: " + c.getName()));
+
+            out.println("++++ injectionClasses ++++");
+            if (injectionClasses != null)
+                injectionClasses.stream().forEach(c -> out.println("injectionClass: " + c.getName()));
+
+            out.println("++++ jeeComponentClasses ++++");
+            if (jeeComponentClasses != null)
+                jeeComponentClasses.stream().forEach(c -> out.println("jeeComponentClasses: " + c.getName()));
+
+            if (additionalClasses != null)
+                out.println("additionalClasses: " + additionalClasses.stream().collect(Collectors.joining(", ")));
+            if (additionalBeanDefiningAnnotations != null)
+                out.println("additionalBeanDefinngAnnotations: " + additionalBeanDefiningAnnotations.stream().collect(Collectors.joining(", ")));
+            if (extensionClassNames != null)
+                out.println("extensionClassNames: " + extensionClassNames.stream().collect(Collectors.joining(", ")));
+
+            //not needed spiExtensionSuppliers
+
+            //not needed out.println("++++ weldServiceRegistry:" + weldServiceRegistry + "++++");
+            //moved to top of method. out.println("++++ id:" + id + "++++");
+            if (eeModuleDescriptor != null)
+                out.println("++++ eeModuleDescriptor:" + eeModuleDescriptor.toString() + "++++"); //TODO toString isn't enough
+
+            out.println("++++ accessibleBDAs ++++");
+            if (accessibleBDAs != null)
+                accessibleBDAs.stream().forEach(bda -> out.println("accessibleBDA: " + bda.toString()));
+            out.println("++++ descendantBDAs ++++");
+            if (descendantBDAs != null)
+                descendantBDAs.stream().forEach(bda -> out.println("descendantBDA: " + bda.toString()));
+
+            out.println("++++ ejbDescriptors ++++");
+            if (ejbDescriptors != null)
+                out.println("ejbDescriptor: " + introsepectorHelperEjbDescritorsToString(ejbDescriptors));
+
+            out.println("++++ ejbDescriptorMap ++++");
+            if (ejbDescriptorMap != null)
+                ejbDescriptorMap.entrySet().stream().forEach(e -> out.println("ejbDescriptorMapEntry: " + e.getKey().getName() + " : [" +
+                                                                              e.getValue().getClass() + " , " + introsepectorHelperEjbDescritorsToString(e.getValue())));
+
+            out.println("++++ scanned:" + scanned + "++++");
+            out.println("++++ hasBeans:" + hasBeans + "++++");
+            out.println("++++ endpointsScanned:" + endpointsScanned + "++++");
+
+            out.println("++++ nonCDIInterceptors ++++");
+            if (nonCDIInterceptors != null)
+                nonCDIInterceptors.stream().forEach(e -> out.println("nonCDIInterceptors: " + e.getName()));
+
+            if (beansXml != null)
+                out.println("++++ beansXml:" + beansXml + "++++");
+            out.println("++++ beanDiscoveryMode:" + beanDiscoveryMode + "++++");
+
+            out.println("++++ directBeanDefiningAnnotations ++++");
+            if (directBeanDefiningAnnotations != null) {
+                directBeanDefiningAnnotations.stream().forEach(e -> out.println("directBeanDefiningAnnotations: " + e));
+            }
+
+            out.println("++++ accessibleBeanDefiningAnnotations ++++");
+            if (accessibleBeanDefiningAnnotations != null)
+                accessibleBeanDefiningAnnotations.stream().forEach(e -> out.println("accessibleBeanDefiningAnnotation: " + e));
+
+            out.println("++++ isExtension:" + isExtension + "++++");
+            out.println("++++ extensionCanSeeApplicationBDAs:" + extensionCanSeeApplicationBDAs + "++++");
+
+            out.println("++++ injectionTargets ++++");
+
+            if (injectionTargets != null)
+                injectionTargets.entrySet().stream().forEach(e -> out.println("injectionTarget: " + e.getKey().getName() + " : " + e.getValue()));
+
+            out.println("++++ staticInjectionPoints ++++");
+            if (staticInjectionPoints != null)
+                staticInjectionPoints.entrySet().stream().forEach(e -> out.println("staticInjectionPoint: " + e.getKey().getName() + " : " + e.getValue()));
+
+            out.println("=========== Ending Introspection of " + getHumanReadableName() + " =================");
+        } catch (Exception e) {
+            out.println("While introspecting, caught exception " + e.toString());
+        } finally {
+            out.flush();
+        }
+    }
+
+    private String introsepectorHelperEjbDescritorsToString(Set<EjbDescriptor<?>> descriptors) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("[");
+        for (EjbDescriptor<?> descriptor : descriptors) {
+            sb.append(descriptor.getEjbName() + " ," + descriptor.getBeanClass());
+        }
+        sb.append("]");
+        return sb.toString();
     }
 
 }
