@@ -398,7 +398,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.2.5</version> <!-- upgrade the version-->
+                <version>3.2.5</version>
                 <configuration>
                     <!-- Fork configuration to improve z/OS stability -->
                     <forkCount>1</forkCount>
