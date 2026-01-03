@@ -101,6 +101,16 @@ public abstract class AbstractJSSEProvider implements JSSEProvider {
     private final String protocolPackageHandler = null;
     private String defaultProtocol = null;
 
+    static {
+        // Ensure secure default for ephemeral DH key size as early as possible
+        try {
+            SecurityDefaults.ensureDhKeySize();
+        } catch (Throwable t) {
+            // Avoid failing class initialization for diagnostics only; print to debug
+            com.ibm.ws.kernel.boot.Debug.printStackTrace(t);
+        }
+    }
+
     /**
      * Constructor.
      */
