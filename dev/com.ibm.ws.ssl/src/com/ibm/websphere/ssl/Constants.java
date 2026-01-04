@@ -204,9 +204,8 @@ public class Constants {
     public static final String PROTOCOL_TLS_FIPS = PROTOCOL_TLSV1_2 + ", " + PROTOCOL_TLSV1_3;
 
     /*** SECURITY LEVEL CONSTANTS ***/
-    public static final String SECURITY_LEVEL_HIGH = "HIGH";
-    public static final String SECURITY_LEVEL_MEDIUM = "MEDIUM";
-    public static final String SECURITY_LEVEL_LOW = "LOW";
+    // Simplified security levels: DEFAULT (acts like the old HIGH) and CUSTOM
+    public static final String SECURITY_LEVEL_DEFAULT = "DEFAULT";
     public static final String SECURITY_LEVEL_CUSTOM = "CUSTOM";
 
     /*** PROVIDER CONSTANTS ***/
@@ -369,56 +368,33 @@ public class Constants {
 
         if (supportedCiphers != null && supportedCiphers.length > 0) {
             if (securityLevel == null) {
-                securityLevel = Constants.SECURITY_LEVEL_HIGH;
+                securityLevel = Constants.SECURITY_LEVEL_DEFAULT;
             }
 
-            if (securityLevel.equals(Constants.SECURITY_LEVEL_LOW)) {
-                /**
-                 * Security Level "high" will pare it down even more.
-                 * Strict Level Criteria: Support integrity signing algorithms but not to perform encryption
-                 */
+            // Accept legacy security level names and normalize them to DEFAULT
+            if ("HIGH".equalsIgnoreCase(securityLevel) || "MEDIUM".equalsIgnoreCase(securityLevel) || "LOW".equalsIgnoreCase(securityLevel)) {
+                securityLevel = Constants.SECURITY_LEVEL_DEFAULT;
+            }
+
                 for (int i = 0; i < supportedCiphers.length; i++) {
-                    if ((supportedCiphers[i].indexOf("_anon_") != -1
-                         || supportedCiphers[i].indexOf("_NULL_") != -1)
-                        && supportedCiphers[i].indexOf("_KRB5_") == -1
-                        && supportedCiphers[i].indexOf("_AES_") == -1
-                        && supportedCiphers[i].indexOf("DES") == -1
-                        && supportedCiphers[i].indexOf("_RC") == -1
-                        && supportedCiphers[i].indexOf("_EXPORT_") == -1) {
-                        newCipherList.add(supportedCiphers[i]);
-                    }
-                }
-            } else if (securityLevel.equals(Constants.SECURITY_LEVEL_MEDIUM)) {
-                /**
-                 * Security Level "medium" will pare it down remove "anonymous" and
-                 * "NULL" ciphers.
-                 */
-                for (int i = 0; i < supportedCiphers.length; i++) {
-                    if ((supportedCiphers[i].indexOf("40_") != -1
-                         || supportedCiphers[i].indexOf("_DES_") != -1)
-                        && supportedCiphers[i].indexOf("_anon_") == -1
-                        && supportedCiphers[i].indexOf("_NULL_") == -1
-                        && supportedCiphers[i].indexOf("_KRB5_") == -1
-                        && supportedCiphers[i].indexOf("_RC4") == -1
-                        && supportedCiphers[i].indexOf("_EXPORT_") == -1) {
-                        newCipherList.add(supportedCiphers[i]);
-                    }
-                }
-            } else {
-                /** Security Level "high" will pare it down even more. */
-                for (int i = 0; i < supportedCiphers.length; i++) {
-                    if ((supportedCiphers[i].indexOf("128_") != -1
-                         || supportedCiphers[i].indexOf("256_") != -1
-                         || supportedCiphers[i].indexOf("CHACHA20_POLY1305_") != -1)
-                        && supportedCiphers[i].indexOf("_anon_") == -1
-                        && supportedCiphers[i].indexOf("_NULL_") == -1
-                        && supportedCiphers[i].indexOf("_KRB5_") == -1
-                        && supportedCiphers[i].indexOf("_RC4") == -1
-                        && supportedCiphers[i].indexOf("_EXPORT_") == -1
-                        && supportedCiphers[i].indexOf("_FIPS_") == -1
-                        && supportedCiphers[i].indexOf("_3DES_") == -1) {
-                        newCipherList.add(supportedCiphers[i]);
-                    }
+                if ((supportedCiphers[i].indexOf("128_") != -1
+                     || supportedCiphers[i].indexOf("256_") != -1
+                     || supportedCiphers[i].indexOf("CHACHA20_POLY1305_") != -1)
+                    && supportedCiphers[i].indexOf("_anon_") == -1
+                    && supportedCiphers[i].indexOf("_NULL_") == -1
+                    && supportedCiphers[i].indexOf("_KRB5_") == -1
+                    && supportedCiphers[i].indexOf("_RC4") == -1
+                    && supportedCiphers[i].indexOf("_EXPORT_") == -1
+                    && supportedCiphers[i].indexOf("_FIPS_") == -1
+                    && supportedCiphers[i].indexOf("_3DES_") == -1
+
+                   // Exclude RSA key exchange (TLS_RSA_*)
+                    && !supportedCiphers[i].contains("_RSA_")
+
+                    // Exclude non-ephemeral ECDH
+                    && !supportedCiphers[i].contains("_ECDH_")
+                ) {
+                    newCipherList.add(supportedCiphers[i]);
                 }
             }
         }

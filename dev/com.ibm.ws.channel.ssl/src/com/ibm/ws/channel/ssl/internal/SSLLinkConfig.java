@@ -94,7 +94,7 @@ public class SSLLinkConfig {
                 if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
                     Tr.debug(tc, "Defaulting to HIGH security level");
                 }
-                securityLevel = Constants.SECURITY_LEVEL_HIGH;
+                securityLevel = Constants.SECURITY_LEVEL_DEFAULT;
             }
             // Found the security level.
             ciphers = Constants.adjustSupportedCiphersToSecurityLevel(
