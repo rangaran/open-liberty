@@ -12,6 +12,9 @@
  *******************************************************************************/
 package com.ibm.ws.ssl.internal;
 
+import com.ibm.ws.ssl.provider.SecurityDefaults;
+import java.lang.reflect.Field;
+import java.util.concurrent.atomic.AtomicBoolean;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -174,6 +177,12 @@ public class SSLComponentTest {
     public static void setUpBeforeClass() throws Exception {
         outputMgr = SharedOutputManager.getInstance();
         outputMgr.captureStreams();
+
+        System.clearProperty("jdk.tls.ephemeralDHKeySize");
+
+        Field f = SecurityDefaults.class.getDeclaredField("executed");
+        f.setAccessible(true);
+        ((AtomicBoolean) f.get(null)).set(false);
     }
 
     @Before
@@ -378,6 +387,14 @@ public class SSLComponentTest {
         } catch (Throwable t) {
             outputMgr.failWithThrowable(m, t);
         }
+    }
+
+
+    @Test
+    public void defaultDHKeySizeSetWhenNotSet() {
+        SecurityDefaults.ensureDhKeySize();
+        assertEquals("2048",
+            System.getProperty("jdk.tls.ephemeralDHKeySize"));
     }
 
 }
