@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2023, 2025 IBM Corporation and others.
+ * Copyright (c) 2023, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -418,7 +418,7 @@ public class NettyResponseMessage extends NettyBaseMessage implements HttpRespon
 
     @Override
     public String getReasonPhrase() {
-        throw new UnsupportedOperationException("getReasonPhrase() not supported in Netty context");
+        return this.nettyResponse.status().reasonPhrase();
     }
 
     @Override
@@ -468,12 +468,15 @@ public class NettyResponseMessage extends NettyBaseMessage implements HttpRespon
 
     @Override
     public void setReasonPhrase(String reason) {
-        throw new UnsupportedOperationException("setReasonPhrase(String reason) not supported in Netty context");
+        // The reason phrase historically is not actually used when writing the http response.
+        // For this reason, this method is intentionally left blank and unimplemented. The
+        // returned reason phrase will match the code the response is assigned to.
+        // @see com.ibm.ws.http.channel.internal.HttpResponseMessageImpl
     }
 
     @Override
     public void setReasonPhrase(byte[] reason) {
-        throw new UnsupportedOperationException("setReasonPhrase(byte[] reason) not supported in Netty context");
+        setReasonPhrase(new String(reason));
     }
 
     @Override
