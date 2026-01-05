@@ -1165,8 +1165,7 @@ public class BeanDeploymentArchiveImpl implements WebSphereBeanDeploymentArchive
             out.println("++++ isExtension:" + isExtension + "++++");
             out.println("++++ extensionCanSeeApplicationBDAs:" + extensionCanSeeApplicationBDAs + "++++");
 
-            if (beansXml != null)
-                out.println("++++ beansXml:" + beansXml + "++++");
+            out.println(introsepectorHelperBeansXMLToString(beansXml));
             out.println("++++ beanDiscoveryMode:" + beanDiscoveryMode + "++++");
 
             out.println("++++ archiveClassNames ++++");
@@ -1270,6 +1269,54 @@ public class BeanDeploymentArchiveImpl implements WebSphereBeanDeploymentArchive
             sb.append(descriptor.getEjbName() + " ," + descriptor.getBeanClass());
         }
         sb.append("]");
+        return sb.toString();
+    }
+
+    private String introsepectorHelperBeansXMLToString(BeansXml beansXml) {
+
+        if (beansXml == null) {
+            return "beans xml file was null";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(" ++++ Baens.xml ++++");
+        sb.append(System.lineSeparator());
+        sb.append("bean discovery mode: " + beansXml.getBeanDiscoveryMode());
+        sb.append(System.lineSeparator());
+
+        sb.append("enabled alternatives: " + beansXml.getEnabledAlternativeClasses().stream().filter(Objects::nonNull)
+                                                     .map(m -> m.getValue())
+                                                     .collect(Collectors.joining(", ")));
+        sb.append(System.lineSeparator());
+
+        sb.append("enabled alternative sterotypes: " + beansXml.getEnabledAlternativeStereotypes().stream().filter(Objects::nonNull)
+                                                               .map(m -> m.getValue())
+                                                               .collect(Collectors.joining(", ")));
+        sb.append(System.lineSeparator());
+
+        sb.append("enabled decorators: " + beansXml.getEnabledDecorators().stream().filter(Objects::nonNull)
+                                                   .map(m -> m.getValue())
+                                                   .collect(Collectors.joining(", ")));
+        sb.append(System.lineSeparator());
+
+        sb.append("enabled interceptors: " + beansXml.getEnabledInterceptors().stream().filter(Objects::nonNull)
+                                                     .map(m -> m.getValue())
+                                                     .collect(Collectors.joining(", ")));
+        sb.append(System.lineSeparator());
+
+        //We have a useful toString on the filters here: https://github.com/weld/core/blob/master/impl/src/main/java/org/jboss/weld/metadata/WeldFilterImpl.java
+        sb.append("scanning excludes: " + beansXml.getScanning().getExcludes().stream().filter(Objects::nonNull)
+                                                  .map(m -> m.getValue()).map(f -> f.toString()).collect(Collectors.joining(", ")));
+        sb.append(System.lineSeparator());
+
+        sb.append("scanning includes: " + beansXml.getScanning().getIncludes().stream().filter(Objects::nonNull)
+                                                  .map(m -> m.getValue()).map(f -> f.toString()).collect(Collectors.joining(", ")));
+        sb.append(System.lineSeparator());
+
+        String url = beansXml.getUrl() != null ? beansXml.getUrl().toString() : "null";
+        sb.append("beansXML URL: " + url);
+        sb.append(System.lineSeparator());
+
         return sb.toString();
     }
 
