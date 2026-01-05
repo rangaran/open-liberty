@@ -94,8 +94,7 @@ public class SSLConfig {
             OptionsKey options = getAssociationOptions(sslAliasName, props);
             return filter(candidateCipherSuites, requested, options);
         } else {
-            String securityLevelString = props.getProperty(Constants.SSLPROP_SECURITY_LEVEL);
-            return Constants.adjustSupportedCiphersToSecurityLevel(candidateCipherSuites, securityLevelString);
+            return Constants.adjustSupportedCiphers(candidateCipherSuites);
         }
     }
 

@@ -1115,8 +1115,8 @@ public class SSLConfigManager {
      * @param securityLevel
      * @return String[]
      ***/
-    public synchronized String[] adjustSupportedCiphersToSecurityLevel(String[] supportedCiphers, String securityLevel) {
-        return (Constants.adjustSupportedCiphersToSecurityLevel(supportedCiphers, securityLevel));
+    public synchronized String[] adjustSupportedCiphers(String[] supportedCiphers) {
+        return (Constants.adjustSupportedCiphers(supportedCiphers));
     }
 
     /***
@@ -1464,14 +1464,7 @@ public class SSLConfigManager {
             if (cipherString != null) {
                 ciphers = cipherString.split("\\s+");
             } else {
-                String securityLevel = props.getProperty(Constants.SSLPROP_SECURITY_LEVEL);
-                if (tc.isDebugEnabled())
-                    Tr.debug(tc, "securityLevel from properties is " + securityLevel);
-                if (securityLevel == null)
-                    securityLevel = "HIGH";
-
-                ciphers = adjustSupportedCiphersToSecurityLevel(socket.getSupportedCipherSuites(), securityLevel);
-
+                ciphers = adjustSupportedCiphers(socket.getSupportedCipherSuites());
             }
         } catch (Exception e) {
             if (tc.isDebugEnabled())
@@ -1501,14 +1494,7 @@ public class SSLConfigManager {
             if (cipherString != null) {
                 ciphers = cipherString.split("\\s+");
             } else {
-                String securityLevel = props.getProperty(Constants.SSLPROP_SECURITY_LEVEL);
-                if (tc.isDebugEnabled())
-                    Tr.debug(tc, "securityLevel from properties is " + securityLevel);
-                if (securityLevel == null)
-                    securityLevel = "HIGH";
-
-                ciphers = adjustSupportedCiphersToSecurityLevel(socket.getSupportedCipherSuites(), securityLevel);
-
+                ciphers = adjustSupportedCiphers(socket.getSupportedCipherSuites());
             }
         } catch (Exception e) {
             if (tc.isDebugEnabled())

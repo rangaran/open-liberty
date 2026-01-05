@@ -54,13 +54,7 @@ public class LibertySSLServerSocketFactoryWrapper extends SSLServerSocketFactory
 
     @Override
     public String[] getSupportedCipherSuites() {
-        String securityLevel = props.getProperty(Constants.SSLPROP_SECURITY_LEVEL);
-        if (tc.isDebugEnabled())
-            Tr.debug(tc, "securityLevel from properties is " + securityLevel);
-        if (securityLevel == null)
-            securityLevel = "HIGH";
-
-        return Constants.adjustSupportedCiphersToSecurityLevel(delegate.getSupportedCipherSuites(), securityLevel);
+        return Constants.adjustSupportedCiphers(delegate.getSupportedCipherSuites());
     }
 
     @Override

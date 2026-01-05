@@ -12,10 +12,12 @@
  *******************************************************************************/
 package com.ibm.websphere.ssl;
 
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import com.ibm.websphere.ras.Tr;
 import com.ibm.websphere.ras.TraceComponent;
@@ -30,6 +32,9 @@ import com.ibm.websphere.ras.TraceComponent;
  * @since WAS 7.0
  */
 public class Constants {
+    /**  */
+    private static final int KEY_EXCHANGE_ALGORITHM_INDEX = 1;
+
     /**
      * Constructor.
      */
@@ -184,6 +189,7 @@ public class Constants {
     /** Default Certificate Types **/
     public static final String SSL_CERTIFICATE_TYPE = "SSL";
     public static final String RSA_CERTIFICATE_TYPE = "RSA";
+    public static final String RSA_KEY_EXCHANGE = "RSA";
 
     /*** Default Certificate Aliases **/
     public static final String DEFAULT_ROOT_CERTIFICATE_ALIAS = "root";
@@ -288,6 +294,8 @@ public class Constants {
     public static final String DIRECTION_UNKNOWN = "unknown";
     public static final String TRUE = "true";
     public static final String FALSE = "false";
+    private static final List<String> REQUIRED_ENCRYPTION_STRENGTHS = Arrays.asList("128_", "256_", "CHACHA20_POLY1305_");
+    private static final List<String> DISALLOWED_CIPHER_SUITES = Arrays.asList("_anon_", "_NULL_", "_KRB5_", "_RC4", "_EXPORT_", "_FIPS_", "_3DES_", "_ECDH_");
 
     // START OF UNUSED CONSTANTS
     //     unused in LIberty but not removed since this class is defined as an API
@@ -297,7 +305,7 @@ public class Constants {
 
     // FIPS 140-3: Algorithm assessment complete; no changes required.
     // These constants are unused with FIPS enabled, but cannot update them as they would break the backward compatibility.
-   /** SSL V2 cipher specifications */
+    /** SSL V2 cipher specifications */
     public static final String SSL_CK_RC4_128_WITH_MD5 = "SSL_CK_RC4_128_WITH_MD5",
                     SSL_CK_RC4_128_EXPORT40_WITH_MD5 = "SSL_CK_RC4_128_EXPORT40_WITH_MD5",
                     SSL_CK_RC2_128_CBC_WITH_MD5 = "SSL_CK_RC2_128_CBC_WITH_MD5",
@@ -356,55 +364,95 @@ public class Constants {
      * This method adjusts the supported ciphers to include those appropriate
      * to the security level (HIGH, MEDIUM, LOW).
      *
+     * @deprecated The security level parameter is now ignored. This method now returns
+     *             an array of values filtered from supportedCiphers that meet modern security standards.
+     *             Use {@link #adjustSupportedCiphers()} directly instead.
+     *
      * @param supportedCiphers
      * @param securityLevel
      * @return String[]
      */
+    @Deprecated
     public static String[] adjustSupportedCiphersToSecurityLevel(String[] supportedCiphers, String securityLevel) {
         if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled()) {
             Tr.entry(tc, "adjustSupportedCiphersToSecurityLevel", new Object[] { convertCipherListToString(supportedCiphers), securityLevel });
         }
-        List<String> newCipherList = new ArrayList<String>();
 
-        if (supportedCiphers != null && supportedCiphers.length > 0) {
-            if (securityLevel == null) {
-                securityLevel = Constants.SECURITY_LEVEL_HIGH;
-            }
+        /**
+         * TODO this outright ignores securityLevel and returns the adjusted cipher list with ciphers
+         * determined to be modern and safe.
+         *
+         * Other considerations for deprecating securityLevel:
+         * 1. Throw an RuntimeException for MEDIUM/LOW
+         * 2. Return an empty array for MEDIUM/LOW.
+         * 3. Run the original filtering algorithm for MEDIUM/LOW.
+         *
+         * We intend to remove MEDIUM/LOW from the meta type so option 1 was implemented since they
+         * should no longer be considered.
+         */
+        String[] ciphers = adjustSupportedCiphers(supportedCiphers);
 
-            // Accept legacy security level names and normalize them to DEFAULT
-            if ("HIGH".equalsIgnoreCase(securityLevel)) {
-                securityLevel = Constants.SECURITY_LEVEL_HIGH;
-            }
+        if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled()) {
+            Tr.exit(tc, "adjustSupportedCiphersToSecurityLevel -> " + convertCipherListToString(ciphers));
+        }
+        return ciphers;
 
-                for (int i = 0; i < supportedCiphers.length; i++) {
-                if ((supportedCiphers[i].indexOf("128_") != -1
-                     || supportedCiphers[i].indexOf("256_") != -1
-                     || supportedCiphers[i].indexOf("CHACHA20_POLY1305_") != -1)
-                    && supportedCiphers[i].indexOf("_anon_") == -1
-                    && supportedCiphers[i].indexOf("_NULL_") == -1
-                    && supportedCiphers[i].indexOf("_KRB5_") == -1
-                    && supportedCiphers[i].indexOf("_RC4") == -1
-                    && supportedCiphers[i].indexOf("_EXPORT_") == -1
-                    && supportedCiphers[i].indexOf("_FIPS_") == -1
-                    && supportedCiphers[i].indexOf("_3DES_") == -1
+    }
 
-                   // Exclude RSA key exchange (TLS_RSA_*)
-                    && !supportedCiphers[i].contains("_RSA_")
+    /**
+     * This method adjusts the supported ciphers to meet modern security standards
+     *
+     * @param supportedCiphers
+     * @return String[]
+     */
+    public static String[] adjustSupportedCiphers(String[] supportedCiphers) {
+        boolean isTraceEnabled = TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled();
 
-                    // Exclude non-ephemeral ECDH
-                    && !supportedCiphers[i].contains("_ECDH_")
-                ) {
-                    newCipherList.add(supportedCiphers[i]);
-                }
-            }
+        if (isTraceEnabled) {
+            Tr.entry(tc, "adjustSupportedCiphers", new Object[] { convertCipherListToString(supportedCiphers) });
         }
 
-        String[] rc = newCipherList.toArray(new String[newCipherList.size()]);
-        if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled()) {
-            Tr.exit(tc, "adjustSupportedCiphersToSecurityLevel -> "
-                        + convertCipherListToString(rc));
+        String[] rc;
+        if (supportedCiphers == null || supportedCiphers.length == 0) {
+            rc = new String[0];
+        } else {
+            Collection<String> newCipherList = filterSupportedCiphers(supportedCiphers);
+            rc = newCipherList.toArray(new String[newCipherList.size()]);
+        }
+
+        if (isTraceEnabled) {
+            Tr.exit(tc, "adjustSupportedCiphers -> " + convertCipherListToString(rc));
         }
         return rc;
+    }
+
+    /**
+     * @param supportedCiphers
+     * @return
+     */
+    private static Collection<String> filterSupportedCiphers(String[] supportedCiphers) {
+        return Arrays.stream(supportedCiphers).filter(getCipherFilterPredicate()).collect(Collectors.toList());
+    }
+
+    /**
+     * @return
+     */
+    private static Predicate<? super String> getCipherFilterPredicate() {
+        return cipher -> {
+            if (REQUIRED_ENCRYPTION_STRENGTHS.stream().noneMatch(cipher::contains))
+                return false;
+
+            if (DISALLOWED_CIPHER_SUITES.stream().anyMatch(cipher::contains))
+                return false;
+
+            if (cipher.contains("_" + RSA_KEY_EXCHANGE + "_")) {
+                if (cipher.split("_")[KEY_EXCHANGE_ALGORITHM_INDEX].equals(RSA_KEY_EXCHANGE)) {
+                    return false;
+                }
+            }
+
+            return true;
+        };
     }
 
     /**
@@ -434,7 +482,6 @@ public class Constants {
                                                                                         PROTOCOL_TLSV1_2,
                                                                                         PROTOCOL_TLSV1_3
     });
-
 
     public static final List<String> FIPS_140_2_PROTOCOLS = Arrays.asList(new String[] {
                                                                                          PROTOCOL_TLSV1,

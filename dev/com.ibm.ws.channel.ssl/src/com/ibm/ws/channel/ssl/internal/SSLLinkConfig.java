@@ -4,7 +4,7 @@
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-2.0/
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0
  *
  * Contributors:
@@ -87,18 +87,10 @@ public class SSLLinkConfig {
 
         // First check the properties object for the ciphers.
         Object ciphersObject = this.myConfig.get(Constants.SSLPROP_ENABLED_CIPHERS);
-        if (null == ciphersObject) {
+        if (null == ciphersObject) {            
             // Did not find the enabled ciphers. Need to determine them here.
-            String securityLevel = this.myConfig.getProperty(Constants.SSLPROP_SECURITY_LEVEL);
-            if (null == securityLevel) {
-                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-                    Tr.debug(tc, "Defaulting to HIGH security level");
-                }
-                securityLevel = Constants.SECURITY_LEVEL_HIGH;
-            }
             // Found the security level.
-            ciphers = Constants.adjustSupportedCiphersToSecurityLevel(
-                                                                      sslEngine.getSupportedCipherSuites(), securityLevel);
+            ciphers = Constants.adjustSupportedCiphers(sslEngine.getSupportedCipherSuites());
         } else {
             // Found enabled cipher suites. Now we need to put them in the right kind of object.
             if (ciphersObject instanceof String) {
