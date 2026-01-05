@@ -1279,7 +1279,7 @@ public class BeanDeploymentArchiveImpl implements WebSphereBeanDeploymentArchive
         }
 
         StringBuilder sb = new StringBuilder();
-        sb.append(" ++++ Baens.xml ++++");
+        sb.append("++++ beans.xml ++++");
         sb.append(System.lineSeparator());
         sb.append("bean discovery mode: " + beansXml.getBeanDiscoveryMode());
         sb.append(System.lineSeparator());
