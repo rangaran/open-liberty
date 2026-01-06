@@ -19,10 +19,12 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.ibm.ws.ssl.JSSEProviderFactory;
+
 import test.common.SharedOutputManager;
 
 /**
- * Test for SecurityDefaults class
+ * Test for JSSEProviderFactory.ensureDhKeySize()
  */
 public class SSLProviderTest {
 
@@ -40,9 +42,9 @@ public class SSLProviderTest {
     }
 
     @Test
-    public void defaultDHKeySizeSetByStaticInitializer() {
-        // Trigger class loading - the static initializer sets the property
-        SecurityDefaults.ensureDhKeySize();
+    public void defaultDHKeySizeSetByEnsureDhKeySize() {
+        // Call the method to ensure DH key size is set
+        JSSEProviderFactory.ensureDhKeySize();
         
         // Verify the property was set to the secure default
         String dhKeySize = System.getProperty("jdk.tls.ephemeralDHKeySize");

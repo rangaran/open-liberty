@@ -101,15 +101,6 @@ public abstract class AbstractJSSEProvider implements JSSEProvider {
     private final String protocolPackageHandler = null;
     private String defaultProtocol = null;
 
-    static {
-        // Ensure secure default for ephemeral DH key size as early as possible
-        try {
-            SecurityDefaults.ensureDhKeySize();
-        } catch (Throwable t) {
-            // To debug
-            t.printStackTrace();
-        }
-    }
 
     /**
      * Constructor.
@@ -118,6 +109,14 @@ public abstract class AbstractJSSEProvider implements JSSEProvider {
     }
 
     protected void initialize(String keyMgr, String trustMgr, String cxtProvider, String keyProvider, String factory, String packageHandler, String protocolType) {
+
+        try {
+                com.ibm.ws.ssl.JSSEProviderFactory.ensureDhKeySize();
+            } catch (Exception e) {
+                if (tc.isDebugEnabled())
+                    Tr.debug(tc, "Exception caught initializing Ephemeral DH Key Size", new Object[] { e });
+            }
+
         this.keyManager = keyMgr;
         this.trustManager = trustMgr;
         this.contextProvider = cxtProvider;
