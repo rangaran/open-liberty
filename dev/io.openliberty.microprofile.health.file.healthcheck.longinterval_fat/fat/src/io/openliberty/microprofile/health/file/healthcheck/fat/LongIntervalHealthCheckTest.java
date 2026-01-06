@@ -9,13 +9,10 @@
  *******************************************************************************/
 package io.openliberty.microprofile.health.file.healthcheck.fat;
 
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.time.Duration;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.util.concurrent.TimeUnit;
 
 import org.jboss.shrinkwrap.api.ShrinkWrap;
@@ -110,7 +107,6 @@ public class LongIntervalHealthCheckTest {
 
         // Read to run a smarter planet
         serverLongStart.waitForStringInLogUsingMark("CWWKF0011I");
-
         assertTrue("Server is not started", serverLongStart.isStarted());
 
         String serverRoot = serverLongStart.getServerRoot();
@@ -135,84 +131,27 @@ public class LongIntervalHealthCheckTest {
         Assert.assertFalse(Constants.READY_SHOULD_NOT_HAVE_CREATED, HealthFileUtils.getReadyFile(serverRootDirFile).exists());
         Assert.assertFalse(Constants.LIVE_SHOULD_NOT_HAVE_CREATED, HealthFileUtils.getLiveFile(serverRootDirFile).exists());
 
-        /*
-         * Finding fist entry trace for StartedFileCreateProcess which checks for started health check.
-         * This is when the scheduler invokes it, the timer is based on this execution
-         * time.
-         */
-        String traceEntryStartofFirstStartCheck = serverLongStart.waitForStringInTraceUsingMark(".*HealthCheck40ServiceImpl\\$StartedFileCreateProcess > run Entry.*");
-        serverLongStart.setMarkToEndOfLog(serverLongStart.getMostRecentTraceFile());
-
-        Log.info(getClass(), "StartedHealthCheckTestLongStartupInterval", "First `run` entry trace: " + traceEntryStartofFirstStartCheck);
-
-        //We only care about time
-        DateTimeFormatter justTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss:SSS");
-
-        String dateTimeString = traceEntryStartofFirstStartCheck.split("]")[0].substring(1);
-        Log.info(getClass(), "StartedHealthCheckTestLongStartupInterval", "Debug: first `run` trace's timestamp : " + dateTimeString);
-
-        String time = resolveTime(dateTimeString);
-
-        LocalTime timeOfFirstQuery = LocalTime.parse(time, justTimeFormatter);
+        //Started file should still not be created; consequently no other files are created
+        TimeUnit.SECONDS.sleep(10);
+        Assert.assertFalse(Constants.STARTED_SHOULD_NOT_HAVE_CREATED, HealthFileUtils.getStartFile(serverRootDirFile).exists());
+        Assert.assertFalse(Constants.READY_SHOULD_NOT_HAVE_CREATED, HealthFileUtils.getReadyFile(serverRootDirFile).exists());
+        Assert.assertFalse(Constants.LIVE_SHOULD_NOT_HAVE_CREATED, HealthFileUtils.getLiveFile(serverRootDirFile).exists());
 
         /*
-         * Find the second `run` entry trace
+         * Started file should still not be created; consequently no other files are created.
+         * Startup interval is set to 30 seconds, but due to potential machine slowness, we'll just wait 5 seconds here.
+         * Our next wait we'll wait 25 seconds and expect files to be created.
          */
-        String traceEntryStartofSecondStartCheck = serverLongStart.waitForStringInTraceUsingMark(".*HealthCheck40ServiceImpl\\$StartedFileCreateProcess > run Entry.*", 35000);
-        Log.info(getClass(), "StartedHealthCheckTestLongStartupInterval", "Second `run` entry trace: " + traceEntryStartofSecondStartCheck);
+        TimeUnit.SECONDS.sleep(5);
+        Assert.assertFalse(Constants.STARTED_SHOULD_NOT_HAVE_CREATED, HealthFileUtils.getStartFile(serverRootDirFile).exists());
+        Assert.assertFalse(Constants.READY_SHOULD_NOT_HAVE_CREATED, HealthFileUtils.getReadyFile(serverRootDirFile).exists());
+        Assert.assertFalse(Constants.LIVE_SHOULD_NOT_HAVE_CREATED, HealthFileUtils.getLiveFile(serverRootDirFile).exists());
 
-        dateTimeString = traceEntryStartofSecondStartCheck.split("]")[0].substring(1);
-        Log.info(getClass(), "StartedHealthCheckTestLongStartupInterval", "Debug: second `run` trace timestamp : " + dateTimeString);
-
-        String time2 = resolveTime(dateTimeString);
-
-        LocalTime timeOfSecondQuery = LocalTime.parse(time2, justTimeFormatter);
-
-        /*
-         * Time to calculate the difference.
-         */
-        long diff = Duration.between(timeOfFirstQuery, timeOfSecondQuery).getSeconds();
-        Log.info(getClass(), "StartedHealthCheckTestLongStartupInterval", "The differencce in time between the two timestamps is (in seconds) : " + diff);
-
-        /*
-         * We start with 29 seconds because the tracing the first trace and second trace may have a difference of 29s999ms.
-         * That is because potential slowness may have caused the first trace to be emitted x ms after the timer actually was invoked.
-         * The traces are not "truly" exact on timing. And when we Convert the difference in duration into seconds, we get 29 seconds difference.
-         */
-        assertTrue("The difference expected should be 29s or greater (but no more than 32). We offer extra 2 seconds for potential slowness", (diff >= 29 && diff <= 32));
-
-        assertNotNull(serverLongStart.waitForStringInTraceUsingMark(".*Startup phase for local health check functionality completed.*"));
-
-        /*
-         * Expect:
-         * [X] /health dir
-         * [X] Started
-         * [X] Ready
-         * [X] Live
-         */
+        TimeUnit.SECONDS.sleep(20);
         Assert.assertTrue(Constants.STARTED_SHOULD_HAVE_CREATED, HealthFileUtils.getStartFile(serverRootDirFile).exists());
         Assert.assertTrue(Constants.READY_SHOULD_HAVE_CREATED, HealthFileUtils.getReadyFile(serverRootDirFile).exists());
         Assert.assertTrue(Constants.LIVE_SHOULD_HAVE_CREATED, HealthFileUtils.getLiveFile(serverRootDirFile).exists());
 
-    }
-
-    String resolveTime(String traceEntryDateTimeStamp) {
-        String split[] = traceEntryDateTimeStamp.split(" ");
-        String time = null;
-
-        if (split.length == 3) {
-            time = split[1];
-        } else {
-            for (String s : split) {
-                if (s.matches("\\d{2}:\\d{2}:\\d{2}:\\d{3}")) {
-                    time = s;
-                }
-            }
-        }
-        //time can't be null;
-        assertNotNull("Unable to resolve time, the time stamp is: " + traceEntryDateTimeStamp, time);
-        Log.info(getClass(), "resolveTime", "Debug: the resolved time is: " + time);
-        return time;
     }
 
     @Test
@@ -259,42 +198,37 @@ public class LongIntervalHealthCheckTest {
         Assert.assertTrue("Expected all files to be created: Review isAllHealthCheckFilesCreated logs for state of files.", FATSuite.isFilesCreated(serverRootDirFile));
 
         /*
-         * TO REDUCE ON POTENTIAL TEST SLOWNESS, WE'LL ONLY CHECK THE READY FILE.
-         * The underlying logic/mechanism is duplicated for updating the ready and live healht-check files.
+         * The checkInterval is at 30 seconds.
+         * Due to slowness of server startup, or app startups or test execution startup we'll wait 12 and then 5 seconds.
+         * We will check the last 10 seconds and 5 seconds respectively for each cycle.
+         * We wait 12 and check the last 10 due the fact that the update phase maybe have issue the first health check queries during the wait.
+         * If that is the case, waiting 12 seconds and checking the last 12 seconds would fail due to the file being modified during that duration.
+         * and expect the live and ready files not to be updated.
+         *
+         * Then we'll wait 20 seconsd and we should expect it to have been updated during that time frame.
+         *
          */
+        TimeUnit.SECONDS.sleep(12);
+        Assert.assertFalse(Constants.READY_SHOULD_NOT_HAVE_UPDATED,
+                           HealthFileUtils.isLastModifiedTimeWithinLast(HealthFileUtils.getReadyFile(serverRootDirFile), Duration.ofSeconds(10)));
+        Assert.assertFalse(Constants.LIVE_SHOULD_NOT_HAVE_UPDATED,
+                           HealthFileUtils.isLastModifiedTimeWithinLast(HealthFileUtils.getLiveFile(serverRootDirFile), Duration.ofSeconds(10)));
 
-        long readyCreateModifiedTime = HealthFileUtils.getLastModifiedTime(HealthFileUtils.getReadyFile(serverRootDirFile));
-        long readyCreatedTime = HealthFileUtils.getCreatedTime(HealthFileUtils.getReadyFile(serverRootDirFile));
-
-        Log.info(getClass(), "HealthCheckTestLongCheckInterval", "Debug: ready file creation time's modified time(ms): " + readyCreateModifiedTime);
-        Log.info(getClass(), "HealthCheckTestLongCheckInterval", "Debug: ready file creation time(ms): " + readyCreatedTime);
-
-        assertTrue("Differnce between create time and initial modified time is too great for the ready file.", readyCreateModifiedTime - readyCreatedTime <= 1000);
-
-        long currTime = System.currentTimeMillis();
-        long diff = currTime - readyCreatedTime;
-        Log.info(getClass(), "HealthCheckTestLongCheckInterval", "Diff from file creation time and current run time(ms): " + diff);
-        long timeRemaining = 30000L - diff;
-        Log.info(getClass(), "HealthCheckTestLongCheckInterval", "Time remaining in the 30 second interval(ms): " + timeRemaining);
-
-        TimeUnit.MILLISECONDS.sleep(timeRemaining / 2);
-        long readyModifiedTime = HealthFileUtils.getLastModifiedTime(HealthFileUtils.getReadyFile(serverRootDirFile));
-        Log.info(getClass(), "HealthCheckTestLongCheckInterval", "The ready file's `new` modified time(ms): " + readyModifiedTime);
-        assertTrue("Ready file should not have been upated. The new modified time is (ms): " + readyModifiedTime, readyModifiedTime == readyCreateModifiedTime);
+        TimeUnit.SECONDS.sleep(5);
+        Assert.assertFalse(Constants.READY_SHOULD_NOT_HAVE_UPDATED,
+                           HealthFileUtils.isLastModifiedTimeWithinLast(HealthFileUtils.getReadyFile(serverRootDirFile), Duration.ofSeconds(5)));
+        Assert.assertFalse(Constants.LIVE_SHOULD_NOT_HAVE_UPDATED,
+                           HealthFileUtils.isLastModifiedTimeWithinLast(HealthFileUtils.getLiveFile(serverRootDirFile), Duration.ofSeconds(5)));
 
         /*
-         * We've waited half the remaining 30 seconds already, we're waiting the second half now and we need to offset
-         * (i.e. 7 / 2 = 3. We'd need to wait (3x2) + 1 to hit the full time. Add extra 1.5 seconds offset.
+         * We are elapsed 38 seconds after we detected files are created (on the test infra).
+         * Checking within last 12 seconds. (i.e. elapsed after file create ~26-38).
+         * Big time window to account for slowness or "quickness" of the server.
          */
-        TimeUnit.MILLISECONDS.sleep((timeRemaining / 2) + 1500);
-        readyModifiedTime = HealthFileUtils.getLastModifiedTime(HealthFileUtils.getReadyFile(serverRootDirFile));
-        assertTrue("The last modified time of ready should have been updated, but was still: " + readyModifiedTime, readyModifiedTime != readyCreateModifiedTime);
-        Log.info(getClass(), "HealthCheckTestLongCheckInterval", "The ready file's `new` modified time(ms):" + readyModifiedTime);
-
-        long readyUpdateDiff = readyModifiedTime - readyCreatedTime;
-        Log.info(getClass(), "HealthCheckTestLongCheckInterval", "The difference between creation time and the ready update is (ms) : " + readyUpdateDiff);
-        //Allow for up to 32 seconds diff (account for any potential slowness
-        assertTrue("The modified time is out of bounds(ms): " + readyUpdateDiff, readyUpdateDiff > 30000 && readyUpdateDiff <= 32000);
-
+        TimeUnit.SECONDS.sleep(20);
+        Assert.assertTrue(Constants.READY_SHOULD_HAVE_UPDATED,
+                          HealthFileUtils.isLastModifiedTimeWithinLast(HealthFileUtils.getReadyFile(serverRootDirFile), Duration.ofSeconds(12)));
+        Assert.assertTrue(Constants.LIVE_SHOULD_HAVE_UPDATED,
+                          HealthFileUtils.isLastModifiedTimeWithinLast(HealthFileUtils.getLiveFile(serverRootDirFile), Duration.ofSeconds(12)));
     }
 }
