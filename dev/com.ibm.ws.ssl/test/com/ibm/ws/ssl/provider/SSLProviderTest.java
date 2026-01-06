@@ -4,7 +4,7 @@
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-2.0/
- *
+ * 
  * SPDX-License-Identifier: EPL-2.0
  *
  * Contributors:
@@ -13,13 +13,9 @@
 package com.ibm.ws.ssl.provider;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
-import java.lang.reflect.Field;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -38,29 +34,21 @@ public class SSLProviderTest {
         outputMgr.captureStreams();
     }
 
-    @Before
-    public void setUp() throws Exception {
-        // Clear the system property before each test
-        System.clearProperty("jdk.tls.ephemeralDHKeySize");
-        
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        outputMgr.resetStreams();
-    }
-
     @AfterClass
     public static void tearDownAfterClass() throws Exception {
         outputMgr.restoreStreams();
     }
 
     @Test
-    public void defaultDHKeySizeSetWhenNotSet() {
+    public void defaultDHKeySizeSetByStaticInitializer() {
+        // Trigger class loading - the static initializer sets the property
         SecurityDefaults.ensureDhKeySize();
-        assertEquals("2048",
-            System.getProperty("jdk.tls.ephemeralDHKeySize"));
+        
+        // Verify the property was set to the secure default
+        String dhKeySize = System.getProperty("jdk.tls.ephemeralDHKeySize");
+        assertNotNull("DH key size should be set", dhKeySize);
+        assertEquals("DH key size should be 2048", "2048", dhKeySize);
     }
 
 }
- 
+

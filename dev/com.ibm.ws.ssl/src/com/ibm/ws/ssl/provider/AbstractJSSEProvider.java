@@ -106,8 +106,8 @@ public abstract class AbstractJSSEProvider implements JSSEProvider {
         try {
             SecurityDefaults.ensureDhKeySize();
         } catch (Throwable t) {
-            // Avoid failing class initialization for diagnostics only; print to debug
-            com.ibm.ws.kernel.boot.Debug.printStackTrace(t);
+            // To debug
+            t.printStackTrace();
         }
     }
 
