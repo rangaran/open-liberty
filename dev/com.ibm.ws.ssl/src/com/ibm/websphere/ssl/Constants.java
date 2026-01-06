@@ -204,9 +204,9 @@ public class Constants {
     public static final String PROTOCOL_TLS_FIPS = PROTOCOL_TLSV1_2 + ", " + PROTOCOL_TLSV1_3;
 
     /*** SECURITY LEVEL CONSTANTS ***/
-    // Simplified security levels: DEFAULT (acts like the old HIGH) and CUSTOM
-    public static final String SECURITY_LEVEL_DEFAULT = "DEFAULT";
+    // Simplified security levels: HIGH and CUSTOM
     public static final String SECURITY_LEVEL_CUSTOM = "CUSTOM";
+    public static final String SECURITY_LEVEL_HIGH = "HIGH";
 
     /*** PROVIDER CONSTANTS ***/
     public static final String IBMJCE = "com.ibm.crypto.provider.IBMJCE";
@@ -368,12 +368,12 @@ public class Constants {
 
         if (supportedCiphers != null && supportedCiphers.length > 0) {
             if (securityLevel == null) {
-                securityLevel = Constants.SECURITY_LEVEL_DEFAULT;
+                securityLevel = Constants.SECURITY_LEVEL_HIGH;
             }
 
             // Accept legacy security level names and normalize them to DEFAULT
-            if ("HIGH".equalsIgnoreCase(securityLevel) || "MEDIUM".equalsIgnoreCase(securityLevel) || "LOW".equalsIgnoreCase(securityLevel)) {
-                securityLevel = Constants.SECURITY_LEVEL_DEFAULT;
+            if ("HIGH".equalsIgnoreCase(securityLevel)) {
+                securityLevel = Constants.SECURITY_LEVEL_HIGH;
             }
 
                 for (int i = 0; i < supportedCiphers.length; i++) {
