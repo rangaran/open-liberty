@@ -411,10 +411,6 @@ public class SSLConfigManager {
         if (clientAuthenticationSupported != null && !clientAuthenticationSupported.equals(""))
             sslprops.setProperty(Constants.SSLPROP_CLIENT_AUTHENTICATION_SUPPORTED, clientAuthenticationSupported);
 
-        String securityLevel = getSystemProperty(Constants.SSLPROP_SECURITY_LEVEL);
-        if (securityLevel != null && !securityLevel.equals(""))
-            sslprops.setProperty(Constants.SSLPROP_SECURITY_LEVEL, securityLevel);
-
         String clientKeyAlias = getSystemProperty(Constants.SSLPROP_KEY_STORE_CLIENT_ALIAS);
         if (clientKeyAlias != null && !clientKeyAlias.equals(""))
             sslprops.setProperty(Constants.SSLPROP_KEY_STORE_CLIENT_ALIAS, clientKeyAlias);
@@ -546,12 +542,7 @@ public class SSLConfigManager {
             sslprops.setProperty(Constants.SSLPROP_CLIENT_AUTHENTICATION_SUPPORTED, clientAuthSup.toString());
         }
 
-        String prop = (String) map.get("securityLevel");
-        if (null != prop && !prop.isEmpty()) {
-            sslprops.setProperty(Constants.SSLPROP_SECURITY_LEVEL, prop);
-        }
-
-        prop = (String) map.get("clientKeyAlias");
+        String prop = (String) map.get("clientKeyAlias");
         if (null != prop && !prop.isEmpty()) {
             sslprops.setProperty(Constants.SSLPROP_KEY_STORE_CLIENT_ALIAS, prop);
         }
@@ -1108,11 +1099,9 @@ public class SSLConfigManager {
     }
 
     /***
-     * This method adjusts the supported ciphers to include those appropriate to
-     * the security level (HIGH, MEDIUM, LOW).
+     * This method adjusts the supported ciphers
      *
-     * @param supportedCiphers
-     * @param securityLevel
+     * @param supportedCiphers 
      * @return String[]
      ***/
     public synchronized String[] adjustSupportedCiphers(String[] supportedCiphers) {

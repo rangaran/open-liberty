@@ -151,9 +151,6 @@ public class SSLConfig extends Properties {
         if (getProperty(Constants.SSLPROP_CONTEXT_PROVIDER) == null)
             setProperty(Constants.SSLPROP_CONTEXT_PROVIDER, defaultProvider.getContextProvider());
 
-        if (getProperty(Constants.SSLPROP_SECURITY_LEVEL) == null)
-            setProperty(Constants.SSLPROP_SECURITY_LEVEL, Constants.SECURITY_LEVEL_HIGH);
-
         if (getProperty(Constants.SSLPROP_TRUST_MANAGER) == null)
             setProperty(Constants.SSLPROP_TRUST_MANAGER, JSSEProviderFactory.getTrustManagerFactoryAlgorithm());
 
