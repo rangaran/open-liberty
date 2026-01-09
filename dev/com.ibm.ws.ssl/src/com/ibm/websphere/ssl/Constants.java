@@ -32,9 +32,6 @@ import com.ibm.websphere.ras.TraceComponent;
  * @since WAS 7.0
  */
 public class Constants {
-    /**  */
-    private static final int KEY_EXCHANGE_ALGORITHM_INDEX = 1;
-
     /**
      * Constructor.
      */
@@ -64,9 +61,7 @@ public class Constants {
     public static final String SSLPROP_CLIENT_AUTHENTICATION = "com.ibm.ssl.clientAuthentication";
     public static final String SSLPROP_CLIENT_AUTHENTICATION_SUPPORTED = "com.ibm.ssl.clientAuthenticationSupported";
     public static final String SSLPROP_CONTEXT_PROVIDER = "com.ibm.ssl.contextProvider";
-    // TODO remove SSLPROP_SECURITY_LEVEL after removing CL references.
     public static final String SSLPROP_SECURITY_LEVEL = "com.ibm.ssl.securityLevel";
-    // TODO remove SSLPROP_SECURITY_LEVEL after removing CL references.
     public static final String SSLPROP_TRUST_MANAGER = "com.ibm.ssl.trustManager";
     public static final String SSLPROP_CUSTOM_TRUST_MANAGERS = "com.ibm.ssl.customTrustManagers";
     public static final String SSLPROP_CUSTOM_KEY_MANAGER = "com.ibm.ssl.customKeyManager";
@@ -211,6 +206,12 @@ public class Constants {
     public static final String PROTOCOL_TLSV1_3 = "TLSv1.3";
     public static final String PROTOCOL_TLS_FIPS = PROTOCOL_TLSV1_2 + ", " + PROTOCOL_TLSV1_3;
 
+    /*** SECURITY LEVEL CONSTANTS ***/
+    public static final String SECURITY_LEVEL_HIGH = "HIGH";
+    public static final String SECURITY_LEVEL_MEDIUM = "MEDIUM";
+    public static final String SECURITY_LEVEL_LOW = "LOW";
+    public static final String SECURITY_LEVEL_CUSTOM = "CUSTOM";
+
     /*** PROVIDER CONSTANTS ***/
     public static final String IBMJCE = "com.ibm.crypto.provider.IBMJCE";
     public static final String IBMJCE_NAME = "IBMJCE";
@@ -291,8 +292,10 @@ public class Constants {
     public static final String DIRECTION_UNKNOWN = "unknown";
     public static final String TRUE = "true";
     public static final String FALSE = "false";
+
     private static final List<String> REQUIRED_ENCRYPTION_STRENGTHS = Arrays.asList("128_", "256_", "CHACHA20_POLY1305_");
     private static final List<String> DISALLOWED_CIPHER_SUITES = Arrays.asList("_anon_", "_NULL_", "_KRB5_", "_RC4", "_EXPORT_", "_FIPS_", "_3DES_", "_ECDH_");
+    private static final int KEY_EXCHANGE_ALGORITHM_INDEX = 1;
 
     // START OF UNUSED CONSTANTS
     //     unused in LIberty but not removed since this class is defined as an API
@@ -361,15 +364,10 @@ public class Constants {
      * This method adjusts the supported ciphers to include those appropriate
      * to the security level (HIGH, MEDIUM, LOW).
      *
-     * @deprecated The security level parameter is now ignored. This method now returns
-     *             an array of values filtered from supportedCiphers that meet modern security standards.
-     *             Use {@link #adjustSupportedCiphers()} directly instead.
-     *
      * @param supportedCiphers
      * @param securityLevel
      * @return String[]
      */
-    @Deprecated
     public static String[] adjustSupportedCiphersToSecurityLevel(String[] supportedCiphers, String securityLevel) {
         if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled()) {
             Tr.entry(tc, "adjustSupportedCiphersToSecurityLevel", new Object[] { convertCipherListToString(supportedCiphers), securityLevel });
