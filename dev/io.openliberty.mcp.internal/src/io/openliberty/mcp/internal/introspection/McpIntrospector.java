@@ -61,7 +61,7 @@ public class McpIntrospector implements Introspector {
             for (ToolMetadata tool : registry.getAllTools()) {
                 writer.println("  Tool: " + tool.name());
                 writer.println("  Description: " + tool.description());
-                writer.println("  Args: " + tool.arguments().keySet());
+                writer.println("  Args: " + tool.arguments());
             }
         }
 
