@@ -113,13 +113,9 @@ public class FATSuite extends TestContainerSuite {
             case Oracle:
                 return ""; // All tests passing on Oracle
             case Postgres:
-                //TODO testInsertEntityThatAlreadyExists PostgreSQL throws org.postgresql.util.PSQLException which is not a subclass of SQLIntegrityConstraintViolationException
-                exclude.add("ee.jakarta.tck.data.standalone.persistence.PersistenceEntityTests");
-                break;
+                return "";
             case SQLServer:
-                //TODO testInsertEntityThatAlreadyExists SQLServer throws com.microsoft.sqlserver.jdbc.SQLServerException which is not a subclass of SQLIntegrityConstraintViolationException
-                exclude.add("ee.jakarta.tck.data.standalone.persistence.PersistenceEntityTests");
-                break;
+                return "";
             default:
                 break;
         }
