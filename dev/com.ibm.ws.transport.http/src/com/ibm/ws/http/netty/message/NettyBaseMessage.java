@@ -857,11 +857,11 @@ public class NettyBaseMessage implements HttpBaseMessage, Externalizable {
     @Override
     public void setCharset(Charset set) {
         String contentType = getHeader(HttpHeaderKeys.HDR_CONTENT_TYPE).asString();
-        if (null == contentType) {
+        if (null == contentType || contentType.isEmpty()) {
             if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
                 Tr.debug(tc, "setCharset: no Content-Type header present");
             }
-            contentType = "test/html";
+            contentType = "text/html";
         } else {
             // Get everything prior to the first semicolon (if any).
             int length = contentType.length();
@@ -924,7 +924,11 @@ public class NettyBaseMessage implements HttpBaseMessage, Externalizable {
 
     @Override
     public HttpTrailersImpl createTrailers() {
-        throw new UnsupportedOperationException("createTrailers() not supported in Netty context");
+        // In the case of Netty, this operation is a NOOP because there is no
+        // implementation of HttpTrailersImpl on a Netty context so this API
+        // will always return null.
+        // @see com.ibm.wsspi.http.channel.HttpBaseMessage
+        return null;
     }
 
     public void processCookies() {
