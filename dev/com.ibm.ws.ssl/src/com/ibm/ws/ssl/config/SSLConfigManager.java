@@ -147,6 +147,9 @@ public class SSLConfigManager {
             Tr.entry(tc, "initializeSSL");
 
         try {
+
+            com.ibm.ws.ssl.config.SSLConfigManager.ensureDhKeySize();
+            
             if (reinitialize) {
                 // clear out the SSL context Cache
                 AbstractJSSEProvider.clearSSLContextCache();
@@ -346,6 +349,15 @@ public class SSLConfigManager {
             @Override
             public String run() {
                 return System.getProperty(key);
+            }
+        });
+    }
+
+    public static String setSystemProperty(final String key, final String value) {
+        return AccessController.doPrivileged(new PrivilegedAction<String>() {
+            @Override
+            public String run() {
+                return System.setProperty(key, value);
             }
         });
     }
@@ -1520,6 +1532,42 @@ public class SSLConfigManager {
             return true;
 
         return false;
+    }
+
+    /**
+     * Ensure secure default for ephemeral DH key size.
+     * Sets jdk.tls.ephemeralDHKeySize to 2048 if not already configured.
+     */
+    public static void ensureDhKeySize() {
+        if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled())
+            Tr.entry(tc, "ensureDhKeySize");
+
+        final String DHKEYSIZE_PROP = "jdk.tls.ephemeralDHKeySize";
+        final int DHKEYSIZE_DEFAULT = 2048;
+
+        SSLConfigManager mgr = new SSLConfigManager();
+        String configured = mgr.getSystemProperty(DHKEYSIZE_PROP);
+
+        if (configured != null) {
+            // User explicitly configured the property
+            int configuredSize = Integer.parseInt(configured);
+            if (configuredSize < DHKEYSIZE_DEFAULT) {
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
+                    Tr.debug(tc, "WARNING: " + DHKEYSIZE_PROP + " is set to " + configured +
+                            ", which is below the required minimum of " + DHKEYSIZE_DEFAULT);
+            } else {
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
+                    Tr.debug(tc, DHKEYSIZE_PROP + " = " + configured);
+            }
+        } else {
+            // Property not set - enforce secure default
+            mgr.setSystemProperty(DHKEYSIZE_PROP, String.valueOf(DHKEYSIZE_DEFAULT));
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
+                Tr.debug(tc, DHKEYSIZE_PROP + " not set; defaulting to secure minimum of " + DHKEYSIZE_DEFAULT);
+        }
+
+        if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled())
+            Tr.exit(tc, "ensureDhKeySize");
     }
 
     /*

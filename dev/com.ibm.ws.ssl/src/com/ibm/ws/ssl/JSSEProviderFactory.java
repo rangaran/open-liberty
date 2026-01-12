@@ -434,41 +434,6 @@ public class JSSEProviderFactory {
     }
 
     /**
-     * Ensure secure default for ephemeral DH key size.
-     * Sets jdk.tls.ephemeralDHKeySize to 2048 if not already configured.
-     */
-    public static void ensureDhKeySize() {
-        if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled())
-            Tr.entry(tc, "ensureDhKeySize");
-
-        final String PROPERTY = "jdk.tls.ephemeralDHKeySize";
-        final int MIN_SIZE = 2048;
-
-        // Use Integer.getInteger() which returns null if property is not set or invalid
-        Integer configured = Integer.getInteger(PROPERTY);
-
-        if (configured != null) {
-            // User explicitly configured the property
-            if (configured < MIN_SIZE) {
-                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
-                    Tr.debug(tc, "WARNING: " + PROPERTY + " is set to " + configured +
-                            ", which is below the required minimum of " + MIN_SIZE);
-            } else {
-                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
-                    Tr.debug(tc, PROPERTY + " = " + configured);
-            }
-        } else {
-            // Property not set - enforce secure default
-            System.setProperty(PROPERTY, String.valueOf(MIN_SIZE));
-            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
-                Tr.debug(tc, PROPERTY + " not set; defaulting to secure minimum of " + MIN_SIZE);
-        }
-
-        if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled())
-            Tr.exit(tc, "ensureDhKeySize");
-    }
-
-    /**
      * Insert a provider into Security at the provided slot number.
      *
      * @param newProvider

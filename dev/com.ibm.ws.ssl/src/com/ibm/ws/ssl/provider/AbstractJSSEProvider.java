@@ -110,13 +110,6 @@ public abstract class AbstractJSSEProvider implements JSSEProvider {
 
     protected void initialize(String keyMgr, String trustMgr, String cxtProvider, String keyProvider, String factory, String packageHandler, String protocolType) {
 
-        try {
-                com.ibm.ws.ssl.JSSEProviderFactory.ensureDhKeySize();
-            } catch (Exception e) {
-                if (tc.isDebugEnabled())
-                    Tr.debug(tc, "Exception caught initializing Ephemeral DH Key Size", new Object[] { e });
-            }
-
         this.keyManager = keyMgr;
         this.trustManager = trustMgr;
         this.contextProvider = cxtProvider;

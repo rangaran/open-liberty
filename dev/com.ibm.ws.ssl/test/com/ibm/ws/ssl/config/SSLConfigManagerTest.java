@@ -10,7 +10,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-package com.ibm.ws.ssl.provider;
+package com.ibm.ws.ssl.config;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -19,14 +19,14 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.ibm.ws.ssl.JSSEProviderFactory;
+import com.ibm.ws.ssl.config.SSLConfigManager;
 
 import test.common.SharedOutputManager;
 
 /**
- * Test for JSSEProviderFactory.ensureDhKeySize()
+ * Test for SSLConfigManager.ensureDhKeySize()
  */
-public class SSLProviderTest {
+public class SSLConfigManagerTest {
 
     private static SharedOutputManager outputMgr;
 
@@ -44,7 +44,7 @@ public class SSLProviderTest {
     @Test
     public void defaultDHKeySizeSetByEnsureDhKeySize() {
         // Call the method to ensure DH key size is set
-        JSSEProviderFactory.ensureDhKeySize();
+        SSLConfigManager.ensureDhKeySize();
         
         // Verify the property was set to the secure default
         String dhKeySize = System.getProperty("jdk.tls.ephemeralDHKeySize");
