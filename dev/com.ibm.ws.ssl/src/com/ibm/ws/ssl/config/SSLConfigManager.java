@@ -148,7 +148,7 @@ public class SSLConfigManager {
 
         try {
 
-            com.ibm.ws.ssl.config.SSLConfigManager.ensureDhKeySize();
+            ensureDhKeySize();
             
             if (reinitialize) {
                 // clear out the SSL context Cache
@@ -353,7 +353,7 @@ public class SSLConfigManager {
         });
     }
 
-    public static String setSystemProperty(final String key, final String value) {
+    public String setSystemProperty(final String key, final String value) {
         return AccessController.doPrivileged(new PrivilegedAction<String>() {
             @Override
             public String run() {
@@ -1538,15 +1538,14 @@ public class SSLConfigManager {
      * Ensure secure default for ephemeral DH key size.
      * Sets jdk.tls.ephemeralDHKeySize to 2048 if not already configured.
      */
-    public static void ensureDhKeySize() {
+    public void ensureDhKeySize() {
         if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled())
             Tr.entry(tc, "ensureDhKeySize");
 
         final String DHKEYSIZE_PROP = "jdk.tls.ephemeralDHKeySize";
         final int DHKEYSIZE_DEFAULT = 2048;
 
-        SSLConfigManager mgr = new SSLConfigManager();
-        String configured = mgr.getSystemProperty(DHKEYSIZE_PROP);
+        String configured = getSystemProperty(DHKEYSIZE_PROP);
 
         if (configured != null) {
             // User explicitly configured the property
@@ -1561,7 +1560,7 @@ public class SSLConfigManager {
             }
         } else {
             // Property not set - enforce secure default
-            mgr.setSystemProperty(DHKEYSIZE_PROP, String.valueOf(DHKEYSIZE_DEFAULT));
+            setSystemProperty(DHKEYSIZE_PROP, String.valueOf(DHKEYSIZE_DEFAULT));
             if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
                 Tr.debug(tc, DHKEYSIZE_PROP + " not set; defaulting to secure minimum of " + DHKEYSIZE_DEFAULT);
         }

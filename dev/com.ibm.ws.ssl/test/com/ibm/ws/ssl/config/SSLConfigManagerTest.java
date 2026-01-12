@@ -24,7 +24,7 @@ import com.ibm.ws.ssl.config.SSLConfigManager;
 import test.common.SharedOutputManager;
 
 /**
- * Test for SSLConfigManager.ensureDhKeySize()
+ * Test for ensureDhKeySize()
  */
 public class SSLConfigManagerTest {
 
@@ -44,7 +44,8 @@ public class SSLConfigManagerTest {
     @Test
     public void defaultDHKeySizeSetByEnsureDhKeySize() {
         // Call the method to ensure DH key size is set
-        SSLConfigManager.ensureDhKeySize();
+        SSLConfigManager mgr = SSLConfigManager.getInstance();
+        mgr.ensureDhKeySize();
         
         // Verify the property was set to the secure default
         String dhKeySize = System.getProperty("jdk.tls.ephemeralDHKeySize");
