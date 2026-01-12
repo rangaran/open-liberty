@@ -16,8 +16,8 @@ import com.ibm.ws.ffdc.annotation.FFDCIgnore;
 
 import io.openliberty.mcp.internal.exceptions.jsonrpc.JSONRPCErrorCode;
 import io.openliberty.mcp.internal.exceptions.jsonrpc.JSONRPCException;
-import io.openliberty.mcp.internal.tools.ToolManager.ToolArguments;
-import io.openliberty.mcp.internal.tools.ToolManager.ToolDefinition;
+import io.openliberty.mcp.tools.ToolManager.ToolArguments;
+import io.openliberty.mcp.tools.ToolManager.ToolDefinition;
 import io.openliberty.mcp.tools.ToolResponse;
 import jakarta.enterprise.context.spi.CreationalContext;
 import jakarta.enterprise.inject.spi.BeanManager;
@@ -64,9 +64,9 @@ public class SyncBeanMethodHandler extends BeanMethodHandler<ToolResponse> {
         } catch (InvocationTargetException e) {
             Throwable t = e.getCause();
             if (isBusinessException(t)) {
-                return createBusinessErrorResponse(e.getCause());
+                return ToolResponses.createBusinessErrorResponse(e.getCause());
             } else {
-                return createNonBusinessErrorResponse(t);
+                return ToolResponses.createNonBusinessErrorResponse(t, method.name());
             }
         }
     }

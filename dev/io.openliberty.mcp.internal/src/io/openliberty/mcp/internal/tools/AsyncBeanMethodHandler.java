@@ -19,8 +19,8 @@ import com.ibm.ws.ffdc.annotation.FFDCIgnore;
 
 import io.openliberty.mcp.internal.exceptions.jsonrpc.JSONRPCErrorCode;
 import io.openliberty.mcp.internal.exceptions.jsonrpc.JSONRPCException;
-import io.openliberty.mcp.internal.tools.ToolManager.ToolArguments;
-import io.openliberty.mcp.internal.tools.ToolManager.ToolDefinition;
+import io.openliberty.mcp.tools.ToolManager.ToolArguments;
+import io.openliberty.mcp.tools.ToolManager.ToolDefinition;
 import io.openliberty.mcp.tools.ToolResponse;
 import jakarta.enterprise.context.spi.CreationalContext;
 import jakarta.enterprise.inject.spi.BeanManager;
@@ -70,9 +70,9 @@ public class AsyncBeanMethodHandler extends BeanMethodHandler<CompletionStage<To
                                       throwable = throwable.getCause();
                                   }
                                   if (isBusinessException(throwable)) {
-                                      return createBusinessErrorResponse(throwable);
+                                      return ToolResponses.createBusinessErrorResponse(throwable);
                                   } else {
-                                      return createNonBusinessErrorResponse(throwable);
+                                      return ToolResponses.createNonBusinessErrorResponse(throwable, method.name());
                                   }
                               })
                               .whenComplete((result, throwable) -> releaseCc(cc));
@@ -81,9 +81,9 @@ public class AsyncBeanMethodHandler extends BeanMethodHandler<CompletionStage<To
         } catch (InvocationTargetException e) {
             Throwable t = e.getCause();
             if (isBusinessException(t)) {
-                return CompletableFuture.completedStage(createBusinessErrorResponse(t));
+                return CompletableFuture.completedStage(ToolResponses.createBusinessErrorResponse(t));
             } else {
-                return CompletableFuture.completedStage(createNonBusinessErrorResponse(t));
+                return CompletableFuture.completedStage(ToolResponses.createNonBusinessErrorResponse(t, method.name()));
             }
         }
     }

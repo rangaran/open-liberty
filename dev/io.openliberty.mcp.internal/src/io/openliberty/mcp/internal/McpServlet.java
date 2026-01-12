@@ -15,7 +15,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 
 import com.ibm.websphere.ras.Tr;
 import com.ibm.websphere.ras.TraceComponent;
@@ -44,11 +47,12 @@ import io.openliberty.mcp.internal.security.Authorizer;
 import io.openliberty.mcp.internal.sessions.McpSession;
 import io.openliberty.mcp.internal.sessions.McpSessionId;
 import io.openliberty.mcp.internal.sessions.McpSessionStore;
-import io.openliberty.mcp.internal.tools.ToolManager.ToolArguments;
+import io.openliberty.mcp.internal.tools.ToolResponses;
 import io.openliberty.mcp.messaging.Cancellation;
 import io.openliberty.mcp.meta.Meta;
 import io.openliberty.mcp.request.RequestId;
 import io.openliberty.mcp.tools.ToolCallException;
+import io.openliberty.mcp.tools.ToolManager.ToolArguments;
 import io.openliberty.mcp.tools.ToolResponse;
 import jakarta.enterprise.inject.spi.BeanManager;
 import jakarta.inject.Inject;
@@ -218,6 +222,7 @@ public class McpServlet extends HttpServlet {
         }
     }
 
+    @FFDCIgnore({ HttpResponseException.class, ToolCallException.class, Exception.class })
     private void callToolSynchronously(McpTransport transport,
                                        ExecutionRequestId requestId,
                                        McpRequest mcpRequest,
@@ -229,15 +234,24 @@ public class McpServlet extends HttpServlet {
             requestTracker.registerOngoingRequest(requestId, (CancellationImpl) toolArgs.cancellation());
         }
 
+        ToolResponse response;
         try {
             var handler = params.getMetadata().handler();
-
-            ToolResponse response = handler.apply(toolArgs);
-            ToolResponse finalResponse = removeStructuredContentIfNotSupported(response, transport);
-            transport.sendResponse(finalResponse);
+            response = handler.apply(toolArgs);
+        } catch (JSONRPCException | HttpResponseException e) {
+            // These exceptions indicate a specific response should be used
+            throw e;
+        } catch (ToolCallException e) {
+            // ToolCallException is the only business exception type that can be thrown by a handler
+            response = ToolResponses.createBusinessErrorResponse(e);
+        } catch (Exception e) {
+            // Any other exception should be turned into an error tool response
+            response = ToolResponses.createNonBusinessErrorResponse(e, params.getName());
         } finally {
             cleanup(requestId);
         }
+        response = removeStructuredContentIfNotSupported(response, transport);
+        transport.sendResponse(response);
     }
 
     private void callToolMethodAndSendResponseAsync(McpTransport transport,
@@ -253,10 +267,37 @@ public class McpServlet extends HttpServlet {
 
         var handler = params.getMetadata().asyncHandler();
 
-        CompletionStage<ToolResponse> response = handler.apply(toolArgs)
-                                                        .thenApply(r -> removeStructuredContentIfNotSupported(r, transport));
+        CompletionStage<ToolResponse> response = applyHandlerAndCatchException(handler, toolArgs);
+        response = response.thenApply(r -> removeStructuredContentIfNotSupported(r, transport))
+                           .exceptionally(throwable -> {
+            if (throwable instanceof CompletionException) {
+                throwable = throwable.getCause();
+            }
+            if (throwable instanceof JSONRPCException jsonEx) {
+                throw jsonEx;
+            }
+            if (throwable instanceof HttpResponseException httpEx) {
+                throw httpEx;
+            }
+            if (throwable instanceof ToolCallException) {
+                return ToolResponses.createBusinessErrorResponse(throwable);
+            } else {
+                return ToolResponses.createNonBusinessErrorResponse(throwable,
+                                                                    params.getName());
+            }
+        });
+
         transport.sendResultAsync(response)
                  .whenComplete((result, throwable) -> cleanup(requestId));
+    }
+
+    @FFDCIgnore(Exception.class)
+    private static <T, R> CompletionStage<R> applyHandlerAndCatchException(Function<T, CompletionStage<R>> handler, T arg) {
+        try {
+            return handler.apply(arg);
+        } catch (Exception e) {
+            return CompletableFuture.failedStage(e);
+        }
     }
 
     private ToolResponse removeStructuredContentIfNotSupported(ToolResponse response, McpTransport transport) {

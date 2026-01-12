@@ -37,8 +37,8 @@ import io.openliberty.mcp.internal.requests.McpRequestIdSerializer;
 import io.openliberty.mcp.internal.schemas.SchemaRegistry;
 import io.openliberty.mcp.internal.schemas.TypeUtility;
 import io.openliberty.mcp.internal.tools.BeanMethodHandler.MethodMetadata;
-import io.openliberty.mcp.internal.tools.ToolManager.ToolArgument;
 import io.openliberty.mcp.messaging.Encoder;
+import io.openliberty.mcp.tools.ToolManager.ToolArgument;
 import io.openliberty.mcp.tools.ToolResponseEncoder;
 import jakarta.enterprise.context.spi.CreationalContext;
 import jakarta.enterprise.event.Observes;
@@ -63,11 +63,11 @@ public class McpCdiExtension implements Extension {
 
     private static final List<Bean<?>> encoderBeans = new ArrayList<>();
     private EncoderRegistry encoderRegistry;
-    private ToolRegistry tools = new ToolRegistry();
     private ConcurrentHashMap<String, LinkedList<String>> duplicateToolsMap = new ConcurrentHashMap<>();
 
     private SchemaRegistry schemas = new SchemaRegistry();
     private Jsonb jsonb = createJsonb();
+    private ToolRegistry tools = new ToolRegistry(schemas, jsonb);
 
     private static Jsonb createJsonb() {
         JsonbConfig jsonbConfig = new JsonbConfig().withSerializers(new McpRequestIdSerializer())
