@@ -478,7 +478,7 @@ public class QueryInfo {
         StringBuilder q = new StringBuilder(source.jpql);
 
         if (restriction != null) {
-            q.append(" AND ");
+            q.append(hasWhere ? " AND " : " WHERE ");
             jpqlParamCount = entityInfo.builder.provider.compat //
                             .generateRestrictions(q,
                                                   entityVar_,
@@ -491,13 +491,14 @@ public class QueryInfo {
         boolean forward = pageReq == null ||
                           pageReq.mode() != PageRequest.Mode.CURSOR_PREVIOUS;
         StringBuilder order = null; // ORDER BY clause based on Sorts
-        for (Sort<?> sort : sorts) {
-            validateSort(sort);
-            order = order == null //
-                            ? new StringBuilder(100).append(" ORDER BY ") //
-                            : order.append(", ");
-            generateSort(order, sort, forward);
-        }
+        if (sorts != null)
+            for (Sort<?> sort : sorts) {
+                validateSort(sort);
+                order = order == null //
+                                ? new StringBuilder(100).append(" ORDER BY ") //
+                                : order.append(", ");
+                generateSort(order, sort, forward);
+            }
 
         if (pageReq == null ||
             pageReq.mode() == PageRequest.Mode.OFFSET) {
