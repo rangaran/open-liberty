@@ -231,9 +231,10 @@ public class SpMetadataBuilder {
             keyDescriptor.setParent(spSSODescriptor);
             spSSODescriptor.getKeyDescriptors().add(0, keyDescriptor);
 
-            if (CryptoUtils.isFips140_3Enabled()) {
+            String keyType = cert.getPublicKey().getAlgorithm();
+            if (CryptoUtils.isFips140_3Enabled() && !("EC".equalsIgnoreCase(keyType))) {
                 if (tc.isDebugEnabled()) {
-                    Tr.debug(tc, "Encryption Key is not supplied as FIPS 140-3 is enabled.");
+                    Tr.debug(tc, "Encryption Key of the type {" + keyType + "} is not supplied as FIPS 140-3 is enabled.");
                 } 
             } else {
                 KeyDescriptor encKeyDescriptor = keyDescriptorBuilder.buildObject();
