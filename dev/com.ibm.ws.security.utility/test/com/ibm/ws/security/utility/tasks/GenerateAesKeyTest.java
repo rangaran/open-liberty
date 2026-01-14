@@ -17,8 +17,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
 
 import org.junit.After;
@@ -29,6 +31,7 @@ import org.mockito.Mockito;
 
 import com.ibm.ws.crypto.util.AESKeyManager;
 import com.ibm.ws.security.utility.IFileUtility;
+import com.ibm.ws.security.utility.SecurityUtilityReturnCodes;
 import com.ibm.ws.security.utility.tasks.GenerateAesKeyTask.PasswordEncryptionConfigBuilder;
 import com.ibm.ws.security.utility.utils.ConsoleWrapper;
 
@@ -46,6 +49,7 @@ public class GenerateAesKeyTest {
     @Before
     public void setUp() {
         generate = new GenerateAesKeyTask(fileUtil, "myScript");
+        when(fileUtil.createParentDirectory(any(), any())).thenReturn(true);
     }
 
     @After
@@ -120,6 +124,18 @@ public class GenerateAesKeyTest {
     }
 
     @Test
+    public void testEmptyConfigFile() throws Exception {
+
+        try (MockedStatic<PasswordEncryptionConfigBuilder> xmlBuilder = Mockito.mockStatic(PasswordEncryptionConfigBuilder.class, Mockito.CALLS_REAL_METHODS)) {
+            generate.handleTask(stdin, stdout, stderr, new String[] { GenerateAesKeyTask.TASK_NAME, "--createConfigFile=" });
+            fail("task should throw an exception if config file isn't specified");
+        } catch (IllegalArgumentException iae) {
+            assertEquals("Wrong message returned when specifying an empty value for --createConfigFile.", BaseCommandTask.getMessage("missingValue", "--createConfigFile"),
+                         iae.getMessage());
+        }
+    }
+
+    @Test
     public void testUnknownArg() {
         String unknownArg = "testarg=abc";
 
@@ -127,7 +143,6 @@ public class GenerateAesKeyTest {
             generate.handleTask(stdin, stdout, stderr, new String[] { GenerateAesKeyTask.TASK_NAME, unknownArg });
             fail("task should output invalidArg message");
         } catch (Exception e) {
-            System.out.println(e.getMessage());
             assertEquals("Wrong message returned when specifying an empty key.", BaseCommandTask.getMessage("invalidArg", unknownArg), e.getMessage());
 
         }
@@ -142,8 +157,41 @@ public class GenerateAesKeyTest {
             generate.handleTask(stdin, stdout, stderr, new String[] { GenerateAesKeyTask.TASK_NAME, unknownArg });
             fail("task should output invalidArg message");
         } catch (Exception e) {
-            System.out.println(e.getMessage());
             assertEquals("Wrong message returned when specifying an empty key.", BaseCommandTask.getMessage("invalidArg", badParam), e.getMessage());
+        }
+    }
+
+    @Test
+    public void testDirCreateFail() throws Exception {
+
+        try (MockedStatic<PasswordEncryptionConfigBuilder> xmlBuilder = Mockito.mockStatic(PasswordEncryptionConfigBuilder.class, Mockito.CALLS_REAL_METHODS)) {
+            when(fileUtil.createParentDirectory(any(), any())).thenReturn(false);
+
+            String outfile = "/path/keys.xml";
+            try {
+                generate.handleTask(stdin, stdout, stderr, new String[] { GenerateAesKeyTask.TASK_NAME, "--createConfigFile=" + outfile });
+                fail("File path could not be created - message should appear in an exception");
+            } catch (IOException ioe) {
+                assertEquals("Wrong message returned when file path is not created.", BaseCommandTask.getMessage("fileUtility.failedDirCreate", outfile), ioe.getMessage());
+            }
+            xmlBuilder.verify(() -> PasswordEncryptionConfigBuilder.generateRandomAes256Key(), times(1));
+            xmlBuilder.verifyNoMoreInteractions();
+            verify(fileUtil, times(0)).writeToFile(any(), anyString(), any());
+
+        }
+    }
+
+    @Test
+    public void testFileWriteFail() throws Exception {
+        try (MockedStatic<PasswordEncryptionConfigBuilder> xmlBuilder = Mockito.mockStatic(PasswordEncryptionConfigBuilder.class, Mockito.CALLS_REAL_METHODS)) {
+            when(fileUtil.writeToFile(any(), any(), any())).thenReturn(false);
+
+            String outfile = "/path/keys.xml";
+            SecurityUtilityReturnCodes code = generate.handleTask(stdin, stdout, stderr, new String[] { GenerateAesKeyTask.TASK_NAME, "--createConfigFile=" + outfile });
+            assertEquals("return code 1 should be returned if file wasn't created", SecurityUtilityReturnCodes.ERR_GENERIC, code);
+            xmlBuilder.verify(() -> PasswordEncryptionConfigBuilder.generateRandomAes256Key(), times(1));
+            xmlBuilder.verifyNoMoreInteractions();
+            verify(fileUtil, times(1)).writeToFile(any(), anyString(), any());
 
         }
     }

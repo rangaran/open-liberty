@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2024,2025 IBM Corporation and others.
+ * Copyright (c) 2024,2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -48,6 +48,9 @@ public class DataErrPathsTest extends FATServletClient {
     private static final String[] EXPECTED_ERROR_MESSAGES = //
                     new String[] {
                                    "CWWJP9991W.*4002", // 2 persistence units attempt to autocreate same table
+                                   "CWWKD1002E.*addAndRetrieve", // Insert and Find on same method
+                                   "CWWKD1002E.*saveAndRemove", // Save and Delete on same method
+                                   "CWWKD1002E.*updateAndRetrieve", // Update and Query on same method
                                    "CWWKD1003E.*existsByAddress", // exists method returning int
                                    "CWWKD1003E.*existsByBirthday", // exists method returning Page<Boolean>
                                    "CWWKD1003E.*existsByName", // exists method returning CompletableFuture<Long>
@@ -127,7 +130,8 @@ public class DataErrPathsTest extends FATServletClient {
                                    "CWWKD1120E.*groupedByAddress", // cursor pagination with GROUP BY
                                    "CWWKD1120E.*unionOfAddresses", // cursor pagination with UNION
                                    "CWWKD1120E.*withNameAndAddress", // cursor pagination with INTERSECT
-                                   "CWWKD1120E.*withNameNotAddress" // cursor pagination with EXCEPT
+                                   "CWWKD1120E.*withNameNotAddress", // cursor pagination with EXCEPT
+                                   "CWWKD1121E.*VoterRegistration" // record entity without id
                     };
 
     @Server("io.openliberty.data.internal.fat.errpaths")

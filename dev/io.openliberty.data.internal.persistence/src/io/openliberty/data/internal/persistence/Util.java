@@ -80,6 +80,11 @@ public class Util {
                             Update.class.getSimpleName());
 
     /**
+     * Query hint and map key for a load graph.
+     */
+    static final String LOADGRAPH = "jakarta.persistence.loadgraph";
+
+    /**
      * List of valid prefixes for Query by Method Name methods of a stateful
      * repository.
      */
@@ -129,6 +134,7 @@ public class Util {
         QL_KEYWORDS_AFTER_ENTITY_NAME.add("HAVING");
         QL_KEYWORDS_AFTER_ENTITY_NAME.add("INTERSECT");
         QL_KEYWORDS_AFTER_ENTITY_NAME.add("ORDER");
+        QL_KEYWORDS_AFTER_ENTITY_NAME.add("SELECT");
         QL_KEYWORDS_AFTER_ENTITY_NAME.add("SET");
         QL_KEYWORDS_AFTER_ENTITY_NAME.add("UNION");
         QL_KEYWORDS_AFTER_ENTITY_NAME.add("WHERE");

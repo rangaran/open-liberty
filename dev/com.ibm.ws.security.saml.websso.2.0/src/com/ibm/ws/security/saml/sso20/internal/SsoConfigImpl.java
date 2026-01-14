@@ -33,7 +33,6 @@ import com.ibm.websphere.ras.Tr;
 import com.ibm.websphere.ras.TraceComponent;
 import com.ibm.websphere.ras.annotation.Sensitive;
 import com.ibm.ws.common.crypto.CryptoUtils;
-import com.ibm.ws.kernel.productinfo.ProductInfo;
 import com.ibm.ws.security.authentication.filter.AuthenticationFilter;
 import com.ibm.ws.security.common.config.CommonConfigUtils;
 import com.ibm.ws.security.filemonitor.FileBasedActionable;
@@ -51,8 +50,6 @@ import com.ibm.wsspi.kernel.service.utils.ConcurrentServiceReferenceMap;
 import com.ibm.wsspi.kernel.service.utils.SerializableProtectedString;
 
 public class SsoConfigImpl extends PkixTrustEngineConfig implements SsoConfig, FileBasedActionable {
-    // Flag tells us if the message for a call to a beta method has been issued
-    private static boolean issuedBetaMessage = false;
     public static final TraceComponent tc = Tr.register(SsoConfigImpl.class, TraceConstants.TRACE_GROUP, TraceConstants.MESSAGE_BUNDLE);
     public static final String KEY_ID = "id";
     public static final Object KEY_PROVIDER_ID = "id";
@@ -111,6 +108,7 @@ public class SsoConfigImpl extends PkixTrustEngineConfig implements SsoConfig, F
     static final String KEY_createSession = "createSession";
     static final String KEY_useRelayStateForTarget = "useRelayStateForTarget";
     public static final String KEY_postLogoutRedirectUrl = "postLogoutRedirectUrl";
+    static final String KEY_cspHeader = "contentSecurityPolicy";
 
     static final String[] notInUseAttributes = new String[] { KEY_headerName, KEY_audiences };
 
@@ -181,6 +179,7 @@ public class SsoConfigImpl extends PkixTrustEngineConfig implements SsoConfig, F
     boolean useRelayStateForTarget = true;
     String postLogoutRedirectUrl = null;
     private boolean servletRequestLogoutPerformsSamlLogout = false;
+    String cspHeader = null;
 
     static HashMap<String, String> nameIDFormatMap = new HashMap<String, String>();
     static {
@@ -296,6 +295,7 @@ public class SsoConfigImpl extends PkixTrustEngineConfig implements SsoConfig, F
         useRelayStateForTarget = (Boolean) props.get(KEY_useRelayStateForTarget);
         postLogoutRedirectUrl = configUtils.getConfigAttribute(props, KEY_postLogoutRedirectUrl);
         servletRequestLogoutPerformsSamlLogout = (Boolean) props.get(KEY_servletRequestLogoutPerformsSamlLogout);
+        cspHeader = (String) props.get(KEY_cspHeader);
 
         // Handle the tc debug
         processPkixTrustEngine(props);
@@ -572,7 +572,8 @@ public class SsoConfigImpl extends PkixTrustEngineConfig implements SsoConfig, F
                                                           + "\nx509 cert list:" + pkixX509List.toString()
                                                           + "\ncrl list:" + pkixCrlList.toString())
                      + "\npostLogoutRedirectUrl:" + postLogoutRedirectUrl
-                     + "\nservletRequestLogoutPerformsSamlLogout: " + servletRequestLogoutPerformsSamlLogout;
+                     + "\nservletRequestLogoutPerformsSamlLogout: " + servletRequestLogoutPerformsSamlLogout
+                     + "\ncspHeader: " + cspHeader;
         }
 
         return result;
@@ -592,39 +593,20 @@ public class SsoConfigImpl extends PkixTrustEngineConfig implements SsoConfig, F
             // Already log insure algorithm at top of the class
             return SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA1;
         } else if (CryptoUtils.MESSAGE_DIGEST_ALGORITHM_SHA384.equalsIgnoreCase(signatureMethodAlgorithm)) {
-            signatureBetaMessage();
             return SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA384;
         } else if (CryptoUtils.MESSAGE_DIGEST_ALGORITHM_SHA512.equalsIgnoreCase(signatureMethodAlgorithm)) {
-            signatureBetaMessage();
             return SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA512;
         } //end RSA algos
           //begin ECDSA algos
         else if (CryptoUtils.SIGNATURE_ALGORITHM_ECDSAWITHSHA256.equalsIgnoreCase(signatureMethodAlgorithm)) {
-            signatureBetaMessage();
             return SignatureConstants.ALGO_ID_SIGNATURE_ECDSA_SHA256;
         } else if (CryptoUtils.SIGNATURE_ALGORITHM_ECDSAWITHSHA384.equalsIgnoreCase(signatureMethodAlgorithm)) {
-            signatureBetaMessage();
             return SignatureConstants.ALGO_ID_SIGNATURE_ECDSA_SHA384;
         } else if (CryptoUtils.SIGNATURE_ALGORITHM_ECDSAWITHSHA512.equalsIgnoreCase(signatureMethodAlgorithm)) {
-            signatureBetaMessage();
             return SignatureConstants.ALGO_ID_SIGNATURE_ECDSA_SHA512;
         }
         // default to sha256 otherwise
         return SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA256;
-    }
-
-    /**
-     *
-     */
-    private void signatureBetaMessage() {
-        if (!ProductInfo.getBetaEdition()) {
-            throw new UnsupportedOperationException("The samlWebSso20 signatureMethodAlgorithm option, " + signatureMethodAlgorithm + ", is beta and is not available.");
-        } else {
-            if (!issuedBetaMessage) {
-                Tr.info(tc, "BETA: A beta option has been invoked for the class " + this.getClass().getName() + " for the first time.");
-                issuedBetaMessage = !issuedBetaMessage;
-            }
-        }
     }
 
     /*
@@ -987,4 +969,11 @@ public class SsoConfigImpl extends PkixTrustEngineConfig implements SsoConfig, F
 
     }
 
+    @Override
+    public String getCspHeader() {
+        if (cspHeader!=null && cspHeader.length()==0) {
+            return null;
+        }
+        return cspHeader;
+    }
 }

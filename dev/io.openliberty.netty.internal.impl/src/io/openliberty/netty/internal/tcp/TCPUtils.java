@@ -28,7 +28,6 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.util.concurrent.GlobalEventExecutor;
 import io.openliberty.netty.internal.BootstrapConfiguration;
 import io.openliberty.netty.internal.BootstrapExtended;
 import io.openliberty.netty.internal.ChannelInitializerWrapper;
@@ -46,18 +45,18 @@ public class TCPUtils {
 
     /**
      * Create a {@link ServerBootstrapExtended} for inbound TCP channels
-     * 
+     *
      * @param framework
      * @param tcpOptions
      * @return
      * @throws NettyException
      */
-    public static ServerBootstrapExtended createTCPBootstrap(NettyFrameworkImpl framework,
-                                                             Map<String, Object> tcpOptions) throws NettyException {
+    public static ServerBootstrapExtended createTCPBootstrapInbound(NettyFrameworkImpl framework,
+                                                                    Map<String, Object> tcpOptions) throws NettyException {
         BootstrapConfiguration config = new TCPConfigurationImpl(tcpOptions, true);
         ServerBootstrapExtended bs = new ServerBootstrapExtended();
         bs.group(framework.getParentGroup(), framework.getChildGroup());
-        bs.channel(NioServerSocketChannel.class);
+        bs.channel(framework.getServerSocketChannelClass());
         // apply the existing user config to the Netty TCP channel
         bs.applyConfiguration(config);
         ChannelInitializerWrapper tcpInitializer = new TCPChannelInitializerImpl(config, framework);
@@ -67,7 +66,7 @@ public class TCPUtils {
 
     /**
      * Create a {@link BootstrapExtended} for outbound TCP channels
-     * 
+     *
      * @param framework
      * @param tcpOptions
      * @return
@@ -78,7 +77,7 @@ public class TCPUtils {
         BootstrapConfiguration config = new TCPConfigurationImpl(tcpOptions, false);
         BootstrapExtended bs = new BootstrapExtended();
         bs.group(framework.getChildGroup());
-        bs.channel(NioSocketChannel.class);
+        bs.channel(framework.getSocketChannelClass());
         // apply the existing user config to the Netty TCP channel
         bs.applyConfiguration(config);
         ChannelInitializerWrapper tcpInitializer = new TCPChannelInitializerImpl(config, framework);
@@ -130,7 +129,7 @@ public class TCPUtils {
                         Tr.debug(tc, "Adding new channel group for " + channel);
                     }
                     synchronized (framework.getActiveChannelsMap()) {
-                        framework.getActiveChannelsMap().put(channel, new DefaultChannelGroup(GlobalEventExecutor.INSTANCE));
+                        framework.getActiveChannelsMap().put(channel, new DefaultChannelGroup(framework.getChildGroup().next()));
                     }
                 } else {
                     synchronized (framework.getOutboundConnections()) {
@@ -306,7 +305,7 @@ public class TCPUtils {
 
     /**
      * Start an inbound TCP channel
-     * 
+     *
      * @param framework
      * @param bootstrap
      * @param inetHost
@@ -315,8 +314,8 @@ public class TCPUtils {
      * @return
      * @throws NettyException
      */
-    public static Channel start(NettyFrameworkImpl framework, ServerBootstrapExtended bootstrap, String inetHost,
-                                int inetPort, ChannelFutureListener openListener) throws NettyException {
+    public static Channel startInbound(NettyFrameworkImpl framework, ServerBootstrapExtended bootstrap, String inetHost,
+                                       int inetPort, ChannelFutureListener openListener) throws NettyException {
         if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
             Tr.debug(tc, "start (TCP): attempt to bind a channel at host " + inetHost + " port " + inetPort);
         }
@@ -326,7 +325,7 @@ public class TCPUtils {
 
     /**
      * Start an outbound TCP channel
-     * 
+     *
      * @param framework
      * @param bootstrap
      * @param inetHost
@@ -347,7 +346,7 @@ public class TCPUtils {
     /**
      * Log a TCP channel stopped message. Inbound channels will log a INFO message,
      * and outbound channels will log DEBUG
-     * 
+     *
      * @param channel
      */
     public static void logChannelStopped(Channel channel) {
@@ -368,7 +367,7 @@ public class TCPUtils {
 
     /**
      * Overrides method above to also log the state of the future.
-     * 
+     *
      * @param channel
      */
     public static void logChannelStopped(Future<?> future, Channel channel) {
@@ -383,7 +382,7 @@ public class TCPUtils {
     /**
      * Log a TCP channel started message. Inbound channels will log a INFO message,
      * and outbound channels will log DEBUG
-     * 
+     *
      * @param channel
      */
     public static void logChannelStarted(Channel channel) {

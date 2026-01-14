@@ -40,7 +40,6 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.sql.DataSource;
@@ -141,11 +140,14 @@ public abstract class EntityManagerBuilder {
         this.convertibleTypes = convertibleTypes;
         EntityManager em = createEntityManager();
         try {
+            boolean isHibernate = em.getClass().getName().startsWith("org.hibernate.");
             Set<Class<?>> missingEntityTypes = new HashSet<>(entityTypes);
             Metamodel model = em.getMetamodel();
             for (EntityType<?> entityType : model.getEntities()) {
                 Map<String, String> attributeNames = new HashMap<>();
                 Map<String, List<Member>> attributeAccessors = new HashMap<>();
+                // TODO remove this workaround for #33232 once fixed
+                Map<String, Method> attributeSetters = isHibernate ? new HashMap<>() : null;
                 SortedSet<String> attributeNamesForUpdate = new TreeSet<>();
                 SortedMap<String, Class<?>> attributeTypes = new TreeMap<>();
                 SortedMap<String, Member> idClassAttributeAccessors = null;
@@ -154,11 +156,12 @@ public abstract class EntityManagerBuilder {
                 Queue<Attribute<?, ?>> relationships = new LinkedList<>();
                 Queue<String> relationPrefixes = new LinkedList<>();
                 Queue<List<Member>> relationAccessors = new LinkedList<>();
-                Class<?> recordClass = getRecordClass(entityType.getJavaType());
+                Queue<Boolean> relationEmbeddablesOnly = new LinkedList<>();
                 Class<?> idType = null;
                 String versionAttrName = null;
 
                 Class<?> jpaEntityClass = entityType.getJavaType();
+                Class<?> recordClass = getRecordClass(jpaEntityClass);
                 Class<?> userEntityClass = recordClass == null ? jpaEntityClass : recordClass;
                 missingEntityTypes.remove(userEntityClass);
 
@@ -185,6 +188,7 @@ public abstract class EntityManagerBuilder {
                                 relationships.add(attr);
                                 relationPrefixes.add(attributeName);
                                 relationAccessors.add(Collections.singletonList(attr.getJavaMember()));
+                                relationEmbeddablesOnly.add(attributeType == PersistentAttributeType.EMBEDDED);
                                 break;
                             case ONE_TO_MANY:
                             case MANY_TO_MANY:
@@ -198,12 +202,22 @@ public abstract class EntityManagerBuilder {
 
                         attributeNames.put(attributeName.toLowerCase(), attributeName);
                         attributeAccessors.put(attributeName, Collections.singletonList(accessor));
+                        if (attributeSetters != null && // workaround is only needed for Hibernate
+                            recordClass == null && // Java record entities are always new instances
+                            accessor instanceof Method) // otherwise use the Field
+                            attributeSetters.put(attributeName, getSetMethod(jpaEntityClass,
+                                                                             (Method) accessor));
                         attributeTypes.put(attributeName, attr.getJavaType());
                         if (attr.isCollection()) {
-                            if (attr instanceof PluralAttribute)
-                                collectionElementTypes.put(attributeName, ((PluralAttribute<?, ?, ?>) attr).getElementType().getJavaType());
+                            if (attr instanceof PluralAttribute) {
+                                Type<?> elementType = ((PluralAttribute<?, ?, ?>) attr).getElementType();
+                                collectionElementTypes.put(attributeName,
+                                                           elementType.getJavaType());
+                            }
                         } else {
-                            SingularAttribute<?, ?> singleAttr = attr instanceof SingularAttribute ? (SingularAttribute<?, ?>) attr : null;
+                            SingularAttribute<?, ?> singleAttr = attr instanceof SingularAttribute //
+                                            ? (SingularAttribute<?, ?>) attr //
+                                            : null;
                             if (singleAttr != null && singleAttr.isId()) {
                                 attributeNames.put(ID, attributeName);
                                 idType = singleAttr.getJavaType();
@@ -225,6 +239,8 @@ public abstract class EntityManagerBuilder {
                     for (Attribute<?, ?> attr; (attr = relationships.poll()) != null;) {
                         String prefix = relationPrefixes.poll();
                         List<Member> accessors = relationAccessors.poll();
+                        boolean isEmbeddablesOnly = relationEmbeddablesOnly.poll();
+
                         ManagedType<?> relation = model.managedType(attr.getJavaType());
                         if (relation instanceof EntityType && !entityTypeClasses.add(attr.getJavaType()))
                             break;
@@ -252,6 +268,8 @@ public abstract class EntityManagerBuilder {
                                     relationships.add(relAttr);
                                     relationPrefixes.add(fullAttributeName);
                                     relationAccessors.add(relAccessors);
+                                    relationEmbeddablesOnly.add(isEmbeddablesOnly &&
+                                                                attributeType == PersistentAttributeType.EMBEDDED);
                                     break;
                                 case ONE_TO_MANY:
                                 case MANY_TO_MANY:
@@ -300,8 +318,11 @@ public abstract class EntityManagerBuilder {
 
                             attributeTypes.put(fullAttributeName, relAttr.getJavaType());
                             if (relAttr.isCollection()) {
-                                if (relAttr instanceof PluralAttribute)
-                                    collectionElementTypes.put(fullAttributeName, ((PluralAttribute<?, ?, ?>) relAttr).getElementType().getJavaType());
+                                if (relAttr instanceof PluralAttribute) {
+                                    Type<?> elementType = ((PluralAttribute<?, ?, ?>) relAttr).getElementType();
+                                    collectionElementTypes.put(fullAttributeName,
+                                                               elementType.getJavaType());
+                                }
                             } else if (relAttr instanceof SingularAttribute) {
                                 SingularAttribute<?, ?> singleAttr = ((SingularAttribute<?, ?>) relAttr);
                                 if (singleAttr.isId() && attributeNames.putIfAbsent(ID, fullAttributeName) == null) {
@@ -345,18 +366,20 @@ public abstract class EntityManagerBuilder {
                                     attributeAccessors, //
                                     attributeNames, //
                                     attributeNamesForUpdate, //
+                                    attributeSetters, //
                                     attributeTypes, //
                                     collectionElementTypes, //
                                     relationAttributeNames, //
                                     idType, //
                                     idClassAttributeAccessors, //
+                                    isHibernate, //
                                     versionAttrName, //
                                     this);
 
                     entityInfoMap.computeIfAbsent(userEntityClass, EntityInfo::newFuture).complete(entityInfo);
                 } catch (Throwable x) { // Ignored FFDC
                     if (!(x instanceof DataException))
-                        x = exc(CompletionException.class,
+                        x = exc(DataException.class,
                                 "CWWKD1081.entity.general.err",
                                 userEntityClass.getName(),
                                 getClassNames(repositoryInterfaces),
@@ -506,6 +529,47 @@ public abstract class EntityManagerBuilder {
     }
 
     /**
+     * Identifies the setter method that corresponds to the given getter method.
+     *
+     * @param entityClass the entity class.
+     * @param getter      the getter method for an entity attribute.
+     * @return the setter method.
+     */
+    @FFDCIgnore(NoSuchMethodException.class)
+    private Method getSetMethod(Class<?> entityClass, Method getter) {
+        String getterName = getter.getName();
+        Class<?> getterReturnType = getter.getReturnType();
+
+        String setterName;
+        if (getterName.charAt(0) == 'g')
+            setterName = 's' + getterName.substring(1);
+        else if (getterName.startsWith("is"))
+            setterName = "set" + getterName.substring(2);
+        else
+            throw new UnsupportedOperationException("Invalid entity attribute: " +
+                                                    entityClass.getName() + "." + getterName);
+
+        Method setter = null;
+        try {
+            setter = entityClass.getMethod(setterName, getterReturnType);
+        } catch (NoSuchMethodException x) {
+            for (Class<?> c = entityClass; setter == null && c != null; c = c.getSuperclass())
+                try {
+                    setter = c.getDeclaredMethod(setterName, getterReturnType);
+                } catch (NoSuchMethodException xx) {
+                }
+            if (setter == null)
+                throw new UnsupportedOperationException("Invalid entity attribute: " +
+                                                        entityClass.getName() + "." + getterName, x);
+        } catch (SecurityException x) {
+            throw new UnsupportedOperationException("Invalid entity attribute: " +
+                                                    entityClass.getName() + "." + getterName, x);
+        }
+
+        return setter;
+    }
+
+    /**
      * Write information about this instance to the introspection file for
      * Jakarta Data.
      *
@@ -533,4 +597,5 @@ public abstract class EntityManagerBuilder {
                cause instanceof SQLNonTransientConnectionException ||
                cause instanceof SQLTransientConnectionException;
     }
+
 }

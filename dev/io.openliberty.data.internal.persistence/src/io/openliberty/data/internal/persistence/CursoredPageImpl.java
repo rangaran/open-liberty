@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022,2025 IBM Corporation and others.
+ * Copyright (c) 2022,2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -37,7 +37,6 @@ import jakarta.data.exceptions.DataException;
 import jakarta.data.page.CursoredPage;
 import jakarta.data.page.PageRequest;
 import jakarta.data.page.PageRequest.Cursor;
-import jakarta.persistence.CacheRetrieveMode;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 
@@ -86,12 +85,16 @@ public class CursoredPageImpl<T> implements CursoredPage<T> {
      * Construct a new CursoredPage.
      *
      * @param queryInfo   query information.
+     * @param em          the entity manager.
      * @param pageRequest the request for this page.
      * @param args        values that are supplied to the repository method.
+     * @throws Exception if an error occurs.
      */
-    @FFDCIgnore(Exception.class)
     @Trivial // avoid tracing customer data
-    CursoredPageImpl(QueryInfo queryInfo, PageRequest pageRequest, Object[] args) {
+    CursoredPageImpl(QueryInfo queryInfo,
+                     EntityManager em,
+                     PageRequest pageRequest,
+                     Object[] args) throws Exception {
         final boolean trace = TraceComponent.isAnyTracingEnabled();
         if (trace && tc.isEntryEnabled())
             Tr.entry(tc, "<init>", queryInfo, pageRequest, queryInfo.loggable(args));
@@ -111,42 +114,31 @@ public class CursoredPageImpl<T> implements CursoredPage<T> {
                         ? queryInfo.computeOffset(this.pageRequest) //
                         : 0;
 
-        EntityManager em = queryInfo.entityInfo.builder.createEntityManager();
-        try {
-            String jpql = cursor.isEmpty() ? queryInfo.jpql : //
-                            isForward ? queryInfo.jpqlAfterCursor : //
-                                            queryInfo.jpqlBeforeCursor;
+        String jpql = cursor.isEmpty() ? queryInfo.jpql : //
+                        isForward ? queryInfo.jpqlAfterCursor : //
+                                        queryInfo.jpqlBeforeCursor;
 
-            jakarta.persistence.Query query = em.createQuery(jpql);
-            queryInfo.setParameters(query, args);
+        @SuppressWarnings("unchecked")
+        TypedQuery<T> query = (TypedQuery<T>) em.createQuery(jpql,
+                                                             Object.class);
+        queryInfo.setParameters(query, args, null);
 
-            if (cursor.isPresent())
-                queryInfo.setParametersFromCursor(query, cursor.get());
+        if (cursor.isPresent())
+            queryInfo.setParametersFromCursor(query, cursor.get());
 
-            // TODO #33189 why are EntityManager.setCacheRetrieveMode and
-            // Query.setCacheRetrieveMode unable to set this instead?
-            query.setHint("jakarta.persistence.cache.retrieveMode",
-                          CacheRetrieveMode.BYPASS);
+        query.setFirstResult(firstResult);
+        query.setMaxResults(maxPageSize + (maxPageSize == Integer.MAX_VALUE ? 0 : 1)); // extra position is for knowing whether to expect another page
 
-            query.setFirstResult(firstResult);
-            query.setMaxResults(maxPageSize + (maxPageSize == Integer.MAX_VALUE ? 0 : 1)); // extra position is for knowing whether to expect another page
+        List<T> resultList = query.getResultList();
+        results = resultList;
 
-            @SuppressWarnings("unchecked")
-            List<T> resultList = query.getResultList();
-            results = resultList;
-
-            // Cursor-based pagination in the previous page direction is implemented
-            // by reversing the ORDER BY to obtain the previous page. A side-effect
-            // of that is that the resulting entries for the page are reversed,
-            // so we need to reverse again to correct that.
-            if (!isForward)
-                for (int size = results.size(), i = 0, j = size - (size > maxPageSize ? 2 : 1); i < j; i++, j--)
-                    Collections.swap(results, i, j);
-        } catch (Exception x) {
-            throw RepositoryImpl.failure(x, queryInfo.entityInfo.builder);
-        } finally {
-            em.close();
-        }
+        // Cursor-based pagination in the previous page direction is implemented
+        // by reversing the ORDER BY to obtain the previous page. A side-effect
+        // of that is that the resulting entries for the page are reversed,
+        // so we need to reverse again to correct that.
+        if (!isForward)
+            for (int size = results.size(), i = 0, j = size - (size > maxPageSize ? 2 : 1); i < j; i++, j--)
+                Collections.swap(results, i, j);
 
         if (trace && tc.isEntryEnabled())
             Tr.exit(this, tc, "<init>");
@@ -180,12 +172,7 @@ public class CursoredPageImpl<T> implements CursoredPage<T> {
             if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
                 Tr.debug(this, tc, "query for count: " + queryInfo.jpqlCount);
             TypedQuery<Long> query = em.createQuery(queryInfo.jpqlCount, Long.class);
-            queryInfo.setParameters(query, args);
-
-            // TODO #33189 why are EntityManager.setCacheRetrieveMode and
-            // Query.setCacheRetrieveMode unable to set this instead?
-            query.setHint("jakarta.persistence.cache.retrieveMode",
-                          CacheRetrieveMode.BYPASS);
+            queryInfo.setParameters(query, args, null);
 
             return query.getSingleResult();
         } catch (Exception x) {

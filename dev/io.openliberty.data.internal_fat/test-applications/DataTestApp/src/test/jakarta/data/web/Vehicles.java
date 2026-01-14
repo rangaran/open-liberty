@@ -67,6 +67,6 @@ public interface Vehicles {
     @Query("UPDATE Vehicle SET price=price+?2 WHERE (vinId=?1)")
     boolean updateByVinIdAddPrice(String vin, float priceIncrease);
 
-    @Query("WHERE LOWER(ID(THIS)) = ?1")
+    @Query("WHERE LOWER(ID(this)) = ?1")
     Optional<Vehicle> withVINLowerCase(String lowerCaseVIN);
 }

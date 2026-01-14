@@ -93,7 +93,7 @@ public interface Houses {
                            area=area+?3,
                            kitchen.length=kitchen.length+?4,
                            numBedrooms=?5
-                     WHERE o.parcelId=?1
+                     WHERE parcelId=?1
                     """)
     boolean updateHomeInfo(String parcel,
                            Garage updatedGarage,

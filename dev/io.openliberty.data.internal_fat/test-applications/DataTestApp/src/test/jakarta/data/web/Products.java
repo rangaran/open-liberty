@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022,2025 IBM Corporation and others.
+ * Copyright (c) 2022,2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -56,14 +56,22 @@ public interface Products {
 
     Optional<Product> findByPK(UUID id);
 
+    @Query("SELECT name")
+    String[] names();
+
+    @Query("WHERE price * 1.08125f < ?1")
+    List<Product> pricedBelowWithTax(float priceLimitIncludingTax);
+
     @Query("DELETE FROM Product p WHERE p.name LIKE ?1")
     int purge(String namePattern);
 
-    @Query("UPDATE Product SET price = price - (?2 * price) WHERE name LIKE CONCAT('%', ?1, '%')")
+    @Query("""
+                    UPDATE Product
+                       SET price = price - (?2 * price),
+                           version = version + 1
+                     WHERE name LIKE CONCAT('%', ?1, '%')
+                    """)
     long putOnSale(String nameContains, float discount);
-
-    @Query("SELECT name")
-    String[] names();
 
     // Custom repository method that combines multiple operations into a single transaction
     @Transactional
@@ -80,7 +88,7 @@ public interface Products {
     @Save
     Product[] saveMultiple(Product... p);
 
-    @Query("UPDATE Product SET price=?3 WHERE pk=?1 AND version=?2")
+    @Query("UPDATE Product SET price=?3, version=?2+1 WHERE pk=?1 AND version=?2")
     boolean setPrice(UUID pk,
                      long version,
                      float newPrice);

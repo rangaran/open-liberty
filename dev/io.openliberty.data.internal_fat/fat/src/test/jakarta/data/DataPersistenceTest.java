@@ -26,6 +26,7 @@ import org.testcontainers.containers.JdbcDatabaseContainer;
 
 import com.ibm.websphere.simplicity.ShrinkHelper;
 
+import componenttest.annotation.MaximumJavaLevel;
 import componenttest.annotation.MinimumJavaLevel;
 import componenttest.annotation.Server;
 import componenttest.annotation.TestServlet;
@@ -38,14 +39,15 @@ import componenttest.topology.impl.LibertyServer;
 import componenttest.topology.utils.FATServletClient;
 import test.jakarta.data.inmemory.web.ProviderTestServlet;
 import test.jakarta.data.web.DataTestServlet;
+import test.jakarta.data.web.hibernate.DataHibernateServlet;
 
 /**
  * Runs the tests with a third-party Persistence provider (Hibernate)
  * instead of the built-in Persistence provider (EclipseLink).
- * TODO actually use Hibernate instead of EclipseLink
  */
 @RunWith(FATRunner.class)
 @MinimumJavaLevel(javaLevel = 17)
+@MaximumJavaLevel(javaLevel = 25) // TODO remove once Hibernate upgrades their ByteBuddy dependency to a version that supports java 26+
 public class DataPersistenceTest extends FATServletClient {
     /**
      * Error messages, typically for invalid repository methods, that are
@@ -75,27 +77,32 @@ public class DataPersistenceTest extends FATServletClient {
                                    "CWWJP9991W.*Receipt"
                     };
 
+    //TODO enable database rotation
+//    @ClassRule
+//    public static final JdbcDatabaseContainer<?> testContainer = DatabaseContainerFactory.createLatest();
+
     @ClassRule
-    public static final JdbcDatabaseContainer<?> testContainer = DatabaseContainerFactory.create();
+    public static final JdbcDatabaseContainer<?> testContainer = DatabaseContainerFactory.createType(DatabaseContainerType.DerbyJava17Plus);
 
     @Server("io.openliberty.data.internal.fat.persistence")
     @TestServlets({ @TestServlet(servlet = DataTestServlet.class,
                                  contextRoot = "DataPersistenceApp"),
                     @TestServlet(servlet = ProviderTestServlet.class,
-                                 contextRoot = "ProviderTestApp") })
+                                 contextRoot = "ProviderTestApp"),
+                    @TestServlet(servlet = DataHibernateServlet.class,
+                                 contextRoot = "DataHibernateServlet") })
     public static LibertyServer server;
 
     @BeforeClass
     public static void setUp() throws Exception {
-        // Get driver type
-        DatabaseContainerType type = DatabaseContainerType.valueOf(testContainer);
-        server.addEnvVar("DB_DRIVER", type.getDriverName());
-
-        // Set up server DataSource properties
-        DatabaseContainerUtil.setupDataSourceDatabaseProperties(server, testContainer);
+        DatabaseContainerUtil.build(server, testContainer)
+                        .withDatabaseProperties()
+                        .withDriverVariable()
+                        .modify();
 
         WebArchive war = ShrinkHelper.buildDefaultApp("DataPersistenceApp",
-                                                      "test.jakarta.data.web");
+                                                      "test.jakarta.data.web",
+                                                      "test.jakarta.data.web.hibernate");
         ShrinkHelper.exportAppToServer(server, war);
 
         JavaArchive providerJar = ShrinkWrap.create(JavaArchive.class,
@@ -110,6 +117,8 @@ public class DataPersistenceTest extends FATServletClient {
                                                               "test.jakarta.data.inmemory.web")
                         .addAsLibrary(providerJar);
         ShrinkHelper.exportAppToServer(server, providerWar);
+
+        server.addEnvVar("TEST_HIBERNATE", "true"); //TODO remove once all incompatibilities are resolved
 
         server.startServerAndValidate(LibertyServer.DEFAULT_PRE_CLEAN,
                                       LibertyServer.DEFAULT_CLEANSTART,

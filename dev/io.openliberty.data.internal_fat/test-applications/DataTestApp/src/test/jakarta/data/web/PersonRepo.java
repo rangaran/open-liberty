@@ -49,7 +49,7 @@ public interface PersonRepo {
     @Transactional(TxType.SUPPORTS)
     Person getPersonInCurrentOrNoTransaction(Long ssn_id);
 
-    @Query("UPDATE Person SET firstName=?2 WHERE ID(THIS)=?1")
+    @Query("UPDATE Person SET firstName=?2 WHERE ID(this)=?1")
     @Transactional(TxType.REQUIRED)
     boolean setFirstNameInCurrentOrNewTransaction(Long ssn_id,
                                                   String firstName);
@@ -59,7 +59,7 @@ public interface PersonRepo {
     boolean setFirstNameInCurrentTransaction(Long ssn,
                                              String newFirstName);
 
-    @Query("UPDATE Person SET firstName=:firstName WHERE id(THIS)=:id")
+    @Query("UPDATE Person SET firstName=:firstName WHERE id(this)=:id")
     @Transactional(TxType.REQUIRES_NEW)
     boolean setFirstNameInNewTransaction(@Param("id") Long ssn,
                                          @Param("firstName") String newFirstName);
@@ -69,7 +69,7 @@ public interface PersonRepo {
     boolean setFirstNameWhenNoTransactionIsPresent(Long id,
                                                    String newFirstName);
 
-    @Query("UPDATE Person SET firstName=?2 WHERE Id(This)=?1")
+    @Query("UPDATE Person SET firstName=?2 WHERE Id(this)=?1")
     @Transactional(TxType.NOT_SUPPORTED)
     boolean setFirstNameWithCurrentTransactionSuspended(Long id,
                                                         String newFirstName);

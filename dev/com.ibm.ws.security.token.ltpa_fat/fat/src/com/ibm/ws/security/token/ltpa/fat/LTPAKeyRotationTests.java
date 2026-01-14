@@ -325,9 +325,6 @@ public class LTPAKeyRotationTests {
      * <LI>When FIPS is enabled on IBM JDK 8, a backup key file is not created
      * <LI>When FIPS is enabled on Semeru, a backup key file is created and a compatible LTPA key file is generated
      * </OL>
-     * 
-     * TODO: After removal of betaguard reconfigure test as regeneration will occur regardless of FIPS enablement and platform
-     * Beta check in LTPAKeyInfoManager only allows LTPA key backup and regeneration on Semeru FIPS 140-3
      */
     @Test
     @CheckForLeakedPasswords({ validPassword })
@@ -341,27 +338,30 @@ public class LTPAKeyRotationTests {
             // ltpa is ver1 on startup since fips is NOT enabled
             verifyLTPAKeyVersion(DEFAULT_KEY_PATH, "1.0");
 
+            // copy version2 (fips) ltpa to server
             copyFileToServerResourcesSecurityDir(ALT_FIPS_PRIMARY_KEY_PATH);
-            assertNotNull("Error message for LTPA key creation should be found in the log due to missing 3DESKey property",
-                server.waitForStringInLog("CWWKS4102E", 5000));
-
-            // should NOT regenerate ltpa to fips-compatible keys
-            assertFileWasNotCreated(DEFAULT_KEY_PATH + ".fips");
-
-        } else if (ibmJdk8Fips140_3Enabled) {
-
-            // ltpa is ver1 on startup since fips is NOT enabled
             verifyLTPAKeyVersion(DEFAULT_KEY_PATH, "2.0");
 
-            copyFileToServerResourcesSecurityDir(ALT_PRIMARY_KEY_PATH);
-            assertNotNull("Error message for LTPA key creation should be found in the log due to missing SharedKey property",
-                server.waitForStringInLog("CWWKS4102E", 5000));
+            // should regenerate ltpa to non-fips-compatible keys and backup incompatible key
+            waitForLTPAKeysCreatedMessage();
+            waitForLTPAConfigurationReadyMessage();
+            assertFileWasCreated(DEFAULT_KEY_PATH + ".fips");
 
-            // should NOT regenerate ltpa to fips-compatible keys
-            assertFileWasNotCreated(DEFAULT_KEY_PATH + ".nofips");
+            copyFileToServerResourcesSecurityDir(ALT_FIPS_PRIMARY_KEY_PATH);
+            verifyLTPAKeyVersion(DEFAULT_KEY_PATH, "2.0");
 
-        } else if (semeruFips140_3Enabled) {
-            
+            moveLogMark();
+
+            // should regenerate key again
+            waitForLTPAKeysCreatedMessage();
+            waitForLTPAConfigurationReadyMessage();
+
+            // verify version 2 keys was generated
+            assertFileWasCreated(DEFAULT_KEY_PATH);
+            verifyLTPAKeyVersion(DEFAULT_KEY_PATH, "1.0");
+
+        } else {
+
             // ltpa is ver2 on startup since fips is enabled
             verifyLTPAKeyVersion(DEFAULT_KEY_PATH, "2.0");
 
@@ -432,11 +432,10 @@ public class LTPAKeyRotationTests {
         // Rename the ltpa.keys file to validation1.keys
         renameFileIfExists(DEFAULT_KEY_PATH, VALIDATION_KEY1_PATH, false);
 
+        waitForLTPAKeysCreatedMessage();
+        waitForLTPAConfigurationReadyMessage();
         // Assert that a new ltpa.keys file was created
         assertFileWasCreated(DEFAULT_KEY_PATH);
-
-        // Wait for the LTPA configuration to be ready after the change
-        waitForLTPAConfigurationReadyMessage();
 
         // Attempt to access the simple servlet again with the same cookie and assert that the server did not need to login again
         flClient1.accessProtectedServletWithAuthorizedCookie(FormLoginClient.PROTECTED_SIMPLE, cookie1);

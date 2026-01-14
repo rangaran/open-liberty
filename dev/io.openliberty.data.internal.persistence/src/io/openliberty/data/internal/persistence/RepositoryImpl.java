@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022,2025 IBM Corporation and others.
+ * Copyright (c) 2022,2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -292,13 +292,18 @@ public class RepositoryImpl<R> implements InvocationHandler {
                 if (trace && tc.isDebugEnabled())
                     Tr.debug(tc, "checking " + cause.getClass().getName() + " with message " + cause.getMessage());
 
-                if (cause instanceof SQLException c &&
-                    emb.isConnectionError(c))
-                    x = new DataConnectionException(original);
+                String sqlState = null;
+                if (cause instanceof SQLException c) {
+                    sqlState = c.getSQLState();
+                    if (emb.isConnectionError(c))
+                        x = new DataConnectionException(original);
+                }
                 if (x == null)
                     if (cause instanceof SQLSyntaxErrorException)
                         x = new MappingException(original);
-                    else if (cause instanceof SQLIntegrityConstraintViolationException)
+                    else if (cause instanceof SQLIntegrityConstraintViolationException ||
+                    // workaround for PostgreSQL (23505) & Microsoft SQL Server (23000)
+                             sqlState != null && sqlState.startsWith("23"))
                         x = new EntityExistsException(original);
             }
             if (x == null) {
@@ -569,9 +574,6 @@ public class RepositoryImpl<R> implements InvocationHandler {
 
                 failed = false;
             } finally {
-                if (em != null)
-                    em.close();
-
                 try {
                     if (startedTransaction) {
                         int status = provider.tranMgr.getStatus();
@@ -586,24 +588,58 @@ public class RepositoryImpl<R> implements InvocationHandler {
                                          Util.txStatusToString(status));
                             provider.tranMgr.commit();
                         }
-                    } else {
-                        if (failed && Status.STATUS_ACTIVE == provider.tranMgr.getStatus()) {
+
+                        // TODO Is this necessary after a transaction?
+                        if (em != null && queryType.detachEntities) {
+                            // TODO 1.1 only detach if a stateless repository
                             if (trace && tc.isDebugEnabled())
-                                Tr.debug(this, tc, "set rollback only");
-                            provider.tranMgr.setRollbackOnly();
+                                Tr.debug(this, tc, "clear");
+                            em.clear();
+                        }
+                    } else {
+                        if (Status.STATUS_ACTIVE == provider.tranMgr.getStatus()) {
+                            if (failed) {
+                                if (trace && tc.isDebugEnabled())
+                                    Tr.debug(this, tc, "set rollback only");
+                                provider.tranMgr.setRollbackOnly();
+                            } else if (em != null && queryType.detachEntities) {
+                                // flush changes first because detach interferes with updates
+                                if (trace && tc.isDebugEnabled())
+                                    Tr.debug(this, tc, "flush");
+                                em.flush();
+                                // TODO 1.1 only detach if a stateless repository
+                                if (!entityInfo.isHibernate && // TODO remove this condition once #33544 is fixed
+                                    entityInfo != null) {
+                                    // Only valid if flush writes to the database,
+                                    // and Hibernate does not seem to honor flush. #33544
+                                    if (trace && tc.isDebugEnabled())
+                                        Tr.debug(this, tc, "clear");
+                                    em.clear();
+                                }
+                            }
+                        } else if (em != null && queryType.detachEntities) {
+                            // TODO 1.1 only detach if a stateless repository
+                            if (trace && tc.isDebugEnabled())
+                                Tr.debug(this, tc, "clear");
+                            em.clear();
                         }
                     }
                 } finally {
-                    if (suspendedLTC != null) {
-                        if (trace && tc.isDebugEnabled())
-                            Tr.debug(this, tc, "resume LTC: " + suspendedLTC);
-                        provider.localTranCurrent.resume(suspendedLTC);
+                    try {
+                        if (suspendedLTC != null) {
+                            if (trace && tc.isDebugEnabled())
+                                Tr.debug(this, tc, "resume LTC: " + suspendedLTC);
+                            provider.localTranCurrent.resume(suspendedLTC);
+                        }
+                    } finally {
+                        if (em != null)
+                            em.close();
                     }
                 }
             }
 
             if (trace && tc.isEntryEnabled()) {
-                Object valueToLog = queryType.hideReturnValue //
+                Object valueToLog = queryType == null || queryType.hideReturnValue //
                                 ? provider.loggable(repositoryInterface, method, returnValue) //
                                 : returnValue;
                 Tr.exit(this, tc, "invoke " + repositoryInterface.getSimpleName() +

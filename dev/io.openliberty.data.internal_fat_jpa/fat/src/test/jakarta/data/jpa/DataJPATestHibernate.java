@@ -21,6 +21,7 @@ import org.testcontainers.containers.JdbcDatabaseContainer;
 
 import com.ibm.websphere.simplicity.ShrinkHelper;
 
+import componenttest.annotation.MaximumJavaLevel;
 import componenttest.annotation.MinimumJavaLevel;
 import componenttest.annotation.Server;
 import componenttest.annotation.TestServlet;
@@ -36,6 +37,7 @@ import test.jakarta.data.jpa.web.hibernate.DataJPAHibernateServlet;
 
 @RunWith(FATRunner.class)
 @MinimumJavaLevel(javaLevel = 17)
+@MaximumJavaLevel(javaLevel = 25) // TODO remove once Hibernate upgrades their ByteBuddy dependency to a version that supports java 26+
 public class DataJPATestHibernate extends FATServletClient {
     /**
      * Error messages, typically for invalid repository methods, that are
@@ -67,10 +69,10 @@ public class DataJPATestHibernate extends FATServletClient {
 
     // TODO update tests to run in database rotation
 //    @ClassRule
-//    public static final JdbcDatabaseContainer<?> testContainer = DatabaseContainerFactory.create();
+//    public static final JdbcDatabaseContainer<?> testContainer = DatabaseContainerFactory.createLatest();
 
     @ClassRule
-    public static final JdbcDatabaseContainer<?> testContainer = DatabaseContainerFactory.createType(DatabaseContainerType.Derby);
+    public static final JdbcDatabaseContainer<?> testContainer = DatabaseContainerFactory.createType(DatabaseContainerType.DerbyJava17Plus);
 
     @Server("io.openliberty.data.internal.fat.jpa.hibernate")
     @TestServlets({

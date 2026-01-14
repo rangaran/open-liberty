@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022,2025 IBM Corporation and others.
+ * Copyright (c) 2022,2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -50,6 +50,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -95,11 +96,9 @@ import jakarta.data.repository.Param;
 import jakarta.data.repository.Query;
 import jakarta.data.repository.Save;
 import jakarta.data.repository.Update;
-import jakarta.persistence.CacheRetrieveMode;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.TypedQuery;
-import jakarta.transaction.Status;
 
 /**
  * Query information.
@@ -434,18 +433,30 @@ public class QueryInfo {
     /**
      * Construct a copy of a source QueryInfo, but with different JPQL and sorts.
      *
-     * @param source QueryInfo from which to copy.
-     * @param jpql   JPQL to use instead of the JPQL from source.
-     * @param sorts  Sorts to use instead of the sorts from source.
+     * @param source      QueryInfo from which to copy.
+     * @param restriction Restriction value that was supplied to the repository method.
+     *                        Otherwise null.
+     * @param qrParams    Map to be populated with JPQL parameter names and values
+     *                        for Restrictions. Map keys are the named parameter name
+     *                        or positional parameter index. Map values are obtained
+     *                        from the Restriction(s). The first positional parameter
+     *                        index starts at jpqlParamCount, which is updated by
+     *                        this method as JPQL parameters for the Restriction(s)
+     *                        are added.
+     * @param jpql        JPQL to use instead of the JPQL from source.
+     * @param sorts       Sorts to use instead of the sorts from source.
      */
-    private QueryInfo(QueryInfo source, String jpql, List<Sort<Object>> sorts) {
+    private QueryInfo(QueryInfo source,
+                      Object restriction,
+                      Map<Object, Object> qrParams,
+                      PageRequest pageReq,
+                      List<Sort<Object>> sorts) {
         entityInfo = source.entityInfo;
         entityParamType = source.entityParamType;
         entityVar = source.entityVar;
         entityVar_ = source.entityVar_;
         hasWhere = source.hasWhere;
         isOptional = source.isOptional;
-        this.jpql = jpql;
         jpqlAfterCursor = source.jpqlAfterCursor;
         jpqlBeforeCursor = source.jpqlBeforeCursor;
         jpqlCount = source.jpqlCount;
@@ -463,6 +474,43 @@ public class QueryInfo {
         this.sorts = sorts;
         type = source.type;
         validateParams = source.validateParams;
+
+        StringBuilder q = new StringBuilder(source.jpql);
+
+        if (restriction != null) {
+            q.append(" AND ");
+            jpqlParamCount = entityInfo.builder.provider.compat //
+                            .generateRestrictions(q,
+                                                  entityVar_,
+                                                  restriction,
+                                                  jpqlParamCount,
+                                                  jpqlParamNames,
+                                                  qrParams);
+        }
+
+        boolean forward = pageReq == null ||
+                          pageReq.mode() != PageRequest.Mode.CURSOR_PREVIOUS;
+        StringBuilder order = null; // ORDER BY clause based on Sorts
+        for (Sort<?> sort : sorts) {
+            validateSort(sort);
+            order = order == null //
+                            ? new StringBuilder(100).append(" ORDER BY ") //
+                            : order.append(", ");
+            generateSort(order, sort, forward);
+        }
+
+        if (pageReq == null ||
+            pageReq.mode() == PageRequest.Mode.OFFSET) {
+            // offset pagination can be a starting point for cursor pagination
+            if (order != null)
+                q.append(order);
+            this.jpql = q.toString();
+        } else { // CURSOR_NEXT or CURSOR_PREVIOUS
+            this.jpql = null;
+            generateCursorQueries(q,
+                                  forward ? order : null,
+                                  forward ? null : order);
+        }
     }
 
     /**
@@ -911,12 +959,7 @@ public class QueryInfo {
                      "to be returned as " + singleType.getName());
 
         TypedQuery<Long> query = em.createQuery(jpql, Long.class);
-        setParameters(query, args);
-
-        // TODO #33189 why are EntityManager.setCacheRetrieveMode and
-        // Query.setCacheRetrieveMode unable to set this instead?
-        query.setHint("jakarta.persistence.cache.retrieveMode",
-                      CacheRetrieveMode.BYPASS);
+        setParameters(query, args, null);
 
         Long count = query.getSingleResult();
 
@@ -1665,7 +1708,7 @@ public class QueryInfo {
             Tr.entry(this, tc, "execute", type); // DELETE or UPDATE
 
         jakarta.persistence.Query update = em.createQuery(jpql);
-        setParameters(update, args);
+        setParameters(update, args, null);
 
         int updateCount = update.executeUpdate();
 
@@ -1697,14 +1740,9 @@ public class QueryInfo {
         if (trace && tc.isEntryEnabled())
             Tr.entry(this, tc, "exists");
 
-        jakarta.persistence.Query query = em.createQuery(jpql);
+        TypedQuery<?> query = em.createQuery(jpql, Object.class);
         query.setMaxResults(1);
-        setParameters(query, args);
-
-        // TODO #33189 why are EntityManager.setCacheRetrieveMode and
-        // Query.setCacheRetrieveMode unable to set this instead?
-        query.setHint("jakarta.persistence.cache.retrieveMode",
-                      CacheRetrieveMode.BYPASS);
+        setParameters(query, args, null);
 
         List<?> results = query.getResultList();
         boolean found = !results.isEmpty();
@@ -1747,6 +1785,7 @@ public class QueryInfo {
         Limit limit = null;
         int max = maxResults;
         PageRequest pageReq = null;
+        Object restriction = null;
         List<Sort<Object>> sortList = null;
 
         // The first method parameters are used as query parameters.
@@ -1776,6 +1815,15 @@ public class QueryInfo {
                 @SuppressWarnings("unchecked")
                 List<Sort<Object>> newList = supplySorts(sortList, (Sort<Object>[]) param);
                 sortList = newList;
+            } else if (entityInfo.builder.provider.compat.isRestriction(param)) {
+                if (restriction == null)
+                    restriction = param;
+                else
+                    throw exc(UnsupportedOperationException.class,
+                              "CWWKD1017.dup.special.param",
+                              method.getName(),
+                              repositoryInterface.getName(),
+                              "Restriction");
             } else if (param == null) {
                 // ignore null for empty Sort...
                 boolean isSort = false;
@@ -1801,38 +1849,37 @@ public class QueryInfo {
             }
         }
 
+        // Map of named parameter name or positional parameter index to value
+        // for values obtained from Restrictions.
+        // The first positional parameter index starts at jpqlParamCount.
+        Map<Object, Object> queryRestrictionParams;
+        boolean requiresNewQuery;
+
+        if (restriction == null) {
+            queryRestrictionParams = Collections.emptyMap();
+            requiresNewQuery = false;
+        } else { // repository method has a Restriction
+            queryRestrictionParams = new LinkedHashMap<>();
+            requiresNewQuery = true;
+        }
+
         if (sortList == null && sortPositions.length > 0)
             sortList = sorts;
 
-        QueryInfo queryInfo = this;
         if (sortList == null || sortList.isEmpty()) {
             if (pageReq != null)
                 requireOrderedPagination(args);
         } else {
-            boolean forward = pageReq == null ||
-                              pageReq.mode() != PageRequest.Mode.CURSOR_PREVIOUS;
-            StringBuilder q = new StringBuilder(jpql);
-            StringBuilder order = null; // ORDER BY clause based on Sorts
-            for (Sort<?> sort : sortList) {
-                validateSort(sort);
-                order = order == null //
-                                ? new StringBuilder(100).append(" ORDER BY ") //
-                                : order.append(", ");
-                generateSort(order, sort, forward);
-            }
-
-            if (pageReq == null ||
-                pageReq.mode() == PageRequest.Mode.OFFSET) {
-                // offset pagination can be a starting point for cursor pagination
-                String jpqlOrdered = q.append(order).toString();
-                queryInfo = new QueryInfo(this, jpqlOrdered, sortList);
-            } else { // CURSOR_NEXT or CURSOR_PREVIOUS
-                queryInfo = new QueryInfo(this, null, sortList);
-                queryInfo.generateCursorQueries(q,
-                                                forward ? order : null,
-                                                forward ? null : order);
-            }
+            requiresNewQuery = true;
         }
+
+        QueryInfo queryInfo = requiresNewQuery //
+                        ? new QueryInfo(this, //
+                                        restriction, //
+                                        queryRestrictionParams, //
+                                        pageReq, //
+                                        sortList) //
+                        : this;
 
         Object returnValue = queryInfo.find(limit,
                                             max,
@@ -1840,7 +1887,8 @@ public class QueryInfo {
                                             sortList,
                                             em,
                                             txStatus,
-                                            args);
+                                            args,
+                                            queryRestrictionParams);
 
         if (isOptional) {
             returnValue = returnValue == null
@@ -1874,6 +1922,7 @@ public class QueryInfo {
      * @param em       entity manager.
      * @param txStatus transaction status.
      * @param args     method parameters.
+     * @param qrParams map of parameter names/indices and values for Restrictions.
      * @return results, before wrapping in an Optional or CompletionStage.
      * @throws Exception if an error occurs.
      */
@@ -1884,22 +1933,24 @@ public class QueryInfo {
                         List<Sort<Object>> sortList,
                         EntityManager em,
                         int txStatus,
-                        Object... args) throws Exception {
+                        Object[] args,
+                        Map<Object, Object> qrParams) throws Exception {
         final boolean trace = TraceComponent.isAnyTracingEnabled();
         if (trace && tc.isEntryEnabled())
             Tr.entry(this, tc, "find",
                      "Limit: " + limit,
                      "max results: " + max,
                      "PageRequest: " + pageReq,
-                     "Sorts: " + sortList);
+                     "Sorts: " + sortList,
+                     "count of Restriction values: " + qrParams.size());
 
         Object returnValue;
 
         if (CursoredPage.class.equals(multiType)) {
-            returnValue = new CursoredPageImpl<>(this, pageReq, args);
+            returnValue = new CursoredPageImpl<>(this, em, pageReq, args);
         } else if (Page.class.equals(multiType)) {
             PageRequest req = limit == null ? pageReq : toPageRequest(limit);
-            returnValue = new PageImpl<>(this, req, args);
+            returnValue = new PageImpl<>(this, em, req, args);
         } else if (pageReq != null &&
                    !PageRequest.Mode.OFFSET.equals(pageReq.mode())) {
             throw exc(IllegalArgumentException.class,
@@ -1915,13 +1966,8 @@ public class QueryInfo {
                          jpql,
                          entityInfo.entityClass.getName());
 
-            jakarta.persistence.Query query = em.createQuery(jpql);
-            setParameters(query, args);
-
-            // TODO #33189 why are EntityManager.setCacheRetrieveMode and
-            // Query.setCacheRetrieveMode unable to set this instead?
-            query.setHint("jakarta.persistence.cache.retrieveMode",
-                          CacheRetrieveMode.BYPASS);
+            TypedQuery<?> query = em.createQuery(jpql, Object.class);
+            setParameters(query, args, qrParams);
 
             if (type == FIND_AND_DELETE)
                 query.setLockMode(LockModeType.PESSIMISTIC_WRITE);
@@ -1945,10 +1991,11 @@ public class QueryInfo {
 
             if (multiType != null && BaseStream.class.isAssignableFrom(multiType)) {
                 Stream<?> stream;
-                if (txStatus == Status.STATUS_NO_TRANSACTION)
-                    stream = query.getResultList().stream();
-                else
-                    stream = query.getResultStream();
+                // TODO 1.1 getResultStream can be used for stateful repositories
+                //if (txStatus == Status.STATUS_NO_TRANSACTION)
+                stream = query.getResultList().stream();
+                //else
+                //    stream = query.getResultStream();
                 if (Stream.class.equals(multiType))
                     returnValue = stream;
                 else if (IntStream.class.equals(multiType))
@@ -2130,8 +2177,11 @@ public class QueryInfo {
             }
         }
 
-        if (!results.isEmpty())
+        if (!results.isEmpty()) {
+            if (trace && tc.isDebugEnabled())
+                Tr.debug(this, tc, "flush");
             em.flush();
+        }
 
         Object returnValue;
         Class<?> returnType = method.getReturnType();
@@ -2257,7 +2307,7 @@ public class QueryInfo {
         if (TraceComponent.isAnyTracingEnabled() && jpql != this.jpql)
             Tr.debug(this, tc, "JPQL adjusted for NULL id or version", jpql);
 
-        jakarta.persistence.Query query = em.createQuery(jpql);
+        TypedQuery<?> query = em.createQuery(jpql, Object.class);
         query.setLockMode(LockModeType.PESSIMISTIC_WRITE);
 
         if (entityInfo.idClassAttributeAccessors == null) {
@@ -2297,7 +2347,7 @@ public class QueryInfo {
         if (trace && tc.isDebugEnabled())
             Tr.debug(this, tc, "found", loggable(results.get(0)));
 
-        e = toEntity(e);
+        e = toEntity(e, em);
 
         if (trace && tc.isDebugEnabled())
             Tr.debug(this, tc, "merge", loggable(e));
@@ -3163,16 +3213,15 @@ public class QueryInfo {
     }
 
     /**
-     * Generates and appends JQPL to sort based on the specified entity attribute.
+     * Generates and appends JPQL to sort based on the specified entity attribute.
      * For most attributes, this will be of a form such as o.name or LOWER(o.name) DESC or ...
      *
      * @param q             builder for the JPQL query.
-     * @param Sort          sort criteria for a single attribute (name must already
+     * @param sort          sort criteria for a single attribute (name must already
      *                          be converted to a valid entity attribute name).
      * @param sameDirection indicate to append the Sort in the normal direction.
      *                          Otherwise reverses it (for cursor pagination in the
      *                          previous page direction).
-     * @return the same builder for the JPQL query.
      */
     @Trivial
     private void generateSort(StringBuilder q, Sort<?> sort, boolean sameDirection) {
@@ -3819,7 +3868,7 @@ public class QueryInfo {
             if (modifyAt.isEmpty() || entityInfo.recordClass == null)
                 jpql = ql;
             else
-                jpql = replaceQuery(ql, -1, modifyAt);
+                jpql = replaceQuery(ql, modifyAt);
         } else if (firstChar == 'U' || firstChar == 'u') {
             // UPDATE EntityName[ SET ... WHERE ...]
             int entityNameStartAt = -1;
@@ -3858,7 +3907,7 @@ public class QueryInfo {
             if (entityInfo.recordClass == null)
                 jpql = ql;
             else
-                jpql = replaceQuery(ql, -1, modifyAt);
+                jpql = replaceQuery(ql, modifyAt);
         } else { // SELECT ... or FROM ... or WHERE ... or ORDER BY ...
             type = FIND;
 
@@ -3876,7 +3925,7 @@ public class QueryInfo {
             if (entityInfo == null)
                 setEntityInfo(entityInfos, primaryEntityInfoFuture);
 
-            jpql = replaceQuery(ql, select0, modifyAt);
+            jpql = replaceQuery(ql, modifyAt);
         }
 
         // Find out how many parameters the method supplies to the query
@@ -4122,29 +4171,26 @@ public class QueryInfo {
             int length = Array.getLength(arg);
             results = resultVoid ? null : new ArrayList<>(length);
             for (; entityCount < length; entityCount++) {
-                Object entity = toEntity(Array.get(arg, entityCount));
+                Object entity = toEntity(Array.get(arg, entityCount), em);
                 em.persist(entity);
                 if (results != null)
                     results.add(entity);
             }
-            em.flush();
         } else if (arg instanceof Iterable) {
             results = resultVoid ? null : new ArrayList<>();
             for (Object e : ((Iterable<?>) arg)) {
                 entityCount++;
-                Object entity = toEntity(e);
+                Object entity = toEntity(e, em);
                 em.persist(entity);
                 if (results != null)
                     results.add(entity);
             }
-            em.flush();
         } else {
             entityCount = 1;
             hasSingularEntityParam = true;
             results = resultVoid ? null : new ArrayList<>(1);
-            Object entity = toEntity(arg);
+            Object entity = toEntity(arg, em);
             em.persist(entity);
-            em.flush();
             if (results != null)
                 results.add(entity);
         }
@@ -4155,6 +4201,10 @@ public class QueryInfo {
                       method.getName(),
                       repositoryInterface.getName(),
                       method.getGenericParameterTypes()[0].getTypeName());
+
+        if (trace && tc.isDebugEnabled())
+            Tr.debug(this, tc, "flush");
+        em.flush();
 
         Class<?> returnType = method.getReturnType();
         Object returnValue;
@@ -4660,43 +4710,20 @@ public class QueryInfo {
         TreeMap<Integer, QueryEdit> modifyAt = new TreeMap<>();
 
         int length = ql.length();
-        int i = startAt;
-        boolean isCursoredPage;
-        boolean countPages;
-        boolean countMustOmitSelect;
-        boolean needsConstructorEnd = false;
+        boolean hasTopLevelSelectClause = findQueryStartsWithSelect == Boolean.TRUE;
+        boolean isCursoredPage = CursoredPage.class.equals(multiType);
+        boolean countPages = isCursoredPage || Page.class.equals(multiType);
+        int countReplacesFirstSelectAt = hasTopLevelSelectClause && countPages //
+                        ? startAt // position after SELECT
+                        : -1; // SELECT clause is not present
+        int countReplacesFirstSelectEndingAt = -1;
+        int numTopLevelFromClauses = 0;
+        boolean insertRecordConstructors = producer.compat().atLeast(1, 1) &&
+                                           singleType.isRecord();
         boolean needsParenthesesEnd = false;
-
-        if (findQueryStartsWithSelect == null) {
-            // not a SELECT statement
-            isCursoredPage = false;
-            countPages = false;
-            countMustOmitSelect = false;
-        } else {
-            isCursoredPage = CursoredPage.class.equals(multiType);
-            countPages = isCursoredPage || Page.class.equals(multiType);
-
-            if (findQueryStartsWithSelect == Boolean.TRUE) {
-                countMustOmitSelect = countPages;
-                if (producer.compat().atLeast(1, 1) &&
-                    singleType.isRecord()) {
-                    while (i < length && Character.isWhitespace(ql.charAt(i)))
-                        i++;
-                    if (i + 3 < length &&
-                        !Character.isJavaIdentifierPart(ql.charAt(i + 3)) &&
-                        ql.regionMatches(true, i, "NEW", 0, 3)) {
-                        // already has constructor syntax
-                        i += 3;
-                    } else {
-                        modifyAt.put(i, QueryEdit.ADD_CONSTRUCTOR_BEGIN);
-                        needsConstructorEnd = true;
-                    }
-                }
-            } else { // findQueryStartsWithSelect == Boolean.FALSE
-                countMustOmitSelect = false;
-                modifyAt.put(QueryEdit.BEFORE_QUERY, QueryEdit.ADD_SELECT_IF_NEEDED);
-            }
-        }
+        boolean needsConstructorEnd = hasTopLevelSelectClause &&
+                                      insertRecordConstructors &&
+                                      parseSelectForConstructor(ql, startAt, modifyAt);
 
         Integer addFromAt = findQueryStartsWithSelect == null //
                         ? -1 // never, it's a DELETE or UPDATE so it always has FROM
@@ -4705,7 +4732,7 @@ public class QueryInfo {
         boolean isLiteral = false;
         StringBuilder paramName = null;
 
-        for (; i < length; i++) {
+        for (int i = startAt; i < length; i++) {
             char ch = ql.charAt(i);
             if (!isLiteral && ch == ':') {
                 paramName = new StringBuilder(30);
@@ -4732,20 +4759,20 @@ public class QueryInfo {
                         !Character.isJavaIdentifierPart(ql.charAt(i + 4)) &&
                         ql.regionMatches(true, i, "FROM", 0, 4)) {
 
-                        if (depth == 0 && // avoids SELECT EXTRACT(YEAR FROM d) WHERE ...
-                            addFromAt == null)
-                            addFromAt = -1;
-                        if (depth == 0 &&
-                            countMustOmitSelect) {
-                            countMustOmitSelect = false;
-                            modifyAt.put(-i, // avoid possible collision
-                                         QueryEdit.OMIT_SELECT_IN_COUNT);
-                        }
-                        if (depth == 0 &&
-                            needsConstructorEnd) {
-                            needsConstructorEnd = false;
-                            modifyAt.put(i - 1,
-                                         QueryEdit.ADD_CONSTRUCTOR_END);
+                        if (depth == 0) { // avoids EXTRACT(YEAR FROM d)
+                            numTopLevelFromClauses++;
+                            if (addFromAt == null) {
+                                addFromAt = -1;
+                            }
+                            if (hasTopLevelSelectClause &&
+                                countReplacesFirstSelectEndingAt < 0) {
+                                countReplacesFirstSelectEndingAt = i;
+                            }
+                            if (needsConstructorEnd) {
+                                needsConstructorEnd = false;
+                                modifyAt.put(i - 1,
+                                             QueryEdit.ADD_CONSTRUCTOR_END);
+                            }
                         }
 
                         i += 4;
@@ -4777,7 +4804,7 @@ public class QueryInfo {
                         }
                         i--; // balances loop increment when already positioned correctly
                     } else if (depth == 0) {
-                        boolean isWhere = false, isOrder = false;
+                        boolean isSelect = false, isWhere = false, isOrder = false;
                         int l; // keyword length
                         if (i + (l = 5) < length &&
                             !Character.isJavaIdentifierPart(ql.charAt(i + l)) &&
@@ -4788,28 +4815,28 @@ public class QueryInfo {
                             ||
                             (i + (l = 6) < length &&
                              !Character.isJavaIdentifierPart(ql.charAt(i + l)) &&
-                             (ql.regionMatches(true, i, "HAVING", 0, l) ||
+                             ((isSelect = ql.regionMatches(true, i, "SELECT", 0, l)) ||
+                              ql.regionMatches(true, i, "HAVING", 0, l) ||
                               ql.regionMatches(true, i, "EXCEPT", 0, l)))
                             ||
                             (i + (l = 9) < length &&
                              !Character.isJavaIdentifierPart(ql.charAt(i + l)) &&
                              ql.regionMatches(true, i, "INTERSECT", 0, l))) {
 
-                            if (isCursoredPage && !isWhere && !isOrder)
+                            if (isCursoredPage && !isSelect && !isWhere && !isOrder)
                                 // ORDER BY isn't allowed with cursored pagination
-                                // either, but has a better error message for it
-                                // elsewhere that points out the correct ways to
-                                // specify order
+                                // either, nor is SELECT positioned after WHERE,
+                                // but those patterns have a better error message
+                                // elsewhere that points out the correct usage
                                 throw exc(UnsupportedOperationException.class,
                                           "CWWKD1120.cursor.keyword.mismatch",
                                           method.getName(),
                                           repositoryInterface.getName(),
                                           ql.substring(i, i + l),
                                           ql);
-                            if (countMustOmitSelect) {
-                                countMustOmitSelect = false;
-                                modifyAt.put(-i, // avoid possible collision
-                                             QueryEdit.OMIT_SELECT_IN_COUNT);
+                            if (hasTopLevelSelectClause &&
+                                countReplacesFirstSelectEndingAt < 0) {
+                                countReplacesFirstSelectEndingAt = i;
                             }
                             if (needsConstructorEnd) {
                                 needsConstructorEnd = false;
@@ -4823,7 +4850,7 @@ public class QueryInfo {
                                     throw excCursorPaginationNotAllowed(ql, i, isOrder);
                             }
                             if (addFromAt == null)
-                                addFromAt = i;
+                                addFromAt = isSelect ? 0 : i;
                             i += l;
                             if (isWhere) {
                                 hasWhere = true;
@@ -4831,6 +4858,14 @@ public class QueryInfo {
                                     modifyAt.put(i, QueryEdit.ADD_PARENTHESIS_BEGIN);
                                     needsParenthesesEnd = true;
                                 }
+                            } else if (isSelect) {
+                                hasTopLevelSelectClause = true;
+
+                                if (insertRecordConstructors)
+                                    needsConstructorEnd = parseSelectForConstructor(ql, i, modifyAt);
+
+                                if (countReplacesFirstSelectAt < 0)
+                                    countReplacesFirstSelectAt = i;
                             } else if (isOrder) {
                                 if (countPages)
                                     modifyAt.put(-i, // avoid possible collision
@@ -4865,9 +4900,18 @@ public class QueryInfo {
         if (paramName != null)
             qlParamNames.add(paramName.toString());
 
-        if (countMustOmitSelect)
-            modifyAt.put(-length, // avoid possible collision
-                         QueryEdit.OMIT_SELECT_IN_COUNT);
+        if (countPages && countReplacesFirstSelectAt >= 0) {
+            modifyAt.put(countReplacesFirstSelectAt,
+                         QueryEdit.REPLACE_SELECT_IN_COUNT_BEGIN);
+            if (countReplacesFirstSelectEndingAt < 0)
+                countReplacesFirstSelectEndingAt = length;
+            modifyAt.put(-countReplacesFirstSelectEndingAt, // avoid possible collision
+                         QueryEdit.REPLACE_SELECT_IN_COUNT_END);
+        }
+
+        if (!hasTopLevelSelectClause && findQueryStartsWithSelect == Boolean.FALSE)
+            modifyAt.put(QueryEdit.BEFORE_QUERY,
+                         QueryEdit.ADD_SELECT_IF_NEEDED);
 
         if (addFromAt == null)
             if (findQueryStartsWithSelect == Boolean.TRUE)
@@ -4893,15 +4937,46 @@ public class QueryInfo {
     }
 
     /**
+     * Inspects the beginning of a SELECT clause to determine if constructor
+     * syntax (NEW) is present. If not present, add an instruction to insert it.
+     *
+     * @param ql       the query.
+     * @param i        position in the query after SELECT.
+     * @param modifyAt indices at which to perform modifications.
+     * @return true if this method added the ADD_CONSTRUCTOR_BEGIN instruction
+     *         which needs to be paired with ADD_CONSTRUCTOR_END.
+     */
+    @Trivial
+    private boolean parseSelectForConstructor(String ql,
+                                              int i,
+                                              Map<Integer, QueryEdit> modifyAt) {
+        boolean needsConstructorEnd = false;
+        int length = ql.length();
+
+        while (i < length && Character.isWhitespace(ql.charAt(i)))
+            i++;
+
+        if (i + 3 < length &&
+            !Character.isJavaIdentifierPart(ql.charAt(i + 3)) &&
+            ql.regionMatches(true, i, "NEW", 0, 3)) {
+            // already has constructor syntax
+            i += 3;
+        } else {
+            modifyAt.put(i, QueryEdit.ADD_CONSTRUCTOR_BEGIN);
+            needsConstructorEnd = true;
+        }
+
+        return needsConstructorEnd;
+    }
+
+    /**
      * Replaces the given query with one that includes the requested modifications.
      *
-     * @param ql                 the query.
-     * @param selectItemsStartAt the position after the SELECT keyword. Otherwise -1.
-     * @param modifyAt           indices at which to perform modifications.
+     * @param ql       the query.
+     * @param modifyAt indices at which to perform modifications.
      * @return a query that contains the requested modifications.
      */
     private String replaceQuery(String ql,
-                                int selectItemsStartAt,
                                 TreeMap<Integer, QueryEdit> modifyAt) {
 
         final String recordName = entityInfo.recordClass == null //
@@ -4925,19 +5000,24 @@ public class QueryInfo {
                                            : null;
         int cStartAt = 0; // index into the original query (ql)
         int cEndAt = qlLen;
+        int cSelectClauseEndAt = -1;
 
         for (Entry<Integer, QueryEdit> mod : modifyAt.entrySet()) {
             int m = mod.getKey();
             switch (mod.getValue()) {
-                case OMIT_SELECT_IN_COUNT:
+                case REPLACE_SELECT_IN_COUNT_END:
+                    cSelectClauseEndAt = -m; // position at end of SELECT clause
+                    break;
+                case REPLACE_SELECT_IN_COUNT_BEGIN:
                     if (c != null) {
-                        cStartAt = -m; // position after end of SELECT clause
-                        int selectItemsLength = cStartAt - selectItemsStartAt;
-                        c.append("SELECT COUNT(");
+                        c.append(ql.substring(cStartAt, cStartAt = m)); // SELECT
+                        c.append(" COUNT(");
+                        int selectItemsLength = cSelectClauseEndAt - cStartAt;
                         c.append(inferCountFromSelect(ql,
-                                                      selectItemsStartAt,
+                                                      cStartAt,
                                                       selectItemsLength));
                         c.append(") ");
+                        cStartAt = cSelectClauseEndAt;
                     }
                     break;
                 case OMIT_ORDER_IN_COUNT:
@@ -5131,23 +5211,22 @@ public class QueryInfo {
             results = new ArrayList<>();
             int length = Array.getLength(arg);
             for (; entityCount < length; entityCount++)
-                results.add(em.merge(toEntity(Array.get(arg, entityCount))));
-            em.flush();
+                // workaround is not possible when multiple entities
+                results.add(em.merge(toEntity(Array.get(arg, entityCount), null)));
         } else if (Iterable.class.isAssignableFrom(entityParamType)) {
             results = new ArrayList<>();
             for (Object e : ((Iterable<?>) arg)) {
                 entityCount++;
-                results.add(em.merge(toEntity(e)));
+                // workaround is not possible when multiple entities
+                results.add(em.merge(toEntity(e, null)));
             }
-            em.flush();
         } else {
             entityCount = 1;
             hasSingularEntityParam = true;
             results = resultVoid ? null : new ArrayList<>(1);
-            Object entity = em.merge(toEntity(arg));
+            Object entity = em.merge(toEntity(arg, em));
             if (results != null)
                 results.add(entity);
-            em.flush();
         }
 
         if (entityCount == 0)
@@ -5156,6 +5235,10 @@ public class QueryInfo {
                       method.getName(),
                       repositoryInterface.getName(),
                       method.getGenericParameterTypes()[0].getTypeName());
+
+        if (trace && tc.isDebugEnabled())
+            Tr.debug(this, tc, "flush");
+        em.flush();
 
         Class<?> returnType = method.getReturnType();
         Object returnValue;
@@ -5349,17 +5432,22 @@ public class QueryInfo {
     /**
      * Sets query parameters from repository method arguments.
      *
-     * @param query the query
-     * @param args  repository method arguments
-     * @throws Exception if an error occurs
+     * @param query    the query
+     * @param args     repository method arguments
+     * @param qrParams map of parameter names/indices and values for Restrictions.
      */
     @Trivial // avoid logging customer data
-    void setParameters(jakarta.persistence.Query query, Object... args) throws Exception {
+    void setParameters(jakarta.persistence.Query query,
+                       Object[] args,
+                       Map<Object, Object> qrParams) {
         final boolean trace = TraceComponent.isAnyTracingEnabled();
 
         DataVersionCompatibility compat = producer.compat();
+        int restrictionParamCount = qrParams == null ? 0 : qrParams.size();
+        int predefinedParamCount = jpqlParamCount - restrictionParamCount;
+
         Iterator<String> namedParams = jpqlParamNames.iterator();
-        for (int i = 0, p = 0; i < jpqlParamCount; i++) {
+        for (int i = 0, p = 0; i < predefinedParamCount; i++) {
             Object[] values = compat.toConstraintValues(args[i]);
             if (values == null) {
                 // normal value, not a Constraint
@@ -5384,6 +5472,24 @@ public class QueryInfo {
                 }
             }
         }
+
+        // JPQL parameters for Restriction(s)
+        if (restrictionParamCount > 0)
+            for (Entry<Object, Object> entry : qrParams.entrySet()) {
+                Object key = entry.getKey();
+                Object value = entry.getValue();
+                if (key instanceof String paramName) {
+                    if (trace && tc.isDebugEnabled())
+                        Tr.debug(this, tc, "[Restriction] set :" + paramName + ' ' + loggable(value));
+                    query.setParameter(paramName, value);
+                } else if (key instanceof Integer p) {
+                    if (trace && tc.isDebugEnabled())
+                        Tr.debug(this, tc, "[Restriction] set ?" + p + " " + loggable(value));
+                    query.setParameter(p, value);
+                } else { // should be unreachable
+                    throw new IllegalStateException(key.toString());
+                }
+            }
     }
 
     /**
@@ -5579,15 +5685,16 @@ public class QueryInfo {
      * Converts a record to its generated entity equivalent,
      * or does nothing if not a record.
      *
-     * @param o a record that needs conversion to an entity,
-     *              or an entity that is already an entity and does not
-     *              need conversion.
+     * @param o  a record that needs conversion to an entity,
+     *               or an entity that is already an entity and does not
+     *               need conversion.
+     * @param em entity manager.
      * @return entity.
      * @throws NullPointerException if the record is null, with a CWWKD1015 message
      *                                  that is appropriate for life cycle operations
      */
     @Trivial
-    private final Object toEntity(Object o) {
+    private final Object toEntity(Object o, EntityManager em) {
         if (o == null)
             throw exc(NullPointerException.class,
                       "CWWKD1015.null.entity.param",
@@ -5617,6 +5724,46 @@ public class QueryInfo {
                                                    targetx.getMessage());
                 throw (IllegalArgumentException) iax.initCause(x);
             }
+        // TODO entire else block can be removed once temporary workaround is no longer needed
+        else if (entityInfo.attributeSetters != null
+                 && (type == QueryType.SAVE ||
+                     type == QueryType.LC_UPDATE_MERGE)
+                 && oClass == entityInfo.getType()
+                 && em != null && !em.contains(o))
+            // Work around Hibernate issue merging detached entities by copying
+            // the entity to a new instance
+            try {
+                entity = oClass.getDeclaredConstructor().newInstance();
+                for (Entry<String, List<Member>> entry : entityInfo //
+                                .attributeAccessors.entrySet()) {
+                    String attributeName = entry.getKey();
+                    List<Member> accessors = entry.getValue();
+                    if (accessors.size() == 1) { // only top level attributes
+                        Member accessor = accessors.get(0);
+                        if (accessor instanceof Field f) {
+                            f.set(entity, f.get(o));
+                        } else {
+                            Method getter = (Method) accessor;
+                            Method setter = entityInfo.attributeSetters //
+                                            .get(attributeName);
+                            Object value = getter.invoke(o);
+                            setter.invoke(entity, value);
+                        }
+                    }
+                }
+            } catch (InstantiationException | //
+                            IllegalAccessException | //
+                            IllegalArgumentException | //
+                            InvocationTargetException | //
+                            NoSuchMethodException x) {
+                throw (IllegalArgumentException) exc(IllegalArgumentException.class,
+                                                     "CWWKD1081.entity.general.err",
+                                                     entityInfo.getType(),
+                                                     repositoryInterface,
+                                                     "",
+                                                     x.getMessage()).initCause(x);
+            }
+
         if (entity != o &&
             TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
             Tr.debug(tc, "toEntity " + loggable(o),
@@ -5760,6 +5907,8 @@ public class QueryInfo {
             updateCount = updateOne(arg, em);
         }
 
+        if (trace && tc.isDebugEnabled())
+            Tr.debug(this, tc, "flush");
         em.flush();
 
         if (numExpected == 0)

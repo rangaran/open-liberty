@@ -31,7 +31,6 @@ import com.ibm.websphere.ras.Tr;
 import com.ibm.websphere.ras.TraceComponent;
 import com.ibm.websphere.ras.annotation.Sensitive;
 import com.ibm.ws.common.crypto.CryptoUtils;
-import com.ibm.ws.kernel.productinfo.ProductInfo;
 import com.ibm.ws.security.authentication.filter.AuthenticationFilter;
 import com.ibm.ws.security.saml.Constants;
 import com.ibm.ws.security.saml.SsoConfig;
@@ -45,8 +44,6 @@ import com.ibm.wsspi.kernel.service.utils.ConcurrentServiceReferenceMap;
 import com.ibm.wsspi.kernel.service.utils.SerializableProtectedString;
 
 public class RsSamlConfigImpl extends PkixTrustEngineConfig implements SsoConfig {
-    // Flag tells us if the message for a call to a beta method has been issued
-    private static boolean issuedBetaMessage = false;
     public static final TraceComponent tc = Tr.register(RsSamlConfigImpl.class, TraceConstants.TRACE_GROUP, TraceConstants.MESSAGE_BUNDLE);
     public static final String KEY_ID = "id";
     public static final Object KEY_PROVIDER_ID = "id";
@@ -103,6 +100,7 @@ public class RsSamlConfigImpl extends PkixTrustEngineConfig implements SsoConfig
     static final String KEY_targetPageUrl = "targetPageUrl";
     static final String KEY_useRelayStateForTarget = "useRelayStateForTarget";
     static final String KEY_servletRequestLogoutPerformsSamlLogout = "spLogout";
+    static final String KEY_cspHeader = "contentSecurityPolicy";
 
     static final String[] notInUseAttributes = new String[] {
                                                               KEY_authnRequestsSigned, KEY_forceAuthn, KEY_isPassive,
@@ -112,7 +110,7 @@ public class RsSamlConfigImpl extends PkixTrustEngineConfig implements SsoConfig
                                                               KEY_sessionNotOnOrAfter, KEY_includeTokenInSubject, KEY_spCookieName,
                                                               KEY_spHostAndPort, KEY_targetPageUrl, KEY_httpsRequired,
                                                               KEY_allowCustomCacheKey, KEY_createSession, KEY_reAuthnOnAssertionExpire,
-                                                              KEY_reAuthnCushion
+                                                              KEY_reAuthnCushion, KEY_cspHeader
     };
 
     static final String ignoreAttributes;
@@ -153,6 +151,7 @@ public class RsSamlConfigImpl extends PkixTrustEngineConfig implements SsoConfig
     String[] audiences = new String[] { "ANY" };
     private final String bundleLocation;
     private boolean servletRequestLogoutPerformsSamlLogout = false;
+    String cspHeader = null;
 
     public RsSamlConfigImpl(ComponentContext cc,
                             Map<String, Object> props,
@@ -322,35 +321,15 @@ public class RsSamlConfigImpl extends PkixTrustEngineConfig implements SsoConfig
             // FIPS 140-3: Algorithm assessment complete; no changes required.
             // Already log insure algorithm at top of the class
             return SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA1;
+        } else if (CryptoUtils.MESSAGE_DIGEST_ALGORITHM_SHA384.equalsIgnoreCase(signatureMethodAlgorithm)) {
+            return SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA384;
+        } else if (CryptoUtils.MESSAGE_DIGEST_ALGORITHM_SHA512.equalsIgnoreCase(signatureMethodAlgorithm)) {
+            return SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA512;
         } else if (CryptoUtils.SIGNATURE_ALGORITHM_ECDSAWITHSHA256.equalsIgnoreCase(signatureMethodAlgorithm)) {
-            if (!ProductInfo.getBetaEdition()) {
-                throw new UnsupportedOperationException("The samlWebSso20 signatureMethodAlgorithm option, SHA256withECDSA, is beta and is not available.");
-            } else {
-                if (!issuedBetaMessage) {
-                    Tr.info(tc, "BETA: A beta option has been invoked for the class " + this.getClass().getName() + " for the first time.");
-                    issuedBetaMessage = !issuedBetaMessage;
-                }
-            }
             return SignatureConstants.ALGO_ID_SIGNATURE_ECDSA_SHA256;
         } else if (CryptoUtils.SIGNATURE_ALGORITHM_ECDSAWITHSHA384.equalsIgnoreCase(signatureMethodAlgorithm)) {
-            if (!ProductInfo.getBetaEdition()) {
-                throw new UnsupportedOperationException("The samlWebSso20 signatureMethodAlgorithm option, SHA384withECDSA, is beta and is not available.");
-            } else {
-                if (!issuedBetaMessage) {
-                    Tr.info(tc, "BETA: A beta option has been invoked for the class " + this.getClass().getName() + " for the first time.");
-                    issuedBetaMessage = !issuedBetaMessage;
-                }
-            }
             return SignatureConstants.ALGO_ID_SIGNATURE_ECDSA_SHA384;
         } else if (CryptoUtils.SIGNATURE_ALGORITHM_ECDSAWITHSHA512.equalsIgnoreCase(signatureMethodAlgorithm)) {
-            if (!ProductInfo.getBetaEdition()) {
-                throw new UnsupportedOperationException("The samlWebSso20 signatureMethodAlgorithm option, SHA512withECDSA, is beta and is not available.");
-            } else {
-                if (!issuedBetaMessage) {
-                    Tr.info(tc, "BETA: A beta option has been invoked for the class " + this.getClass().getName() + " for the first time.");
-                    issuedBetaMessage = !issuedBetaMessage;
-                }
-            }
             return SignatureConstants.ALGO_ID_SIGNATURE_ECDSA_SHA512;
         }
         return SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA256;
@@ -581,6 +560,14 @@ public class RsSamlConfigImpl extends PkixTrustEngineConfig implements SsoConfig
     public boolean isAuthnRequestsSigned() {
         return unexpectedCall(false);
     };
+
+    @Override
+    public String getCspHeader() {
+        if (cspHeader!=null && cspHeader.length()==0) {
+            return null;
+        }
+        return cspHeader;
+    }
 
     /*
      * (non-Javadoc)

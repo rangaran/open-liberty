@@ -30,7 +30,9 @@ import io.openliberty.transport.http_fat.accesslists.AccessListsTests;
                 SoReuseAddrTest.class,
                 TcpOptionsDefaultTests.class,
                 ContentTypeResponseHeaderTests.class,
-                AccessLogRolloverTest.class
+                AccessLogRolloverTest.class,
+                MaxMessageSizeLimitTests.class,
+                Expect100ContinueTest.class
 })
 
 public class FATSuite {
