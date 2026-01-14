@@ -95,6 +95,13 @@ public class SSLConfigManager {
 
     // Unsaved cfgs due to error
     private static final List<String> unSavedCfgs = new ArrayList<>();
+    // Track whether DH key size property was explicitly set by user
+    private boolean dhKeySizePropertyWasSet = true; // Default to true until ensureDhKeySize() is called
+    // Track if we've already logged the "not set; enabling" message
+    private boolean dhMonitoringMessageLogged = false;
+    // Track if we've already logged a weak DH cipher suite warning
+    private boolean weakDHWarningLogged = false;
+
     private static boolean messageIssued = false;
 
     /*
@@ -1549,24 +1556,167 @@ public class SSLConfigManager {
 
         if (configured != null) {
             // User explicitly configured the property
-            int configuredSize = Integer.parseInt(configured);
-            if (configuredSize < DHKEYSIZE_DEFAULT) {
+            // Try to parse as integer first
+            Integer configuredSize = null;
+            try {
+                configuredSize = Integer.parseInt(configured);
+            } catch (NumberFormatException nfe) {
+                // Not an integer, treat as string value
                 if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
-                    Tr.warning(tc, DHKEYSIZE_PROP + " is set to " + configured +
-                            ", which is below the required minimum of " + DHKEYSIZE_DEFAULT);
-            } else {
-                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
-                    Tr.debug(tc, DHKEYSIZE_PROP + " = " + configured);
+                    Tr.debug(tc, DHKEYSIZE_PROP + " is set to string value: " + configured);
             }
+
+            if (configuredSize != null) {
+                // Integer value
+                if (configuredSize < DHKEYSIZE_DEFAULT) {
+                    if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
+                        Tr.warning(tc, DHKEYSIZE_PROP + " is set to " + configured +
+                                ", which is below the required minimum of " + DHKEYSIZE_DEFAULT);
+                } else {
+                    if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
+                        Tr.debug(tc, DHKEYSIZE_PROP + " is set to " + configured);
+                }
+            } else {
+                // String value - check for known values
+                String configuredLower = configured.toLowerCase();
+                if ("matched".equals(configuredLower)) {
+                    if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
+                        Tr.debug(tc, DHKEYSIZE_PROP + " is set to 'matched' - DH key size will match certificate key size");
+                } else if ("legacy".equals(configuredLower)) {
+                    if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
+                        Tr.warning(tc, DHKEYSIZE_PROP + " is set to 'legacy' - this uses weak key sizes and is highly discouraged for security reasons");
+                } else {
+                    // Unknown string value
+                    if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
+                        Tr.debug(tc, DHKEYSIZE_PROP + " is set to unrecognized value: " + configured);
+                }
+            }
+            // Property is set - don't enable runtime monitoring
+            dhKeySizePropertyWasSet = true;
         } else {
-            // Property not set - enforce secure default
-            setSystemProperty(DHKEYSIZE_PROP, String.valueOf(DHKEYSIZE_DEFAULT));
-            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
-                Tr.debug(tc, DHKEYSIZE_PROP + " not set; defaulting to secure minimum of " + DHKEYSIZE_DEFAULT);
+            // Property not set - enable runtime monitoring for weak DH cipher suites
+            // Do NOT set a default value - let the JVM use its default behavior
+            if (!dhMonitoringMessageLogged) {
+                Tr.info(tc, DHKEYSIZE_PROP + " not set; enabling runtime monitoring for weak DH cipher suites");
+                dhMonitoringMessageLogged = true;
+            }
+            
+            dhKeySizePropertyWasSet = false;
         }
 
         if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled())
             Tr.exit(tc, "ensureDhKeySize");
+    }
+
+    /**
+     * Check if the DH key size property was explicitly set by the user.
+     * This is used to determine if runtime monitoring should be enabled.
+     *
+     * @return true if property was set, false if it was defaulted
+     */
+    public boolean isDhKeySizePropertySet() {
+        return dhKeySizePropertyWasSet;
+    }
+
+    /**
+     * Reset the DH key size monitoring flags.
+     * This is primarily for testing purposes to allow tests to run independently.
+     */
+    public void resetDhKeySizeFlags() {
+        dhKeySizePropertyWasSet = true; // Default to true until ensureDhKeySize() is called
+        dhMonitoringMessageLogged = false;
+        weakDHWarningLogged = false;
+    }
+
+    /**
+     * Check if a cipher suite uses Diffie-Hellman key exchange.
+     *
+     * @param cipherSuite The cipher suite name
+     * @return true if it's a DH-based cipher suite
+     */
+    private boolean isDHCipherSuite(String cipherSuite) {
+        return cipherSuite != null &&
+               (cipherSuite.contains("_DHE_") ||
+                cipherSuite.contains("_DH_") ||
+                cipherSuite.contains("_EDH_"));
+    }
+
+    /**
+     * Check if a cipher suite is known to use weak DH parameters (< 2048 bits).
+     * This includes cipher suites that typically use DH key sizes below 2048 bits.
+     *
+     * @param cipherSuite The cipher suite name
+     * @return true if it's a weak DH cipher suite
+     */
+    private boolean isWeakDHCipherSuite(String cipherSuite) {
+        if (cipherSuite == null) {
+            return false;
+        }
+
+        // Cipher suites with EXPORT or anon are always weak
+        if (cipherSuite.contains("EXPORT") || cipherSuite.contains("anon")) {
+            return true;
+        }
+        
+        // Legacy cipher suites that typically use weak DH
+        // These are commonly associated with 512-bit or 1024-bit DH parameters
+        String[] weakPatterns = {
+            "SSL_DH_",
+            "SSL_DHE_DSS_EXPORT",
+            "SSL_DHE_RSA_EXPORT",
+            "TLS_DH_DSS_WITH_DES",
+            "TLS_DH_RSA_WITH_DES",
+            "TLS_DHE_DSS_WITH_DES",
+            "TLS_DHE_RSA_WITH_DES",
+            "TLS_DH_DSS_WITH_3DES",
+            "TLS_DH_RSA_WITH_3DES",
+            "TLS_DHE_DSS_WITH_3DES",
+            "TLS_DHE_RSA_WITH_3DES"
+        };
+        
+        for (String pattern : weakPatterns) {
+            if (cipherSuite.contains(pattern)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Check the negotiated cipher suite after an SSL handshake completes.
+     * If the DH key size property was not explicitly set and a weak DH cipher suite
+     * is detected, log a warning.
+     *
+     * This method should be called after SSL handshake completion.
+     *
+     * @param cipherSuite The negotiated cipher suite
+     */
+    public void checkDHCipherSuite(String cipherSuite) {
+        // Only check if property was not explicitly set by user
+        if (dhKeySizePropertyWasSet) {
+            return;
+        }
+
+        if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
+            Tr.debug(tc, "checkDHCipherSuite: " + cipherSuite);
+
+        if (cipherSuite != null && isDHCipherSuite(cipherSuite)) {
+            if (isWeakDHCipherSuite(cipherSuite)) {
+                // Always log warning for weak DH cipher suites (not just in debug mode)
+                // But only log once to avoid spam
+                if (!weakDHWarningLogged) {
+                    Tr.warning(tc, "Weak DH cipher suite detected: " + cipherSuite +
+                            ". This cipher suite uses a DH key size below the recommended minimum of 2048 bits. " +
+                            "Consider upgrading to stronger cipher suites.");
+                    weakDHWarningLogged = true;
+                }
+            } else {
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                    Tr.debug(tc, "DH cipher suite negotiated: " + cipherSuite);
+                }
+            }
+        }
     }
 
     /*

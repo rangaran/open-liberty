@@ -17,6 +17,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import javax.net.ssl.HandshakeCompletedEvent;
+import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSocket;
@@ -155,6 +157,18 @@ public class SSLPropertyUtils {
             String endpointIdentificationAlgorithm = getEndpointIdentificationAlgorithm(properties, socket, null);
             sslParameters = createSSLParameters(properties, sslParameters, ciphers, endpointIdentificationAlgorithm);
             socket.setSSLParameters(sslParameters);
+
+        // Only attach DH key size monitoring if the property was NOT explicitly set by the user
+        // This provides runtime detection when the system defaults to 2048 but legacy cipher suites might be used
+        if (!SSLConfigManager.getInstance().isDhKeySizePropertySet()) {
+            socket.addHandshakeCompletedListener(new HandshakeCompletedListener() {
+                @Override
+                public void handshakeCompleted(HandshakeCompletedEvent event) {
+                    String cipherSuite = event.getCipherSuite();
+                    SSLConfigManager.getInstance().checkDHCipherSuite(cipherSuite);
+                }
+            });
+        }
         }
 
         if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled())
