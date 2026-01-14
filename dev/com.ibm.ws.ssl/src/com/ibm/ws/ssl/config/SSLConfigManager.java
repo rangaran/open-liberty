@@ -1552,7 +1552,7 @@ public class SSLConfigManager {
             int configuredSize = Integer.parseInt(configured);
             if (configuredSize < DHKEYSIZE_DEFAULT) {
                 if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
-                    Tr.debug(tc, "WARNING: " + DHKEYSIZE_PROP + " is set to " + configured +
+                    Tr.warning(tc, DHKEYSIZE_PROP + " is set to " + configured +
                             ", which is below the required minimum of " + DHKEYSIZE_DEFAULT);
             } else {
                 if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
