@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2015, 2025 IBM Corporation and others.
+ * Copyright (c) 2015, 2025, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -217,7 +217,7 @@ public class SessionFilter implements Filter {
         // https://localhost:9443/adminCenter/j_security_check?j_username=admin&j_password=adminpwd
         // Doing so creates a security vulnerability
         if ((requestURI.equals("/adminCenter/j_security_check") &&
-            request.getMethod().equals("GET")) {
+            request.getMethod().equals("GET"))) {
             if (tc.isDebugEnabled()) {
                 Tr.debug(tc, "Session = " + session);
                 Tr.debug(tc, "Redirecting to " + LOGIN_ERROR_PAGE);
