@@ -101,7 +101,7 @@ public class SSLConfigManagerTest {
         
         // Verify warning was logged for weak DH cipher suite
         assertTrue("Should log warning for weak DH cipher suite",
-                   outputMgr.checkForMessages("Weak DH cipher suite detected"));
+                   outputMgr.checkForMessages("CWPKI0839W"));
     }
 
     @Test
@@ -128,7 +128,7 @@ public class SSLConfigManagerTest {
             if (i == 0) {
                 // First weak cipher should trigger warning
                 assertTrue("Should log warning for first weak cipher: " + weakCiphers[i],
-                           outputMgr.checkForMessages("Weak DH cipher suite detected"));
+                           outputMgr.checkForMessages("CWPKI0839W"));
             }
         }
         
@@ -136,7 +136,7 @@ public class SSLConfigManagerTest {
         outputMgr.resetStreams();
         mgr.checkDHCipherSuite("TLS_DHE_RSA_WITH_DES_CBC_SHA");
         assertFalse("Should NOT log warning again for subsequent weak cipher",
-                    outputMgr.checkForMessages("Weak DH cipher suite detected"));
+                    outputMgr.checkForMessages("CWPKI0839W"));
     }
 
     @Test
@@ -157,7 +157,7 @@ public class SSLConfigManagerTest {
         
         // Verify NO warning from runtime detection (user explicitly set property)
         assertFalse("Should NOT perform runtime detection when property is set",
-                    outputMgr.checkForMessages("Weak DH cipher suite detected"));
+                    outputMgr.checkForMessages("CWPKI0839W"));
     }
 
 }

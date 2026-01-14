@@ -1569,9 +1569,7 @@ public class SSLConfigManager {
             if (configuredSize != null) {
                 // Integer value
                 if (configuredSize < DHKEYSIZE_DEFAULT) {
-                    if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
-                        Tr.warning(tc, DHKEYSIZE_PROP + " is set to " + configured +
-                                ", which is below the required minimum of " + DHKEYSIZE_DEFAULT);
+                    Tr.warning(tc, "ssl.unsafe.dhkey.size.CWPKI0837W", configuredSize);
                 } else {
                     if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
                         Tr.debug(tc, DHKEYSIZE_PROP + " is set to " + configured);
@@ -1583,8 +1581,7 @@ public class SSLConfigManager {
                     if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
                         Tr.debug(tc, DHKEYSIZE_PROP + " is set to 'matched' - DH key size will match certificate key size");
                 } else if ("legacy".equals(configuredLower)) {
-                    if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
-                        Tr.warning(tc, DHKEYSIZE_PROP + " is set to 'legacy' - this uses weak key sizes and is highly discouraged for security reasons");
+                    Tr.info(tc, "ssl.legacy.dhkey.config.CWPKI0838I");
                 } else {
                     // Unknown string value
                     if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
@@ -1706,9 +1703,7 @@ public class SSLConfigManager {
                 // Always log warning for weak DH cipher suites (not just in debug mode)
                 // But only log once to avoid spam
                 if (!weakDHWarningLogged) {
-                    Tr.warning(tc, "Weak DH cipher suite detected: " + cipherSuite +
-                            ". This cipher suite uses a DH key size below the recommended minimum of 2048 bits. " +
-                            "Consider upgrading to stronger cipher suites.");
+                    Tr.warning(tc, "ssl.weak.dhcipher.detected.CWPKI0839W", cipherSuite);
                     weakDHWarningLogged = true;
                 }
             } else {

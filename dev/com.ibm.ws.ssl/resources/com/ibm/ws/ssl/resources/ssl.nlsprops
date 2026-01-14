@@ -690,4 +690,16 @@ ssl.config.error.CWPKI0835E.useraction=Ensure that the SSL configuration attribu
 # -------------------------------------------------------------------------------------------------
 ssl.config.error.CWPKI0836E=CWPKI0836E: An SSL/TLS configuration cannot created because key and trust managers were not created.
 ssl.config.error.CWPKI0836E.explanation=An error in the configuration prevented the key and trust managers from being created.
+# -------------------------------------------------------------------------------------------------
+ssl.unsafe.dhkey.size.CWPKI0837W=CWPKI0837W: The system property 'jdk.tls.ephemeralDHKeySize' is currently set to {0} bits, which is below the recommended minimum of 2048 bits. This configuration may expose SSL/TLS connections to security vulnerabilities.
+ssl.unsafe.dhkey.size.CWPKI0837W.explanation=Diffie-Hellman (DH) key sizes below 2048 bits are considered weak and vulnerable to cryptographic attacks. Modern security standards require a minimum of 2048 bits for adequate protection.
+ssl.unsafe.dhkey.size.CWPKI0837W.useraction=Set the 'jdk.tls.ephemeralDHKeySize' system property to 2048 or higher to ensure secure SSL/TLS connections. Add -Djdk.tls.ephemeralDHKeySize=2048 to your JVM options.
+# -------------------------------------------------------------------------------------------------
+ssl.legacy.dhkey.config.CWPKI0838I=CWPKI0838I: The system property 'jdk.tls.ephemeralDHKeySize' is set to 'legacy', which uses deprecated and insecure Diffie-Hellman key sizes. This configuration is highly discouraged and may expose SSL/TLS connections to serious security vulnerabilities.
+ssl.legacy.dhkey.config.CWPKI0838I.explanation=The 'legacy' setting enables old DH key size behavior that does not meet modern security standards. These weak key sizes are vulnerable to cryptographic attacks and should not be used in production environments.
+ssl.legacy.dhkey.config.CWPKI0838I.useraction=Change the 'jdk.tls.ephemeralDHKeySize' system property to 2048 for secure SSL/TLS connections. Remove the legacy setting and add -Djdk.tls.ephemeralDHKeySize=2048 to your JVM options.
+# -------------------------------------------------------------------------------------------------
+ssl.weak.dhcipher.detected.CWPKI0839W=CWPKI0839W: A weak Diffie-Hellman cipher suite was detected: {0}. The system property 'jdk.tls.ephemeralDHKeySize' is not explicitly configured, which may result in the use of insecure DH key sizes. This could expose SSL/TLS connections to security vulnerabilities.
+ssl.weak.dhcipher.detected.CWPKI0839W.explanation=The detected cipher suite uses Diffie-Hellman key exchange, but the DH key size is not explicitly configured. Without explicit configuration, weak DH key sizes may be used, making connections vulnerable to cryptographic attacks.
+ssl.weak.dhcipher.detected.CWPKI0839W.useraction=Set the 'jdk.tls.ephemeralDHKeySize' system property to 2048 to ensure secure DH key sizes. Add -Djdk.tls.ephemeralDHKeySize=2048 to your JVM options.
 ssl.config.error.CWPKI0836E.useraction=Ensure that the SSL configuration attributes are correct. Review the logs for errors that are associated with SSL configuration attributes.
