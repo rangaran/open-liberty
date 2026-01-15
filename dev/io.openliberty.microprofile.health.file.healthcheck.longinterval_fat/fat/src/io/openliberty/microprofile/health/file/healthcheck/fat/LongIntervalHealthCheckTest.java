@@ -24,6 +24,7 @@ import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -70,6 +71,33 @@ public class LongIntervalHealthCheckTest {
     @Server(SERVER_LONG_CHECK_INTERVAL)
     public static LibertyServer serverLongCheck;
 
+    @BeforeClass
+    public static void beforeClass() throws Exception {
+        /*
+         *
+         * The first test/server-start sometimes?/always? needs to generate a fatFeatureList.xml.
+         * Sometimes this takes a VERY LONG TIME. This happens on Windows OS the majority of the time.
+         * Other OS platforms can also take a long time, but is much less likely.
+         *
+         * Previously, the StartedhealthCheckTestLongStartupInterval was the first test to run.
+         * If this encountered a long featFeatureList generation then the window of time we wanted
+         * to test would already be complete (i.e., health check files have already reached their final state).
+         * The test would "start" testing after the fact and would fail.
+         *
+         * This dummy test is put in place to take the brunt of FAT feature generation.
+         *
+         **/
+        //Test infra checks for fatfeatureList as part of start server.
+        Log.info(LongIntervalHealthCheckTest.class, "beforeClass", "starting dummy server");
+        server.startServer();
+
+        // Read to run a smarter planet
+        server.waitForStringInLogUsingMark("CWWKF0011I");
+
+        server.stopServer();
+        Log.info(LongIntervalHealthCheckTest.class, "beforeClass", "stopping/stopped dummy server");
+    }
+
     @Before
     public void before() throws Exception {
         if (serverLongCheck != null) {
@@ -79,10 +107,6 @@ public class LongIntervalHealthCheckTest {
         if (serverLongStart != null) {
             serverLongStart.removeAllInstalledAppsForValidation();
             serverLongStart.deleteAllDropinApplications();
-        }
-        if (server != null) {
-            server.removeAllInstalledAppsForValidation();
-            server.deleteAllDropinApplications();
         }
     }
 
@@ -95,37 +119,6 @@ public class LongIntervalHealthCheckTest {
         if (serverLongStart != null && serverLongStart.isStarted()) {
             serverLongStart.stopServer(IGNORED_FAILURES);
         }
-
-        if (server != null && server.isStarted()) {
-            server.stopServer(IGNORED_FAILURES);
-        }
-    }
-
-    @Test
-    /*
-     *
-     * The first test/server-start sometimes?/always? needs to generate a fatFeatureList.xml.
-     * Sometimes this takes a VERY LONG TIME. This happens on Windows OS the majority of the time.
-     * Other OS platforms can also take a long time, but is much less likely.
-     *
-     * Previously, the StartedhealthCheckTestLongStartupInterval was the first test to run.
-     * If this encountered a long featFeatureList generation then the window of time we wanted
-     * to test would already be complete (i.e., health check files have already reached their final state).
-     * The test would "start" testing after the fact and would fail.
-     *
-     * This dummy test is put in place to take the brunt of FAT feature generation.
-     *
-     **/
-    public void emptyTestToForceFeatureListGeneration() throws Exception {
-        final String METHOD_NAME = "emptyTest";
-
-        //Test infra checks for fatfeatureList as part of start server.
-        server.startServer();
-
-        // Read to run a smarter planet
-        server.waitForStringInLogUsingMark("CWWKF0011I");
-
-        Log.info(getClass(), METHOD_NAME, "Doing absolutely nothing");
     }
 
     @Test
