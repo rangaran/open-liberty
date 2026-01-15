@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022,2024 IBM Corporation and others.
+ * Copyright (c) 2022,2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -269,6 +269,16 @@ public interface Primes {
 
     @OrderBy(value = ID, descending = true)
     IntStream findSumOfBitsByNumberIdBetween(long min, long max);
+
+    // Can omit entity identification variable after EclipseLink #33842 is fixed
+    @Query("""
+                    SELECT p.numberId,
+                           CASE WHEN p.even = TRUE THEN 'even' ELSE 'odd' END
+                      FROM Prime p
+                     WHERE p.numberId BETWEEN ?1 and ?2
+                     ORDER BY p.numberId ASC
+                    """)
+    Page<Object[]> getParity(int first, int last, PageRequest pageRequest);
 
     @Query(value = "Select name" +
                    " Where numberId < 50 and" +

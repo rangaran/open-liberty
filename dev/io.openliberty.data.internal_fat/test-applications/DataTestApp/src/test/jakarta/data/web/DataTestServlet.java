@@ -562,6 +562,27 @@ public class DataTestServlet extends FATServlet {
     }
 
     /**
+     * Include a CASE expression within the SELECT clause of a query.
+     */
+    @Test
+    public void testCaseInSelectClause() {
+
+        Page<Object[]> page1 = primes.getParity(1, 40, PageRequest.ofSize(5));
+
+        assertEquals(3L, page1.totalPages());
+        assertEquals(12L, page1.totalElements());
+
+        assertEquals(List.of("2: even",
+                             "3: odd",
+                             "5: odd",
+                             "7: odd",
+                             "11: odd"),
+                     page1.stream()
+                                     .map(a -> a[0] + ": " + a[1])
+                                     .collect(Collectors.toList()));
+    }
+
+    /**
      * Asynchronous repository method that returns a CompletableFuture of Page.
      */
     @Test
