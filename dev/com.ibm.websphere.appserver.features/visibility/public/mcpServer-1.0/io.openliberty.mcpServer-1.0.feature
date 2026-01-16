@@ -9,6 +9,7 @@ IBM-API-Package: \
  io.openliberty.mcp.encoders; type="ibm-api", \
  io.openliberty.mcp.messaging; type="ibm-api", \
  io.openliberty.mcp.meta; type="ibm-api", \
+ io.openliberty.mcp.request; type="ibm-api", \
  io.openliberty.mcp.tools; type="ibm-api"
 IBM-ShortName: mcpServer-1.0
 Subsystem-Name: Model Context Protocol Server 1.0

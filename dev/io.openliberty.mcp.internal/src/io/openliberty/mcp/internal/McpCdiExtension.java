@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025 IBM Corporation and others.
+ * Copyright (c) 2025, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -9,23 +9,40 @@
  *******************************************************************************/
 package io.openliberty.mcp.internal;
 
+import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.ibm.websphere.ras.Tr;
 import com.ibm.websphere.ras.TraceComponent;
+import com.ibm.ws.kernel.service.util.ServiceCaller;
 
 import io.openliberty.mcp.annotations.Tool;
-import io.openliberty.mcp.internal.ToolMetadata.ArgumentMetadata;
+import io.openliberty.mcp.content.ContentEncoder;
 import io.openliberty.mcp.internal.ToolMetadata.SpecialArgumentMetadata;
+import io.openliberty.mcp.internal.encoders.EncoderRegistry;
 import io.openliberty.mcp.internal.exceptions.GenericArgumentException;
+import io.openliberty.mcp.internal.introspection.McpIntrospector;
+import io.openliberty.mcp.internal.requests.BuiltinDefaultValueConverters;
+import io.openliberty.mcp.internal.requests.DefaultValueConverter;
 import io.openliberty.mcp.internal.requests.McpRequestIdDeserializer;
 import io.openliberty.mcp.internal.requests.McpRequestIdSerializer;
 import io.openliberty.mcp.internal.schemas.SchemaRegistry;
+import io.openliberty.mcp.internal.schemas.TypeUtility;
 import io.openliberty.mcp.internal.tools.BeanMethodHandler.MethodMetadata;
+import io.openliberty.mcp.internal.tools.ToolManager.ToolArgument;
+import io.openliberty.mcp.messaging.Encoder;
+import io.openliberty.mcp.tools.ToolResponseEncoder;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.BeforeDestroyed;
+import jakarta.enterprise.context.spi.CreationalContext;
 import jakarta.enterprise.event.Observes;
 import jakarta.enterprise.inject.spi.AfterDeploymentValidation;
 import jakarta.enterprise.inject.spi.AnnotatedMethod;
@@ -34,18 +51,24 @@ import jakarta.enterprise.inject.spi.Bean;
 import jakarta.enterprise.inject.spi.BeanManager;
 import jakarta.enterprise.inject.spi.Extension;
 import jakarta.enterprise.inject.spi.ProcessManagedBean;
+import jakarta.inject.Inject;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
+import jakarta.servlet.ServletContext;
 
 /**
  * Finds tools
  */
 
 public class McpCdiExtension implements Extension {
+    @Inject
+    private ServletContext servletContext;
 
     private static final TraceComponent tc = Tr.register(McpCdiExtension.class);
 
+    private static final List<Bean<?>> encoderBeans = new ArrayList<>();
+    private EncoderRegistry encoderRegistry;
     private ToolRegistry tools = new ToolRegistry();
     private ConcurrentHashMap<String, LinkedList<String>> duplicateToolsMap = new ConcurrentHashMap<>();
 
@@ -55,7 +78,7 @@ public class McpCdiExtension implements Extension {
     private static Jsonb createJsonb() {
         JsonbConfig jsonbConfig = new JsonbConfig().withSerializers(new McpRequestIdSerializer())
                                                    .withDeserializers(new McpRequestIdDeserializer());
-    
+
         return JsonbBuilder.create(jsonbConfig);
     }
 
@@ -69,11 +92,74 @@ public class McpCdiExtension implements Extension {
         }
     }
 
+    void discoverEncoderBeans(@Observes ProcessManagedBean<?> processManagedBean) {
+        AnnotatedType<?> type = processManagedBean.getAnnotatedBeanClass();
+        Class<?> javaClass = type.getJavaClass();
+        if (Encoder.class.isAssignableFrom(javaClass)) {
+            encoderBeans.add(processManagedBean.getBean());
+        }
+    }
+
     void afterDeploymentValidation(@Observes AfterDeploymentValidation afterDeploymentValidation, BeanManager manager) {
-        boolean error = reportOnDuplicateTools(afterDeploymentValidation) | reportOnToolArgEdgeCases(afterDeploymentValidation) |
-                        reportOnDuplicateSpecialArguments(afterDeploymentValidation) | reportOnInvalidSpecialArguments(afterDeploymentValidation);
+        registerEncoders(manager);
+
+        boolean error = reportOnDuplicateTools(afterDeploymentValidation) |
+                        reportOnToolArgEdgeCases(afterDeploymentValidation) |
+                        reportOnDuplicateSpecialArguments(afterDeploymentValidation) |
+                        reportOnInvalidSpecialArguments(afterDeploymentValidation);
+
         if (error) {
             afterDeploymentValidation.addDeploymentProblem(new Exception(Tr.formatMessage(tc, "CWMCM0005E.validation.error")));
+        }
+
+        String appName = servletContext != null ? servletContext.getContextPath() : "unknown-app";
+
+        ServiceCaller.callOnce(McpCdiExtension.class, McpIntrospector.class, introspector -> {
+            introspector.register(appName, tools);
+        });
+    }
+
+    void beforeShutdown(@Observes @BeforeDestroyed(ApplicationScoped.class) Object shutdownEvent) {
+        String appName = System.getProperty("wlp.application.name", "unknown-app");
+
+        ServiceCaller.callOnce(
+                               McpCdiExtension.class,
+                               McpIntrospector.class,
+                               introspector -> introspector.unregister(appName));
+    }
+
+    void registerEncoders(BeanManager beanManager) {
+        encoderRegistry = beanManager.createInstance().select(EncoderRegistry.class).get();
+
+        CreationalContext<?> context = beanManager.createCreationalContext(null);
+
+        List<ToolResponseEncoder<?>> toolResponseEncoders = new ArrayList<>();
+        List<ContentEncoder<?>> contentEncoders = new ArrayList<>();
+
+        for (Bean<?> bean : encoderBeans) {
+            if (ToolResponseEncoder.class.isAssignableFrom(bean.getBeanClass())) {
+                ToolResponseEncoder<?> encoder = (ToolResponseEncoder<?>) beanManager.getReference(bean, bean.getBeanClass(), context);
+                toolResponseEncoders.add(encoder);
+                logEncoderRegistration(bean);
+            } else if (ContentEncoder.class.isAssignableFrom(bean.getBeanClass())) {
+                ContentEncoder<?> encoder = (ContentEncoder<?>) beanManager.getReference(bean, bean.getBeanClass(), context);
+                contentEncoders.add(encoder);
+                logEncoderRegistration(bean);
+            }
+        }
+
+        encoderRegistry.registerEncoders(toolResponseEncoders, contentEncoders);
+
+        context.release();
+    }
+
+    private static void logEncoderRegistration(Bean<?> encoderBean) {
+        if (TraceComponent.isAnyTracingEnabled()) {
+            if (tc.isDebugEnabled()) {
+                Tr.debug(McpCdiExtension.class, tc, "Registered encoder: " + encoderBean.getName(), encoderBean);
+            } else if (tc.isEventEnabled()) {
+                Tr.event(McpCdiExtension.class, tc, "Registered encoder: " + encoderBean.getName());
+            }
         }
     }
 
@@ -84,24 +170,46 @@ public class McpCdiExtension implements Extension {
         boolean blankArgumentsFound = false;
         boolean duplicateArgumentsFound = false;
         boolean missingArgumentName = false;
+        boolean unsupportedDefaultValueType = false;
+        boolean invalidDefaultValueForType = false;
 
         for (ToolMetadata tool : tools.getAllTools()) {
-            Map<String, ArgumentMetadata> arguments = tool.arguments();
 
-            for (String argName : arguments.keySet()) {
-                if (argName.isBlank()) {
+            Set<String> names = new HashSet<>();
+            for (ToolArgument argMetadata : tool.arguments()) {
+
+                // Check name
+                if (argMetadata.name().isBlank()) {
                     Tr.error(tc, "CWMCM0001E.blank.arguments", tool.getToolQualifiedName());
                     blankArgumentsFound = true;
-                } else if (arguments.get(argName).isDuplicate()) {
-                    Tr.error(tc, "CWMCM0002E.duplicate.arguments", tool.getToolQualifiedName(), argName);
-                    duplicateArgumentsFound = true;
-                } else if (argName.equals(ToolMetadata.MISSING_TOOL_ARG_NAME)) {
+                } else if (argMetadata.name().equals(ToolMetadata.MISSING_TOOL_ARG_NAME)) {
                     Tr.error(tc, "CWMCM0003E.missing.tool.argument.name", tool.getToolQualifiedName());
                     missingArgumentName = true;
+                } else if (!names.add(argMetadata.name())) {
+                    Tr.error(tc, "CWMCM0002E.duplicate.arguments", tool.getToolQualifiedName(), argMetadata.name());
+                    duplicateArgumentsFound = true;
+                }
+
+                // Check default value
+                if (!argMetadata.defaultValue().isEmpty()) {
+                    Type typeWrapperClass = TypeUtility.box(argMetadata.type());
+                    DefaultValueConverter<?> converter = BuiltinDefaultValueConverters.CONVERTERS.get(typeWrapperClass);
+                    if (converter != null) {
+                        try {
+                            converter.convert(argMetadata.defaultValue());
+                        } catch (Exception e) {
+                            Tr.error(tc, "CWMCM0020E.defaultvalue.conversion.error", tool.getToolQualifiedName(), argMetadata.name(), argMetadata.type(),
+                                     argMetadata.defaultValue(), e);
+                            invalidDefaultValueForType = true;
+                        }
+                    } else {
+                        Tr.error(tc, "CWMCM0017E.missing.toolarg.defaultvalue.converter", tool.getToolQualifiedName(), argMetadata.name(), argMetadata.type());
+                        unsupportedDefaultValueType = true;
+                    }
                 }
             }
         }
-        return blankArgumentsFound || duplicateArgumentsFound || missingArgumentName;
+        return blankArgumentsFound || duplicateArgumentsFound || missingArgumentName || unsupportedDefaultValueType || invalidDefaultValueForType;
     }
 
     private boolean reportOnDuplicateTools(AfterDeploymentValidation afterDeploymentValidation) {
@@ -195,4 +303,7 @@ public class McpCdiExtension implements Extension {
         return jsonb;
     }
 
+    public EncoderRegistry getEncoderRegistry() {
+        return encoderRegistry;
+    }
 }

@@ -25,6 +25,7 @@ import com.ibm.ws.kernel.service.util.ServiceCaller;
 
 import io.openliberty.mcp.internal.Capabilities.ServerCapabilities;
 import io.openliberty.mcp.internal.config.McpConfiguration;
+import io.openliberty.mcp.internal.encoders.EncoderRegistry;
 import io.openliberty.mcp.internal.exceptions.jsonrpc.HttpResponseException;
 import io.openliberty.mcp.internal.exceptions.jsonrpc.JSONRPCErrorCode;
 import io.openliberty.mcp.internal.exceptions.jsonrpc.JSONRPCException;
@@ -33,6 +34,7 @@ import io.openliberty.mcp.internal.requests.CancellationImpl;
 import io.openliberty.mcp.internal.requests.ExecutionRequestId;
 import io.openliberty.mcp.internal.requests.McpInitializeParams;
 import io.openliberty.mcp.internal.requests.McpNotificationParams;
+import io.openliberty.mcp.internal.requests.McpRequest;
 import io.openliberty.mcp.internal.requests.McpToolCallParams;
 import io.openliberty.mcp.internal.responses.McpInitializeResult;
 import io.openliberty.mcp.internal.responses.McpInitializeResult.ServerInfo;
@@ -74,6 +76,9 @@ public class McpServlet extends HttpServlet {
 
     @Inject
     McpCdiExtension cdiExtension;
+
+    @Inject
+    EncoderRegistry encoderRegistry;
 
     private Jsonb jsonb;
 
@@ -174,6 +179,7 @@ public class McpServlet extends HttpServlet {
 
         ExecutionRequestId requestId = createOngoingRequestId(transport);
         McpToolCallParams params = transport.getParams(McpToolCallParams.class);
+        McpRequest request = transport.getMcpRequest();
 
         if (requestId != null && requestTracker.isOngoingRequest(requestId)) {
             throw new JSONRPCException(JSONRPCErrorCode.INVALID_PARAMS,
@@ -191,9 +197,9 @@ public class McpServlet extends HttpServlet {
             Authorizer.requireAuthorized(transport, params.getMetadata());
 
             if (params.getMetadata().returnsCompletionStage()) {
-                callToolMethodAndSendResponseAsync(transport, requestId, params);
+                callToolMethodAndSendResponseAsync(transport, requestId, request, params);
             } else {
-                callToolSynchronously(transport, requestId, params);
+                callToolSynchronously(transport, requestId, request, params);
             }
         } catch (IllegalAccessException e) {
             throw new JSONRPCException(JSONRPCErrorCode.INTERNAL_ERROR, List.of("Could not call " + params.getName()));
@@ -204,10 +210,11 @@ public class McpServlet extends HttpServlet {
 
     private void callToolSynchronously(McpTransport transport,
                                        ExecutionRequestId requestId,
+                                       McpRequest mcpRequest,
                                        McpToolCallParams params)
                     throws IllegalAccessException, IllegalArgumentException {
 
-        ToolArguments toolArgs = createToolArguments(params);
+        ToolArguments toolArgs = createToolArguments(mcpRequest, params);
         if (requestId != null) {
             requestTracker.registerOngoingRequest(requestId, (CancellationImpl) toolArgs.cancellation());
         }
@@ -224,9 +231,10 @@ public class McpServlet extends HttpServlet {
 
     private void callToolMethodAndSendResponseAsync(McpTransport transport,
                                                     ExecutionRequestId requestId,
+                                                    McpRequest mcpRequest,
                                                     McpToolCallParams params)
                     throws IllegalAccessException, IllegalArgumentException {
-        ToolArguments toolArgs = createToolArguments(params);
+        ToolArguments toolArgs = createToolArguments(mcpRequest, params);
 
         if (requestId != null) {
             requestTracker.registerOngoingRequest(requestId, (CancellationImpl) toolArgs.cancellation());
@@ -242,13 +250,19 @@ public class McpServlet extends HttpServlet {
     /**
      * @return
      */
-    private ToolArguments createToolArguments(McpToolCallParams params) {
+    private ToolArguments createToolArguments(McpRequest request, McpToolCallParams params) {
         Map<String, Object> args = params.getArguments(jsonb);
         Meta meta = new MetaImpl(params.getMeta(), jsonb);
-        return new ToolArgumentsImpl(args, new CancellationImpl(), meta);
+        RequestId requestId = request.id();
+
+        return new ToolArgumentsImpl(args, new CancellationImpl(), meta, encoderRegistry, requestId);
     }
 
-    record ToolArgumentsImpl(Map<String, Object> args, Cancellation cancellation, Meta meta) implements ToolArguments {}
+    public record ToolArgumentsImpl(Map<String, Object> args,
+                                    Cancellation cancellation,
+                                    Meta meta,
+                                    EncoderRegistry encoderRegistry,
+                                    RequestId requestId) implements ToolArguments {}
 
     private void cleanup(ExecutionRequestId requestId) {
         if (requestId != null && requestTracker.isOngoingRequest(requestId)) {

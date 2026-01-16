@@ -1883,7 +1883,6 @@ public class JakartaPersistenceServlet extends FATServlet {
     @Test
     // Reference issue: https://github.com/OpenLiberty/open-liberty/issues/33573
     public void testLobInsertAndRetrieve() throws Exception {
-
         try {
             DocumentEntity e1 = new DocumentEntity(1L, "");
             

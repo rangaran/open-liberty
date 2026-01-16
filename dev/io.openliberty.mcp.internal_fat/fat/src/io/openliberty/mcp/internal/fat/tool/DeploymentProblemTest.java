@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025 IBM Corporation and others.
+ * Copyright (c) 2025, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -10,6 +10,7 @@
 package io.openliberty.mcp.internal.fat.tool;
 
 import java.util.List;
+import java.util.regex.Pattern;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -45,7 +46,9 @@ public class DeploymentProblemTest extends FATServletClient {
                           "CWMCM0005E", // There are one or more MCP validation errors.
                           "CWMCM0006E", // Duplicate special arguments.
                           "CWMCM0007E", // Invalid Special arguments.
-                          "CWMCM0018E" //  Arguments contain generics.
+                          "CWMCM0017E", //  Default value has no type converter.
+                          "CWMCM0018E", //  Arguments contain generics.
+                          "CWMCM0020E" //  Invalid default value for argument type.
         );
     }
 
@@ -97,5 +100,26 @@ public class DeploymentProblemTest extends FATServletClient {
         String expectedErrorHeader = "The (.+?) argument of the (.+?) MCP tool method contains unsupported components such as TypeVariable, Wildcard, GenericArrayType.";
         List<String> expectedErrorList = List.of("io.openliberty.mcp.internal.fat.tool.deploymentErrorApps.ToolArgValidationTest.addGenericToGenericArray");
         ExpectedAppFailureValidator.findAndAssertExpectedErrorsInLogs("Generic Args: ", expectedErrorHeader, expectedErrorList, server);
+    }
+
+    @Test
+    public void testToolArgDefaultValueWithoutTypeConverter() throws Exception {
+        String expectedErrorHeader = Pattern.quote("CWMCM0017E: The city argument of the class io.openliberty.mcp.internal.fat.tool.deploymentErrorApps.ToolArgValidationTest.testToolArgDefaultValueWithoutTypeConverter MCP tool method does not have a converter to change its default value into an object of type class io.openliberty.mcp.internal.fat.tool.deploymentErrorApps.ToolArgValidationTest$City.");
+        List<String> expectedErrorList = List.of("io.openliberty.mcp.internal.fat.tool.deploymentErrorApps.ToolArgValidationTest.testToolArgDefaultValueWithoutTypeConverter");
+        ExpectedAppFailureValidator.findAndAssertExpectedErrorsInLogs("ToolArg DefaultValue Without Converter: ", expectedErrorHeader, expectedErrorList, server);
+    }
+
+    @Test
+    public void testToolArgInvalidDefaultValueForType() throws Exception {
+        String expectedErrorHeader = "CWMCM0020E: The default value of the year argument of the class io.openliberty.mcp.internal.fat.tool.deploymentErrorApps.ToolArgValidationTest.testToolArgInvalidNumberDefaultValue MCP tool cannot be converted to the int type. The value is TwentyTwentyFive. The error is java.lang.NumberFormatException: For input string: \"TwentyTwentyFive\"";
+        List<String> expectedErrorList = List.of("io.openliberty.mcp.internal.fat.tool.deploymentErrorApps.ToolArgValidationTest.testToolArgInvalidNumberDefaultValue");
+        ExpectedAppFailureValidator.findAndAssertExpectedErrorsInLogs("ToolArg Invalid DefaultValue for Argument Type: ", expectedErrorHeader, expectedErrorList, server);
+    }
+
+    @Test
+    public void testToolArgWithOptionalValueAndDefaultValue() throws Exception {
+        String expectedErrorHeader = "CWMCM0017E: The input argument of the class io.openliberty.mcp.internal.fat.tool.deploymentErrorApps.ToolArgValidationTest.toolArgWithOptionalValueAndDefaultValueSet MCP tool method does not have a converter to change its default value into an object of type java.util.Optional<java.lang.String>.";
+        List<String> expectedErrorList = List.of("io.openliberty.mcp.internal.fat.tool.deploymentErrorApps.ToolArgValidationTest.toolArgWithOptionalValueAndDefaultValueSet");
+        ExpectedAppFailureValidator.findAndAssertExpectedErrorsInLogs("ToolArg No Converter for DefaultValue: ", expectedErrorHeader, expectedErrorList, server);
     }
 }

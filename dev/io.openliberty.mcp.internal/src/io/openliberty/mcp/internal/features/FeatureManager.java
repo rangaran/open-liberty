@@ -28,7 +28,7 @@ import java.util.function.Function;
 import io.openliberty.mcp.internal.features.FeatureManager.FeatureInfo;
 import io.openliberty.mcp.messaging.Cancellation;
 import io.openliberty.mcp.meta.Meta;
-import jakarta.json.JsonObject;
+import io.openliberty.mcp.request.RequestId;
 
 /**
  *
@@ -74,7 +74,8 @@ public interface FeatureManager<INFO extends FeatureInfo> extends Iterable<INFO>
             return result == 0 ? name().compareTo(o.name()) : result;
         }
 
-        JsonObject asJson();
+//        Unsure if we want this here, leaving off moving our implementation for now
+//        JsonObject asJson();
 
     }
 
@@ -120,9 +121,9 @@ public interface FeatureManager<INFO extends FeatureInfo> extends Iterable<INFO>
 
     interface RequestFeatureArguments extends FeatureArguments {
 
+        RequestId requestId();
+
 // Not yet implemented:
-//        RequestId requestId();
-//
 //        Progress progress();
 
         Cancellation cancellation();

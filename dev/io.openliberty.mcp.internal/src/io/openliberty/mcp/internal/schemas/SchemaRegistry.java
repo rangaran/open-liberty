@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025 IBM Corporation and others.
+ * Copyright (c) 2025, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -9,9 +9,12 @@
  *******************************************************************************/
 package io.openliberty.mcp.internal.schemas;
 
+import java.lang.reflect.Type;
 import java.util.HashMap;
+import java.util.List;
 
 import io.openliberty.mcp.internal.McpCdiExtension;
+import io.openliberty.mcp.internal.ToolMetadata.ToolMethodArgument;
 import jakarta.enterprise.inject.spi.AnnotatedMethod;
 import jakarta.enterprise.inject.spi.CDI;
 import jakarta.json.JsonObject;
@@ -64,23 +67,24 @@ public class SchemaRegistry {
     /**
      * Gets the input JSON schema for a tool
      *
-     * @param toolMetadata the tool to get the schema for
+     * @param arguments the tool method arguments
      * @return the json schema
      */
-    public JsonObject getToolInputSchema(AnnotatedMethod<?> toolMethod) {
-        ToolKey key = new ToolKey(toolMethod, SchemaDirection.INPUT);
-        return schemaCache.computeIfAbsent(key, k -> SchemaGenerator.generateToolInputSchema(toolMethod, blueprintRegistry));
+    public JsonObject getToolInputSchema(List<ToolMethodArgument> arguments) {
+        SchemaKey key = new ToolInputKey(arguments);
+        return schemaCache.computeIfAbsent(key, k -> SchemaGenerator.generateToolInputSchema(arguments, blueprintRegistry));
     }
 
     /**
      * Gets the output JSON schema for a tool
      *
-     * @param toolMetadata the tool to get the schema for
+     * @param toolMethod the tool to get the schema for
+     * @param toolOutputType the unwrapped and resolved return type of the method.
      * @return the json schema
      */
-    public JsonObject getToolOutputSchema(AnnotatedMethod<?> toolMethod) {
-        ToolKey key = new ToolKey(toolMethod, SchemaDirection.OUTPUT);
-        return schemaCache.computeIfAbsent(key, k -> SchemaGenerator.generateToolOutputSchema(toolMethod, blueprintRegistry));
+    public JsonObject getToolOutputSchema(AnnotatedMethod<?> toolMethod, Type toolOutputType) {
+        SchemaKey key = new ToolOutputKey(toolMethod, toolOutputType);
+        return schemaCache.computeIfAbsent(key, k -> SchemaGenerator.generateToolOutputSchema(toolMethod, toolOutputType, blueprintRegistry));
     }
 
     /**
@@ -90,6 +94,8 @@ public class SchemaRegistry {
 
     public record ClassKey(Class<?> cls, SchemaDirection direction) implements SchemaKey {};
 
-    public record ToolKey(AnnotatedMethod<?> tool, SchemaDirection direction) implements SchemaKey {};
+    public record ToolInputKey(List<ToolMethodArgument> arguments) implements SchemaKey {};
+
+    public record ToolOutputKey(AnnotatedMethod<?> tool, Type toolOutputType) implements SchemaKey {};
 
 }

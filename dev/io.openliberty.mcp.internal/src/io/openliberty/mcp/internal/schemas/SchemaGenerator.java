@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025 IBM Corporation and others.
+ * Copyright (c) 2025, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -34,8 +34,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
-import io.openliberty.mcp.internal.ToolMetadata;
-import io.openliberty.mcp.internal.ToolMetadata.ArgumentMetadata;
+import io.openliberty.mcp.internal.ToolMetadata.ToolMethodArgument;
 import io.openliberty.mcp.internal.schemas.SchemaCreationBlueprintGenerator.FieldInfo;
 import io.openliberty.mcp.internal.schemas.blueprints.ClassSchemaCreationBlueprint;
 import io.openliberty.mcp.internal.schemas.blueprints.ListSchemaCreationBlueprint;
@@ -85,38 +84,35 @@ public class SchemaGenerator {
     /**
      * Generate the input schema for a tool
      *
-     * @param tool the tool to generate the schema for
+     * @param arguments the tool method arguments
      * @param blueprintRegistry the blueprint registry to use
      * @return the schema as a json object
      */
-    public static JsonObject generateToolInputSchema(AnnotatedMethod<?> toolMethod, SchemaCreationBlueprintRegistry blueprintRegistry) {
+    public static JsonObject generateToolInputSchema(List<ToolMethodArgument> arguments, SchemaCreationBlueprintRegistry blueprintRegistry) {
         // create base schema components
         JsonObjectBuilder properties = Json.createObjectBuilder();
         JsonArrayBuilder required = Json.createArrayBuilder();
-        Parameter[] parameters = toolMethod.getJavaMember().getParameters();
         SchemaGenerationContext ctx = new SchemaGenerationContext(blueprintRegistry, INPUT);
-        Map<String, ArgumentMetadata> arguments = ToolMetadata.getArgumentMap(toolMethod);
         // for each parameter
-        for (ArgumentMetadata argument : arguments.values()) {
-            Parameter parameter = parameters[argument.index()];
-            calculateClassFrequency(parameter.getParameterizedType(), SchemaDirection.INPUT, ctx);
+        for (ToolMethodArgument argument : arguments) {
+            calculateClassFrequency(argument.argument().type(), SchemaDirection.INPUT, ctx);
         }
 
-        for (var entry : arguments.entrySet()) {
-            String argumentName = entry.getKey();
-            ArgumentMetadata argument = entry.getValue();
-            Parameter parameter = parameters[argument.index()];
+        for (ToolMethodArgument argument : arguments) {
+            String argumentName = argument.argument().name();
+            Parameter parameter = argument.parameter().getJavaParameter();
             SchemaAnnotation annotation = SchemaAnnotation.read(parameter);
 
-            JsonObjectBuilder parameterSchemaBuilder = generateSubSchema(parameter.getParameterizedType(), ctx, annotation);
+            JsonObjectBuilder parameterSchemaBuilder = generateSubSchema(argument.argument().type(), ctx, annotation);
 
-            if (argument.description() != null && !argument.description().equals("")) {
-                parameterSchemaBuilder.add(DESCRIPTION, argument.description());
+            String description = argument.argument().description();
+            if (description != null && !description.isEmpty()) {
+                parameterSchemaBuilder.add(DESCRIPTION, description);
             }
             // - add it as a property
             properties.add(argumentName, parameterSchemaBuilder.build());
             // - add it as required (if it is)
-            if (argument.required()) {
+            if (argument.argument().required()) {
                 required.add(argumentName);
             }
         }
@@ -132,14 +128,15 @@ public class SchemaGenerator {
     /**
      * Generate the output schema for a tool
      *
-     * @param tool the tool to generate the schema for
+     * @param toolMethod the tool method to generate a schema for
+     * @param toolOutputType the resolved output type of the tool, same as {@code toolMethod} for sync tools, unwrapped for async tools
      * @param blueprintRegistry the blueprint registry to use
      * @return the schema as a json object
      */
-    public static JsonObject generateToolOutputSchema(AnnotatedMethod<?> toolMethod, SchemaCreationBlueprintRegistry blueprintRegistry) {
+    public static JsonObject generateToolOutputSchema(AnnotatedMethod<?> toolMethod, Type toolOutputType,
+                                                      SchemaCreationBlueprintRegistry blueprintRegistry) {
 
-        Type returnType = toolMethod.getJavaMember().getGenericReturnType();
-
+        Type returnType = toolOutputType;
         Method method = toolMethod.getJavaMember();
         SchemaAnnotation schemaAnnotation = SchemaAnnotation.read(method);
 

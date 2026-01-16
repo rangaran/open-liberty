@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022, 2025 IBM Corporation and others.
+ * Copyright (c) 2022, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -12,8 +12,6 @@
  *******************************************************************************/
 package test.jakarta.data.web.eclipselink;
 
-import static componenttest.annotation.SkipIfSysProp.DB_Postgres;
-import static componenttest.annotation.SkipIfSysProp.DB_SQLServer;
 import static jakarta.data.repository.By.ID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -52,7 +50,6 @@ import jakarta.servlet.annotation.WebServlet;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import componenttest.annotation.SkipIfSysProp;
 import componenttest.app.FATServlet;
 import test.jakarta.data.web.Receipt;
 import test.jakarta.data.web.eclipselink.Animal.ScientificName;
@@ -356,10 +353,6 @@ public class DataEclipseLinkServlet extends FATServlet {
      * Tests all CrudRepository methods (apart from those inherited from
      * BasicRepository) with a record as the entity.
      */
-    @SkipIfSysProp({
-                     DB_Postgres, //Failing on Postgres due to eclipselink issue:  https://github.com/OpenLiberty/open-liberty/issues/28380
-                     DB_SQLServer //Failing on SQLServer due to eclipselink issue: https://github.com/OpenLiberty/open-liberty/issues/28737
-    })
     @Test
     public void testRecordCrudRepositoryMethods() {
         receipts.deleteByTotalLessThan(1000000.0f);

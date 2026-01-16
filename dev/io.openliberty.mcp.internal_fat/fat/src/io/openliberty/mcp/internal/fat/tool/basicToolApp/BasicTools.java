@@ -29,6 +29,7 @@ import io.openliberty.mcp.content.Role;
 import io.openliberty.mcp.content.TextContent;
 import io.openliberty.mcp.meta.Meta;
 import io.openliberty.mcp.meta.MetaKey;
+import io.openliberty.mcp.request.RequestId;
 import io.openliberty.mcp.tools.ToolResponse;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.context.Dependent;
@@ -175,6 +176,11 @@ public class BasicTools {
             throw new RuntimeException("Method call caused runtime exception");
         }
         return input;
+    }
+
+    @Tool(name = "echoRequestId", title = "Echo RequestId", description = "Returns the incoming request ID")
+    public String echoRequestId(RequestId id, @ToolArg(name = "input") String input) {
+        return id.toString() + ": " + input;
     }
 
     @Tool(name = "privateEcho", title = "Echoes the input", description = "Returns the input unchanged")
@@ -354,6 +360,48 @@ public class BasicTools {
         return false;
     }
 
+    @Tool(name = "testToolArgStringNotRequired", title = "ToolArgStringNotRequired", description = "ToolArgNotRequired")
+    public String testToolArgStringNotRequired(@ToolArg(name = "value", description = "String value", required = false) String value) {
+        return value;
+    }
+
+    @Tool(name = "testToolArgIntNotRequired", title = "ToolArgIntNotRequired", description = "ToolArgNotRequired")
+    public int testToolArgIntNotRequired(@ToolArg(name = "value", description = "int value", required = false) int value) {
+        return value;
+    }
+
+    @Tool(name = "testToolArgArrayNotRequired", title = "ToolArgArrayNotRequired", description = "ToolArgNotRequired")
+    public int[] testToolArgArrayNotRequired(@ToolArg(name = "value", description = "Array of ints", required = false) int[] value) {
+        return value;
+    }
+
+    @Tool(name = "testMultipleToolArgsOneNotRequired", title = "testMultipleToolArgsOneNotRequired", description = "MultipleToolArgsOneNotRequired")
+    public String testMultipleToolArgsOneNotRequired(@ToolArg(name = "planet", description = "planet you live in") String planet,
+                                                     @ToolArg(name = "year", description = "current year", required = false) int year) {
+        return "Planet " + planet + " was created in the year " + year;
+    }
+
+    @Tool(name = "testToolArgObjectNotRequired", title = "ToolArgObjectNotRequired", description = "ToolArgNotRequired")
+    public City testToolArgObjectNotRequired(@ToolArg(name = "value", description = "City object value", required = false) City value) {
+        return value;
+    }
+
+    @Tool(name = "testToolArgStringDefaultValue", title = "ToolArg String Default Value", description = "Test tool defaults to default value when argument not provided")
+    public String testToolArgStringDefaultValue(@ToolArg(name = "planet", description = "planet you live in", required = false, defaultValue = "Jupiter") String planet) {
+        return planet;
+    }
+
+    @Tool(name = "testToolArgIntDefaultValue", title = "ToolArg Int Default Value", description = "Test tool defaults to default value when argument not provided")
+    public int testToolArgIntDefaultValue(@ToolArg(name = "year", description = "current year", required = false, defaultValue = "2025") int year) {
+        return year;
+    }
+
+    @Tool(name = "testMultipleToolArgsOneDefaultValue", title = "testMultipleToolArgsOneDefaultValue", description = "MultipleToolArgsOneDefaultValue")
+    public String testMultipleToolArgsOneDefaultValue(@ToolArg(name = "planet", description = "planet you live in", required = false, defaultValue = "Jupiter") String planet,
+                                                      @ToolArg(name = "year", description = "current year") int year) {
+        return "Planet " + planet + " was created in the year " + year;
+    }
+
     /////////////////////////////////////////////
     // Special characters in Tool and  parameters
 
@@ -440,9 +488,10 @@ public class BasicTools {
     }
 
     @Tool(name = "addPersonToList", title = "adds person to people list", description = "adds person to people list", structuredContent = true)
-    public @Schema(description = "Returns list of person object") List<Person> addPersonToList(@ToolArg(name = "employeeList",
-                                                                                                        description = "List of people") List<Person> employeeList,
-                                                                                               @ToolArg(name = "person", description = "Person object") Optional<Person> person) {
+    @Schema(description = "Returns list of person object")
+    public List<Person> addPersonToList(
+                                        @ToolArg(name = "employeeList", description = "List of people") List<Person> employeeList,
+                                        @ToolArg(name = "person", description = "Person object") Optional<Person> person) {
         employeeList.add(person.get());
         return employeeList;
     }
@@ -461,6 +510,7 @@ public class BasicTools {
         _meta.put(MetaKey.from("api.ibmtest.org/location"), "Hursley");
         _meta.put(MetaKey.from("api.libertytest.org/person"), personInstance);
         return new ToolResponse(false, List.of(new TextContent(jsonb.toJson(employeeList))), employeeList, _meta);
+
     }
 
     @Tool(name = "addPersonToListToolResponseWithMetaRequest", title = "adds person to people list", description = "adds person to people list", structuredContent = true)
@@ -485,8 +535,8 @@ public class BasicTools {
     }
 
     @Tool(name = "simpleMetaRequest", title = "return string made from args and metadata", description = "return string made from args and metadata", structuredContent = false)
-    public String addPersonToListToolResponseWithSimpleMetaRequest(@ToolArg(name = "name", description = "name of person") String name,
-                                                                   Meta meta) {
+    public String simpleMetaRequest(@ToolArg(name = "name", description = "name of person") String name,
+                                    Meta meta) {
         Jsonb jsonb = JsonbBuilder.create();
 
         String location = (String) meta.getValue(MetaKey.from("api.ibmtest.org/location"));
@@ -501,6 +551,16 @@ public class BasicTools {
     public String getUserJp(@ToolArg(name = "userid",
                                      description = "対象ユーザーのユーザーID。") String userId) { // The user ID of the target user
         return "ID: " + userId + ", Name: 仮名, role: user";
+    }
+
+    @Tool(name = "noArgsRequest", title = "call tool without propviding arguments in params", description = "return string made from args and metadata", structuredContent = false)
+    public String noArgsRequest(Meta meta) {
+        Jsonb jsonb = JsonbBuilder.create();
+
+        String location = (String) meta.getValue(MetaKey.from("api.ibmtest.org/location"));
+        BigDecimal timestamp = (BigDecimal) meta.getValue(MetaKey.from("timestamp"));
+        String result = "You have called this tool from " + location + " at timestamp " + timestamp.toString();
+        return result;
     }
 
 }
