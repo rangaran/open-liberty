@@ -303,8 +303,12 @@ goto:eof
     if exist "%JAVA_HOME%\release" (
       for /f "usebackq eol=# delims== tokens=1,*" %%i in ("%JAVA_HOME%\release") do (
         if "%%i" == "JAVA_VERSION" (
-          for /f "tokens=1 delims=." %%a in ("%%~j") do (
-            set JAVA_VERSION_MAJOR=%%a
+          for /f "tokens=1,2 delims=." %%a in ("%%~j") do (
+            if %%a GTR 1 (
+              set JAVA_VERSION_MAJOR=%%a
+            ) else (
+              set JAVA_VERSION_MAJOR=%%b
+            )
           )
         )
       )
