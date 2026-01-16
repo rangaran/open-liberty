@@ -457,8 +457,15 @@ clientEnvAndJVMOptions()
     
     # In Java 24+, JNI usage must be explicitly granted when starting the JVM - https://openjdk.org/jeps/472 (needed for z/OS)
     if [ -n "${JAVA_VERSION_MAJOR}" ] && [ "${uname}" = "OS/390" ]; then
-        if [ ${JAVA_VERSION_MAJOR} -ge 24 ] && [[ -n "${JVM_OPTIONS_QUOTED##*--enable-native-access=ALL-UNNAMED*}" ]]; then
-            JVM_OPTIONS_QUOTED="${JVM_OPTIONS_QUOTED} '--enable-native-access=ALL-UNNAMED'"
+        if [ "${JAVA_VERSION_MAJOR}" -ge 24 ] 2>/dev/null; then
+            case "${JVM_OPTIONS_QUOTED}" in
+                *--enable-native-access=ALL-UNNAMED*)
+                    :  # already present, do nothing
+                    ;;
+                *)
+                    JVM_OPTIONS_QUOTED="${JVM_OPTIONS_QUOTED} '--enable-native-access=ALL-UNNAMED'"
+                    ;;
+            esac
         fi
     fi
   fi
