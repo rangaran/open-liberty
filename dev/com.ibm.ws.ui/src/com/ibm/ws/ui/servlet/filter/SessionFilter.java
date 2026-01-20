@@ -288,15 +288,7 @@ public class SessionFilter implements Filter {
             return;
         }
 
-        try {
-            chain.doFilter(req, resp);
-        } catch (ServletException | IOException e) {
-            // Log and re-throw exception with full stack trace for debugging
-            if (tc.isDebugEnabled()) {
-                Tr.debug(tc, "Exception in filter chain", e);
-            }
-            throw e;
-        }
+        chain.doFilter(req, resp);
 
         if (tc.isEntryEnabled()) {
             Tr.exit(tc, "doFilter");

@@ -18,7 +18,9 @@
 <%@ page import="java.io.InputStreamReader"%>
 <%@ page import="java.io.OutputStreamWriter"%>
 <%@ page import="java.net.*"%>
-<%@ page import="javax.servlet.http.Cookie"%>
+<%@ page import="jakarta.servlet.http.Cookie"%>
+<%@ page import="jakarta.servlet.http.HttpServletResponse"%>
+<%@ page import="jakarta.servlet.http.HttpSession"%>
 
 <!DOCTYPE html>
 <html style="height: 100%; width: 100%; margin: 0px; padding: 0px;">
