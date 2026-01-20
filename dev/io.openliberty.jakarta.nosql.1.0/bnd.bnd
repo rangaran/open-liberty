@@ -26,7 +26,7 @@ javac.target: 17
 Require-Capability: osgi.ee; filter:="(&(osgi.ee=JavaSE)(version=17))"
 
 Export-Package: \
-  jakarta.nosql;version="1.0.0"
+  jakarta.nosql;version="${jnosql-version}"
 
 -includeresource: \
   @\${repo;jakarta.nosql:jakarta.nosql-api;${jnosql-version};EXACT}!/!(META-INF/maven/*|module-info.class)
