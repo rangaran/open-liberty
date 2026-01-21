@@ -501,7 +501,12 @@ serverEnv()
       JAVA_VERSION_MAJOR=$(readNativeFile "${JAVA_HOME}/release" '[A-Za-z0-9]' | LC_ALL=C tr -d '\r' | grep ^JAVA_VERSION\s*= | tr -d '"' | awk -F= '{print $2}' | awk -F. '{if ($1 > 1) {print $1} else {print $2}}')
       # Only add flag if version was successfully detected and is >= 24
       if [ -n "${JAVA_VERSION_MAJOR}" ] && [ "${JAVA_VERSION_MAJOR}" -ge 24 ] 2>/dev/null; then
-        JVM_OPTIONS_QUOTED="${JVM_OPTIONS_QUOTED} '--enable-native-access=ALL-UNNAMED'"
+        case "${JVM_OPTIONS_QUOTED}" in
+          *--enable-native-access=ALL-UNNAMED*) ;;
+          *)
+            JVM_OPTIONS_QUOTED="${JVM_OPTIONS_QUOTED} '--enable-native-access=ALL-UNNAMED'"
+            ;;
+        esac
       fi
     fi
   fi
