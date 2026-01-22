@@ -471,7 +471,7 @@ public class NettyResponseMessage extends NettyBaseMessage implements HttpRespon
 
     @Override
     public void setReasonPhrase(byte[] reason) {
-        setReasonPhrase(new String(reason));
+        // See {@link #seeReasonPhrase(String)}
     }
 
     @Override
