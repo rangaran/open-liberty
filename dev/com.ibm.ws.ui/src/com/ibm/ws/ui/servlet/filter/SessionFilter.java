@@ -222,7 +222,6 @@ public class SessionFilter implements Filter {
 
     /**
      * Checks if the request requires CSRF validation.
-     * Uses a whitelist approach for maximum security.
      *
      * @param method HTTP method
      * @param uri Request URI
@@ -242,7 +241,7 @@ public class SessionFilter implements Filter {
             Tr.debug(tc, "CSRF validation check - Original URI: " + uri + ", Normalized: " + normalizedPath);
         }
         
-        // Check if path is in the CSRF-exempt whitelist
+        // Check if path is in the CSRF-exempt list
         if (isExemptFromCsrfValidation(normalizedPath)) {
             if (tc.isDebugEnabled()) {
                 Tr.debug(tc, "Path exempt from CSRF validation: " + normalizedPath);
