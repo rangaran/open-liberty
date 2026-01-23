@@ -70,8 +70,10 @@ public class LdapSettingsBean {
             props = new Properties();
             FileReader fr = null;
             try {
-                fr = new FileReader(PROPS_FILE);
+                java.io.File file = new java.io.File(PROPS_FILE);
+                fr = new FileReader(file);
                 props.load(fr);
+                lastModified = file.lastModified();
                 System.out.println(CLASS_NAME + ".loadConfiguration() loaded properties from " + PROPS_FILE);
             } finally {
                 if (fr != null) {
@@ -84,6 +86,23 @@ public class LdapSettingsBean {
     }
 
     /**
+     * Check if the properties file has been modified and reload if necessary.
+     */
+    private void checkAndReloadIfModified() {
+        try {
+            java.io.File file = new java.io.File(PROPS_FILE);
+            long currentModified = file.lastModified();
+            
+            if (currentModified != lastModified) {
+                System.out.println(CLASS_NAME + ".checkAndReloadIfModified() detected file change, reloading...");
+                loadConfiguration();
+            }
+        } catch (IOException e) {
+            System.err.println(CLASS_NAME + ".checkAndReloadIfModified() failed: " + e.getMessage());
+        }
+    }
+
+    /**
      * Get property value with read lock protection.
      */
     private String getProperty(String prop) {
@@ -91,6 +110,9 @@ public class LdapSettingsBean {
             System.err.println(CLASS_NAME + ".getProperty() called before initialization for: " + prop);
             return null;
         }
+        
+        // Check for file modifications before reading
+        checkAndReloadIfModified();
         
         lock.readLock().lock();
         try {
