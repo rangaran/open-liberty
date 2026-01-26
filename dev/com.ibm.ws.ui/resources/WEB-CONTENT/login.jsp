@@ -101,17 +101,40 @@
         <h1 id="loginTitle">Liberty Admin Center</h1>
       </header>
     <div class="login-form">
-      <form action="j_security_check" method="POST">
-          <div class="login-label login-label-visible" id="usernameLabel">User Name</div>       
+      <form action="j_security_check" method="POST" id="loginForm">
+          <div class="login-label login-label-visible" id="usernameLabel">User Name</div>
           <input id="j_username" class="loginTextBox" name="j_username" type="text" placeholder="User Name" autocomplete="off" autocapitalize="off" required autofocus />
           <div class="login-label" id="passwordLabel">Password</div>
           <input id="j_password" class="loginTextBox" name="j_password" type="password" placeholder="Password" autocomplete="off" autocapitalize="off" required />
+          <input type="hidden" id="csrfTokenField" name="X-CSRF-Token" value="" />
         <div class="button-bar">
           <button id="loginButton" class="mblButton submit-btn" type="submit">Submit</button>
         </div>
         <button id="hiddenLoginFormSubmit" type="submit" hidden disabled style="display:none;">Submit</button>
       </form>
     </div>
+    <script type="text/javascript">
+      // Read CSRF token from cookie and populate hidden field before form submission
+      (function() {
+        'use strict';
+        function getCookie(name) {
+          var value = "; " + document.cookie;
+          var parts = value.split("; " + name + "=");
+          if (parts.length === 2) return parts.pop().split(";").shift();
+          return null;
+        }
+        
+        var loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+          loginForm.addEventListener('submit', function(e) {
+            var csrfToken = getCookie('csrfToken');
+            if (csrfToken) {
+              document.getElementById('csrfTokenField').value = csrfToken;
+            }
+          });
+        }
+      })();
+    </script>
       <div id="login-footer" class="login-footer"></div>
     </div>
   </section>
