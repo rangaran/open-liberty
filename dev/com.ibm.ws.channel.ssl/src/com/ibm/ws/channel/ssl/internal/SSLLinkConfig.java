@@ -4,7 +4,7 @@
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-2.0/
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0
  *
  * Contributors:
@@ -18,6 +18,7 @@ import javax.net.ssl.SSLEngine;
 
 import com.ibm.websphere.ras.Tr;
 import com.ibm.websphere.ras.TraceComponent;
+import com.ibm.websphere.ssl.Constants;
 import com.ibm.websphere.ssl.Constants;
 
 /**
@@ -87,37 +88,27 @@ public class SSLLinkConfig {
 
         // First check the properties object for the ciphers.
         Object ciphersObject = this.myConfig.get(Constants.SSLPROP_ENABLED_CIPHERS);
-        if (null == ciphersObject) {
-            // Did not find the enabled ciphers. Need to determine them here.
-            String securityLevel = this.myConfig.getProperty(Constants.SSLPROP_SECURITY_LEVEL);
-            if (null == securityLevel) {
-                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-                    Tr.debug(tc, "Defaulting to HIGH security level");
-                }
-                securityLevel = Constants.SECURITY_LEVEL_HIGH;
+
+        if ((ciphersObject == null) || (ciphersObject instanceof String)) {
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                Tr.debug(tc, "enabledCipherSuites is a String: " + ciphersObject);
             }
-            // Found the security level.
-            ciphers = Constants.adjustSupportedCiphersToSecurityLevel(
-                                                                      sslEngine.getSupportedCipherSuites(), securityLevel);
+            // Process the string through adjustSupportedCiphers to handle modifiers (+/-) or custom lists
+            ciphers = Constants.adjustSupportedCiphers(sslEngine.getSupportedCipherSuites(), (String) ciphersObject);
+        } else if (ciphersObject instanceof String[]) {
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                Tr.debug(tc, "enabledCipherSuites is a String array");
+            }
+            // String array might contain modifiers, convert to space-separated string and process
+            String[] cipherArray = (String[]) ciphersObject;
+            String cipherString = String.join(" ", cipherArray);
+            ciphers = Constants.adjustSupportedCiphers(sslEngine.getSupportedCipherSuites(), cipherString);
         } else {
-            // Found enabled cipher suites. Now we need to put them in the right kind of object.
-            if (ciphersObject instanceof String) {
-                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-                    Tr.debug(tc, "enabledCipherSuites is a String: " + ciphersObject);
-                }
-                // Quickly break the string up into an array based on space delimiters.
-                ciphers = ((String) ciphersObject).split("\\s+");
-            } else if (ciphersObject instanceof String[]) {
-                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-                    Tr.debug(tc, "enabledCipherSuites is a String array");
-                }
-                ciphers = (String[]) ciphersObject;
-            } else {
-                if (TraceComponent.isAnyTracingEnabled() && tc.isEventEnabled()) {
-                    Tr.event(tc, "Invalid object for enabledCipherSuites: " + ciphersObject);
-                }
+            if (TraceComponent.isAnyTracingEnabled() && tc.isEventEnabled()) {
+                Tr.event(tc, "Invalid object for enabledCipherSuites: " + ciphersObject);
             }
         }
+
         // check for when we're returning 0 ciphers as the connection will not
         // work and will be throwing errors later on
         if (null == ciphers || 0 == ciphers.length) {

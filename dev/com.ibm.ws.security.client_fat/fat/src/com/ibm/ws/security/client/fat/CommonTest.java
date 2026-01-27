@@ -918,6 +918,8 @@ public class CommonTest {
                 case "NonSecureServerTest":
                 case "SSLCipherTest":
                 case "SSLnonIBMCipherTest":
+                case "SSLHandshakeTest":
+                case "SSLHandshakeTestNonIBM":
                     apps = new String[] { "apps/BasicCalculator.ear", "dropins/testmarker.war" };
                     break;
                 case "javacolonServerInjection":

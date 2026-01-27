@@ -19,6 +19,7 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.security.Security;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -34,6 +35,7 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
+import com.ibm.ws.kernel.productinfo.ProductInfo;
 
 import com.ibm.websphere.ras.Tr;
 import com.ibm.websphere.ras.TraceComponent;
@@ -48,6 +50,7 @@ import com.ibm.ws.ssl.JSSEProviderFactory;
 import com.ibm.ws.ssl.internal.LibertyConstants;
 import com.ibm.ws.ssl.provider.AbstractJSSEProvider;
 import com.ibm.wsspi.kernel.service.utils.FrameworkState;
+import com.ibm.websphere.ssl.Constants;
 
 /**
  * Class that reads and controls access to SSL configuration objects. It
@@ -113,6 +116,9 @@ public class SSLConfigManager {
 
     // Collective controller and member serverIdentity
     private static final String SERVER_IDENTITY = "serverIdentity";
+
+    private static boolean isSecurityLevelWarningLogged = false;
+    private static boolean isWeakCipherWarningLogged = false;
 
     /**
      * Private constructor, use getInstance().
@@ -412,8 +418,9 @@ public class SSLConfigManager {
             sslprops.setProperty(Constants.SSLPROP_CLIENT_AUTHENTICATION_SUPPORTED, clientAuthenticationSupported);
 
         String securityLevel = getSystemProperty(Constants.SSLPROP_SECURITY_LEVEL);
-        if (securityLevel != null && !securityLevel.equals(""))
-            sslprops.setProperty(Constants.SSLPROP_SECURITY_LEVEL, securityLevel);
+        if (securityLevel != null && !securityLevel.equals("")) {
+            logSecurityLevelInfo();
+        }
 
         String clientKeyAlias = getSystemProperty(Constants.SSLPROP_KEY_STORE_CLIENT_ALIAS);
         if (clientKeyAlias != null && !clientKeyAlias.equals(""))
@@ -436,12 +443,23 @@ public class SSLConfigManager {
             sslprops.setProperty(Constants.SSLPROP_ENABLED_CIPHERS, enabledCiphers);
         }
 
+
         if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
             Tr.debug(tc, "Saving SSLConfig." + sslprops.toString());
 
         if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled())
             Tr.exit(tc, "parseDefaultSecureSocketLayer");
         return sslprops;
+    }
+
+    /**
+     * Log CWPKI0838I once to inform users it is no longer used.
+     */
+    private static void logSecurityLevelInfo() {
+        if (!isSecurityLevelWarningLogged) {
+            Tr.info(tc, "ssl.securitylevel.ignored.CWPKI0838I");
+            isSecurityLevelWarningLogged = true;
+        }
     }
 
     /**
@@ -463,6 +481,7 @@ public class SSLConfigManager {
         WSKeyStore wsks_key = null;
         String keyStoreName = null;
         String alias = null;
+        String prop = null;
         String keyStoreRef = (String) map.get(LibertyConstants.KEY_KEYSTORE_REF);
         if (null != keyStoreRef) {
             wsks_key = KeyStoreManager.getInstance().getKeyStore(keyStoreRef);
@@ -546,9 +565,14 @@ public class SSLConfigManager {
             sslprops.setProperty(Constants.SSLPROP_CLIENT_AUTHENTICATION_SUPPORTED, clientAuthSup.toString());
         }
 
-        String prop = (String) map.get("securityLevel");
-        if (null != prop && !prop.isEmpty()) {
-            sslprops.setProperty(Constants.SSLPROP_SECURITY_LEVEL, prop);
+        prop = (String) map.get("securityLevel");
+        if (null != prop && !prop.isEmpty() && !ProductInfo.getBetaEdition()) {
+            logSecurityLevelInfo();
+
+            // Check for LOW or MEDIUM cipher specifications and issue warning once
+            if(prop.equalsIgnoreCase(Constants.SECURITY_LEVEL_MEDIUM) || prop.equalsIgnoreCase(Constants.SECURITY_LEVEL_LOW)){
+                weakCipherLogging();
+            }
         }
 
         prop = (String) map.get("clientKeyAlias");
@@ -561,15 +585,24 @@ public class SSLConfigManager {
             sslprops.setProperty(Constants.SSLPROP_KEY_STORE_SERVER_ALIAS, prop);
         }
 
-        prop = (String) map.get("enabledCiphers");
-        if (null != prop && !prop.isEmpty()) {
-            sslprops.setProperty(Constants.SSLPROP_ENABLED_CIPHERS, prop);
-        }
-
         prop = (String) map.get("id");
         if (null != prop && !prop.isEmpty()) {
             sslprops.setProperty(Constants.SSLPROP_ALIAS, prop);
             alias = prop;
+        }
+
+        prop = (String) map.get("enabledCiphers");
+        if (null != prop && !prop.isEmpty()) {
+            // Validate that enabledCiphers doesn't mix static entries with filter entries (+/-)
+            if (hasMixedCipherConfiguration(prop)) {
+                Tr.error(tc, "ssl.enabledCiphers.mixed.mode.error", prop, alias);
+                // Leave the value unset so JDK defaults are used
+            } else if (hasWildcardInAddEntry(prop)) {
+                Tr.error(tc, "ssl.enabledCiphers.wildcard.in.plus.error", prop, alias);
+                // Leave the value unset so JDK defaults are used
+            } else {
+                sslprops.setProperty(Constants.SSLPROP_ENABLED_CIPHERS, prop);
+            }
         }
 
         if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled()) {
@@ -616,6 +649,7 @@ public class SSLConfigManager {
         if (null != enforceCipherOrder) {
             sslprops.setProperty(Constants.SSLPROP_ENFORCE_CIPHER_ORDER, enforceCipherOrder.toString());
         }
+
 
         if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
             Tr.debug(tc, "Saving SSLConfig: " + sslprops);
@@ -1073,6 +1107,19 @@ public class SSLConfigManager {
         return value;
     }
 
+
+    /***
+     * This method adjusts the supported ciphers to include those appropriate to
+     * the security level (HIGH, MEDIUM, LOW).
+     *
+     * @param supportedCiphers
+     * @param securityLevel
+     * @return String[]
+     ***/
+    public synchronized String[] adjustSupportedCiphersToSecurityLevel(String[] supportedCiphers, String securityLevel) {
+        return (Constants.adjustSupportedCiphersToSecurityLevel(supportedCiphers, securityLevel));
+    }
+
     /***
      * This method returns the value from the above getGlobalProperty call, if not
      * null. Otherwise it returns the default.
@@ -1095,6 +1142,71 @@ public class SSLConfigManager {
     }
 
     /***
+     * Validates that enabledCiphers configuration doesn't mix static entries with filter entries (+/-).
+     *
+     * @param enabledCiphers The cipher configuration string
+     * @return true if the configuration mixes static and filter entries, false otherwise
+     ***/
+    private boolean hasMixedCipherConfiguration(String enabledCiphers) {
+        if (enabledCiphers == null || enabledCiphers.isEmpty()) {
+            return false;
+        }
+        
+        String[] entries = enabledCiphers.split("\\s+");
+        boolean hasStaticEntries = false;
+        boolean hasFilterEntries = false;
+        
+        for (String entry : entries) {
+            if (entry.isEmpty()) {
+                continue;
+            }
+            if (entry.startsWith("+") || entry.startsWith("-")) {
+                hasFilterEntries = true;
+            } else {
+                hasStaticEntries = true;
+            }
+            
+            // Early exit if we've found both types
+            if (hasStaticEntries && hasFilterEntries) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /***
+     * Validates that enabledCiphers configuration doesn't contain wildcards in any
+     * non '-' entry. Wildcards are only allowed in - (remove) entries.
+     *
+     * This catches cases such as a static entry with a wildcard (e.g. "TLS_AES_*")
+     * as well as + entries that include a wildcard.
+     *
+     * @param enabledCiphers The cipher configuration string
+     * @return true if the configuration has a wildcard in a non-"-" entry, false otherwise
+     ***/
+    private boolean hasWildcardInAddEntry(String enabledCiphers) {
+        if (enabledCiphers == null || enabledCiphers.isEmpty()) {
+            return false;
+        }
+
+        String[] entries = enabledCiphers.split("\\s+");
+
+        for (String entry : entries) {
+            if (entry.isEmpty()) {
+                continue;
+            }
+            // Check if this is NOT a - (remove) entry and contains a wildcard.
+            // This will flag static entries like "TLS_AES_*" as well as "+...*" entries.
+            if (!entry.startsWith("-") && entry.contains("*")) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /***
      * This method converts the enabled ciphers property into a String[].
      *
      * @param enabledCiphers
@@ -1107,40 +1219,19 @@ public class SSLConfigManager {
         return null;
     }
 
-    /***
-     * This method adjusts the supported ciphers to include those appropriate to
-     * the security level (HIGH, MEDIUM, LOW).
-     *
-     * @param supportedCiphers
-     * @param securityLevel
-     * @return String[]
-     ***/
-    public synchronized String[] adjustSupportedCiphersToSecurityLevel(String[] supportedCiphers, String securityLevel) {
-        return (Constants.adjustSupportedCiphersToSecurityLevel(supportedCiphers, securityLevel));
-    }
 
-    /***
-     * This method converts the cipher suite String[] to a space-delimited String.
-     *
-     * @param cipherList
-     * @return String
-     ***/
-    public synchronized String convertCipherListToString(String[] cipherList) {
-        if (cipherList == null || cipherList.length == 0) {
-            return "null";
-        }
-
-        StringBuilder sb = new StringBuilder();
-
-        for (int i = 0; i < cipherList.length; i++) {
-            if (0 < sb.length()) {
-                sb.append(' ');
+    /**
+     * Check if securityLevel contains LOW or MEDIUM
+     * and issue a warning once if found.
+     */
+    private void weakCipherLogging() {
+        if (!isWeakCipherWarningLogged) {
+            Tr.warning(tc, "ssl.weak.cipher.spec.CWPKI0839W");
+                isWeakCipherWarningLogged = true;
             }
-            sb.append(cipherList[i]);
         }
+    
 
-        return sb.toString();
-    }
 
     /***
      * This method masks passwords using asterisks instead of the real characters.
@@ -1460,18 +1551,23 @@ public class SSLConfigManager {
         String cipherString = props.getProperty(Constants.SSLPROP_ENABLED_CIPHERS);
 
         try {
+            if(ProductInfo.getBetaEdition()){
+                // Use unified logic: adjustSupportedCiphers handles both custom and modifier modes
+                ciphers = Constants.adjustSupportedCiphers(socket.getSupportedCipherSuites(), cipherString);
+            }
+            else{
+                if (cipherString != null) {
+                    ciphers = cipherString.split("\\s+");
+                } else {
+                    String securityLevel = props.getProperty(Constants.SSLPROP_SECURITY_LEVEL);
+                    if (tc.isDebugEnabled())
+                        Tr.debug(tc, "securityLevel from properties is " + securityLevel);
+                    if (securityLevel == null)
+                        securityLevel = "HIGH";
 
-            if (cipherString != null) {
-                ciphers = cipherString.split("\\s+");
-            } else {
-                String securityLevel = props.getProperty(Constants.SSLPROP_SECURITY_LEVEL);
-                if (tc.isDebugEnabled())
-                    Tr.debug(tc, "securityLevel from properties is " + securityLevel);
-                if (securityLevel == null)
-                    securityLevel = "HIGH";
+                    ciphers = adjustSupportedCiphersToSecurityLevel(socket.getSupportedCipherSuites(), securityLevel);
 
-                ciphers = adjustSupportedCiphersToSecurityLevel(socket.getSupportedCipherSuites(), securityLevel);
-
+                }
             }
         } catch (Exception e) {
             if (tc.isDebugEnabled())
@@ -1497,18 +1593,23 @@ public class SSLConfigManager {
         String cipherString = props.getProperty(Constants.SSLPROP_ENABLED_CIPHERS);
 
         try {
+            if(ProductInfo.getBetaEdition()){
+            // Use unified logic: adjustSupportedCiphers handles both custom and modifier modes
+            ciphers = Constants.adjustSupportedCiphers(socket.getSupportedCipherSuites(), cipherString);
+            }
+            else{
+                if (cipherString != null) {
+                    ciphers = cipherString.split("\\s+");
+                } else {
+                    String securityLevel = props.getProperty(Constants.SSLPROP_SECURITY_LEVEL);
+                    if (tc.isDebugEnabled())
+                        Tr.debug(tc, "securityLevel from properties is " + securityLevel);
+                    if (securityLevel == null)
+                        securityLevel = "HIGH";
 
-            if (cipherString != null) {
-                ciphers = cipherString.split("\\s+");
-            } else {
-                String securityLevel = props.getProperty(Constants.SSLPROP_SECURITY_LEVEL);
-                if (tc.isDebugEnabled())
-                    Tr.debug(tc, "securityLevel from properties is " + securityLevel);
-                if (securityLevel == null)
-                    securityLevel = "HIGH";
+                    ciphers = adjustSupportedCiphersToSecurityLevel(socket.getSupportedCipherSuites(), securityLevel);
 
-                ciphers = adjustSupportedCiphersToSecurityLevel(socket.getSupportedCipherSuites(), securityLevel);
-
+                }
             }
         } catch (Exception e) {
             if (tc.isDebugEnabled())

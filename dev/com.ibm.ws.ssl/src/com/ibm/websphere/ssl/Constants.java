@@ -204,6 +204,9 @@ public class Constants {
     public static final String PROTOCOL_TLS_FIPS = PROTOCOL_TLSV1_2 + ", " + PROTOCOL_TLSV1_3;
 
     /*** SECURITY LEVEL CONSTANTS ***/
+    //Security level constants are still defined for backward compatibility, but the security level concept is no longer 
+    //in use and these constants will be ignored if used. The effective list of ciphers will be determined by the JDK default 
+    // configuration or the explicit configuration of enabled ciphers.
     public static final String SECURITY_LEVEL_HIGH = "HIGH";
     public static final String SECURITY_LEVEL_MEDIUM = "MEDIUM";
     public static final String SECURITY_LEVEL_LOW = "LOW";
@@ -356,6 +359,8 @@ public class Constants {
     /**
      * This method adjusts the supported ciphers to include those appropriate
      * to the security level (HIGH, MEDIUM, LOW).
+     * We will be ignoring the securityLevel parameter and defaulting to the 
+     * effective JDK cipher list.
      *
      * @param supportedCiphers
      * @param securityLevel
@@ -469,6 +474,105 @@ public class Constants {
                                                                                          PROTOCOL_TLSV1_2,
                                                                                          PROTOCOL_TLSV1_3
     });
+
+
+    /**
+     * Adjust supported ciphers according to an enabled cipher string, which can be in one of two formats:
+     * - Custom mode: a list of ciphers with no +/- prefix replaces defaults
+     * - Modifier mode: +cipher to add, -pattern* to remove
+     *
+     * Also removes any occurrences of TLS_EMPTY_RENEGOTIATION_INFO_SCSV.
+     */
+    public static String[] adjustSupportedCiphers(String[] supportedCiphers, String enabledCiphers) {
+        if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled()) {
+            Tr.entry(tc, "adjustSupportedCiphers", new Object[] { convertCipherListToString(supportedCiphers), enabledCiphers });
+        }
+
+        // Remove any occurrences of TLS_EMPTY_RENEGOTIATION_INFO_SCSV - it's not an effective cipher suite
+        // Optimization: first scan for occurrences. If none are present, leave the original array
+        // to avoid allocations. If present, allocate exactly one new array and copy.
+        if (supportedCiphers != null && supportedCiphers.length > 0) {
+            final String SCSV = "TLS_EMPTY_RENEGOTIATION_INFO_SCSV";
+            int removeCount = 0;
+            for (String c : supportedCiphers) {
+                if (SCSV.equals(c)) {
+                    removeCount++;
+                }
+            }
+
+            if (removeCount > 0) {
+                String[] filtered = new String[supportedCiphers.length - removeCount];
+                int idx = 0;
+                for (String c : supportedCiphers) {
+                    if (!SCSV.equals(c)) {
+                        filtered[idx++] = c;
+                    }
+                }
+                supportedCiphers = filtered;
+            }
+        }
+
+        String[] adjustedCiphers;
+        if (enabledCiphers != null && !enabledCiphers.isEmpty()) {
+            String[] mods = enabledCiphers.split("[,\\s]+" );
+
+            // Categorize modifiers into three types
+            List<String> addCiphers = new ArrayList<>();
+            List<String> removePatterns = new ArrayList<>();
+            List<String> customCiphers = new ArrayList<>();
+
+            for (String mod : mods) {
+                if (mod.isEmpty()) {
+                    continue;
+                }
+                if (mod.startsWith("+")) {
+                    addCiphers.add(mod.substring(1));
+                } else if (mod.startsWith("-")) {
+                    removePatterns.add(mod.substring(1));
+                } else {
+                    customCiphers.add(mod);
+                }
+            }
+
+            boolean hasCustom = !customCiphers.isEmpty();
+
+            if (hasCustom) {
+                // CUSTOM MODE: Use only the specified ciphers (ignore JDK defaults)
+                adjustedCiphers = customCiphers.toArray(new String[customCiphers.size()]);
+            } else {
+                // MODIFIER MODE: Start with JDK defaults, apply +/- changes
+                List<String> newCipherList = new ArrayList<>(Arrays.asList(supportedCiphers));
+
+                // Remove ciphers matching patterns
+                for (String pattern : removePatterns) {
+                    newCipherList.removeIf(cipher -> matchesPattern(cipher, pattern));
+                }
+
+                // Add requested ciphers (they will be validated by SSLEngine later)
+                newCipherList.addAll(addCiphers);
+                adjustedCiphers = newCipherList.toArray(new String[newCipherList.size()]);
+            }
+        } else {
+            adjustedCiphers = supportedCiphers == null ? null : supportedCiphers.clone();
+        }
+
+        if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled()) {
+            Tr.exit(tc, "adjustSupportedCiphers -> " + convertCipherListToString(adjustedCiphers));
+        }
+        return adjustedCiphers;
+    }
+
+    /**
+     * Helper method to check if a cipher matches a pattern.
+     * Supports wildcard matching with '*' at the end of the pattern.
+     */
+    private static boolean matchesPattern(String cipher, String pattern) {
+        if (pattern.endsWith("*")) {
+            return cipher.startsWith(pattern.substring(0, pattern.length() - 1));
+        } else {
+            return cipher.equals(pattern);
+        }
+    }
 
     public boolean resolveDisableHostnameVerification(String targetHostname, String disabledVerifyHostname, Properties sslProps) {
         if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled()) {
