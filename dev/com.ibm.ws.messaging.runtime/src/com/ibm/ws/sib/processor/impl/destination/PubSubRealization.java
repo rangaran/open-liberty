@@ -12,6 +12,8 @@
  *******************************************************************************/
 package com.ibm.ws.sib.processor.impl.destination;
 
+import static com.ibm.ws.sib.processor.impl.ConsumerDispatcher.DUMMY_INSTANCE;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
@@ -521,6 +523,8 @@ public class PubSubRealization
             consumerDispatcher =
                             (ConsumerDispatcher) _consumerDispatchersDurable.get(
                                             subState.getSubscriberID());
+            
+            assert DUMMY_INSTANCE != consumerDispatcher; //Previously this would have been a ClassCastException
         }
 
         if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled())
@@ -529,7 +533,7 @@ public class PubSubRealization
                        "getDurableSubscriptionConsumerDispatcher",
                        consumerDispatcher);
 
-        return consumerDispatcher;
+        return DUMMY_INSTANCE == consumerDispatcher ? null : consumerDispatcher;
     }
 
     /*
@@ -2016,7 +2020,7 @@ public class PubSubRealization
             	// Whatever the previous line refers to, PendingDurableDelete doesn't exist in Liberty. 
             	// But there is, at some point, a DUMMY_INSTANCE in this map so I'm checking for it. This would have caught the
             	// String that was previously in the map at this point. -Ben
-                if (cd != ConsumerDispatcher.DUMMY_INSTANCE)
+                if (cd != DUMMY_INSTANCE)
                 {
                     // Does the CD belong to this destination
                     if (cd.getDestination().equals(_baseDestinationHandler))
@@ -2855,11 +2859,11 @@ public class PubSubRealization
                         }
                         // If it's not in pending delete, we'll try to use it
                     }
-                    // A String represents an RCD/AIH that's being created. If the subscription is
+                    // A Dummy Instance represents an RCD/AIH that's being created. If the subscription is
                     // clonable (supports multiple consumers) we'll wait for the completion as we'll
                     // be able to use it. Otherwise, we couldn't use it even if it existed (receive
                     // exclusive) so bomb out now.
-                    else if ((current instanceof String) && subState.isCloned())
+                    else if ((DUMMY_INSTANCE==current) && subState.isCloned())
                     {
                         // Set to null so we go round the loop again (after a delay)
                         current = null;
@@ -2981,7 +2985,7 @@ public class PubSubRealization
                         }
                     }
                 }
-                else if (!subState.isCloned() && (current instanceof String))
+                else if (!subState.isCloned() && (DUMMY_INSTANCE==current))
                 {
                     // This is a String so must be a placeholder for a creating one, which means
                     // someone else is about to attach so we would fail anyway (as we're not cloned)
@@ -3026,7 +3030,7 @@ public class PubSubRealization
                 // subs on this topic.  So create a bogus durSub entry and release the lock.  This will
                 // only block out durSubs attempting to connect to exactly the same durable subscription.
                 // If the create succeeds, then we'll fix the entry.  Otherwise we'll just remove it.
-                _consumerDispatchersDurable.put(remSubName, ConsumerDispatcher.DUMMY_INSTANCE);
+                _consumerDispatchersDurable.put(remSubName, DUMMY_INSTANCE);
             }
         } //end sync
 
