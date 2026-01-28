@@ -137,7 +137,7 @@ public class SibIntrospectorImpl implements Introspector {
 		while (destinationIterator.hasNext()) {
 			Object destiation = destinationIterator.next();
 
-			if (destiation instanceof DestinationHandler) {
+			if (destiation != null && destiation instanceof DestinationHandler) {
 				DestinationHandler destinationHandler = (DestinationHandler) destiation;
 				out.println("Destination. Name: " + destinationHandler.getName() + " description : "+ destinationHandler.getDescription() +  "alias? " + destinationHandler.isAlias());
 			}
