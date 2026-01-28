@@ -125,11 +125,11 @@ public class SibIntrospectorImpl implements Introspector {
 		DestinationManager destinationManager = ((MessageProcessor) messageProcessor).getDestinationManager();
 		Map<String, ConsumerDispatcher> durableSubscriptions = destinationManager.getDurableSubscriptionsTable();	
 		out.println("=== Durable Subscriptions ===");
-		durableSubscriptions.entrySet().stream().forEach(entry -> out.println(entry.getKey() + " : " + entry.getValue()));
+		durableSubscriptions.forEach((k,v) -> out.println(k + ":" + v));
 
 		out.println("=== Nondurable Subscriptions ===");
 		ConcurrentHashMap<String, ConsumerDispatcher> nonDurableSubscirptions = destinationManager.getNondurableSharedSubscriptions();
-		nonDurableSubscirptions.entrySet().stream().forEach(entry -> out.println(entry.getKey() + " : " + entry.getValue()));
+		nonDurableSubscirptions.forEach((k,v) -> out.println(k + ":" + v));
 
 		out.println("=== Destinations ===");
 		DestinationIndex destinationIndex = destinationManager.getDestinationIndex();
