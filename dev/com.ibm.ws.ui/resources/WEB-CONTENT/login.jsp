@@ -12,37 +12,85 @@
  --%>
 <%@ page session="false" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%
-    // GET PRODUCT NAME using ProductInfo API - Must be done before HTML output
     String productInfo = "";
     boolean isOpenLiberty = false;
+    
     try {
-        java.util.Map<String, com.ibm.ws.kernel.productinfo.ProductInfo> productInfoMap =
-            com.ibm.ws.kernel.productinfo.ProductInfo.getAllProductInfo();
-        
-        for (com.ibm.ws.kernel.productinfo.ProductInfo pi : productInfoMap.values()) {
-            if (pi.getReplacedBy() == null) {
-                // This is the active product (not replaced by another)
-                productInfo = pi.getName();
+        // Try to read from properties files
+        // Check all properties files and use the one that's NOT io.openliberty if multiple exist
+        String installRoot = System.getProperty("wlp.install.dir");
+        if (installRoot != null) {
+            java.io.File versionsDir = new java.io.File(installRoot, "lib/versions");
+            
+            if (versionsDir.exists() && versionsDir.isDirectory()) {
+                java.io.File[] allFiles = versionsDir.listFiles();
                 
-                // Check if it's Open Liberty
-                if (productInfo != null && productInfo.toLowerCase().contains("open liberty")) {
-                    isOpenLiberty = true;
-                }
+                String openLibertyName = "";
+                String otherProductName = "";
                 
-                // Escape for JavaScript string
-                if (productInfo != null && !productInfo.isEmpty()) {
-                    productInfo = productInfo.replace("\\", "\\\\")
-                                             .replace("\"", "\\\"")
-                                             .replace("'", "\\'")
-                                             .replace("\n", "\\n")
-                                             .replace("\r", "\\r");
+                // Check all properties files
+                if (allFiles != null && allFiles.length > 0) {
+                    for (int i = 0; i < allFiles.length; i++) {
+                        java.io.File propsFile = allFiles[i];
+                        String fileName = propsFile.getName();
+                        
+                        // Only process .properties files, skip service.fingerprint
+                        if (fileName.endsWith(".properties") && !fileName.equals("service.fingerprint")) {
+                            java.util.Properties props = new java.util.Properties();
+                            java.io.FileInputStream fis = null;
+                            try {
+                                fis = new java.io.FileInputStream(propsFile);
+                                props.load(fis);
+                                
+                                String productId = props.getProperty("com.ibm.websphere.productId", "");
+                                String name = props.getProperty("com.ibm.websphere.productName", "");
+                                
+                                if (name != null && !name.isEmpty()) {
+                                    // If this is Open Liberty, save it separately
+                                    if ("io.openliberty".equals(productId)) {
+                                        openLibertyName = name;
+                                    } else {
+                                        // This is WebSphere or another product - prioritize it
+                                        otherProductName = name;
+                                    }
+                                }
+                            } finally {
+                                if (fis != null) {
+                                    try { fis.close(); } catch (Exception e) {}
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Use WebSphere/other product name if available, otherwise use Open Liberty
+                    if (otherProductName != null && !otherProductName.isEmpty()) {
+                        productInfo = otherProductName;
+                        isOpenLiberty = false;
+                    } else if (openLibertyName != null && !openLibertyName.isEmpty()) {
+                        productInfo = openLibertyName;
+                        isOpenLiberty = true;
+                    }
                 }
-                break; // Use the first active product
             }
         }
+        
+        // Fallback to default if we couldn't get the product name
+        if (productInfo == null || productInfo.isEmpty()) {
+            productInfo = "Liberty";
+        }
+        
+        // Escape for JavaScript string
+        if (productInfo != null && !productInfo.isEmpty()) {
+            productInfo = productInfo.replace("\\", "\\\\")
+                                     .replace("\"", "\\\"")
+                                     .replace("'", "\\'")
+                                     .replace("\n", "\\n")
+                                     .replace("\r", "\\r");
+        }
     } catch (Exception ex) {
-        // If we can't get the product info, just leave it empty
-        productInfo = "";
+        // If we can't get the product info, use default
+        productInfo = "Liberty";
+        ex.printStackTrace(); // Log the error for debugging
     }
 %>
 <!DOCTYPE html>
