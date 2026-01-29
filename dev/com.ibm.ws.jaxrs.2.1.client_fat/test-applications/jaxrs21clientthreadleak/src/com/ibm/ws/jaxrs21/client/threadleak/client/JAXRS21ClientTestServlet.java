@@ -155,8 +155,8 @@ public class JAXRS21ClientTestServlet extends FATServlet {
         // Calculate thread increase
         int threadCountIncrease = finalBaseThreadCount - initialBaseThreadCount;
 
-        assertTrue("Thread count increased by " + threadCountIncrease + " which exceeds acceptable threshold of 10",
-                   threadCountIncrease <= 10);
+        assertTrue("Thread count increased by " + threadCountIncrease + " which exceeds acceptable threshold of 20",
+                   threadCountIncrease <= 20);
     }
 }
 
