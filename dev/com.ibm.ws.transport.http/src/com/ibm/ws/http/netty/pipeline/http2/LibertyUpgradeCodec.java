@@ -167,7 +167,6 @@ public class LibertyUpgradeCodec implements UpgradeCodecFactory {
             maxContentlength = Integer.MAX_VALUE;
         LibertyInboundHttp2ToHttpAdapter listener = new LibertyInboundHttp2ToHttpAdapter(connection, maxContentlength, false, false, channel);
         HttpToHttp2ConnectionHandler handler = new HttpToHttp2ConnectionHandlerBuilder().frameListener(listener).connection(connection).initialSettings(initialSettings).encoderIgnoreMaxHeaderListSize(true).decoderEnforceMaxRstFramesPerWindow(httpConfig.getH2MaxResetFrames(), frameWindowSize).encoderEnforceMaxRstFramesPerWindow(httpConfig.getH2MaxResetFrames(), frameWindowSize).limitFieldSize(httpConfig.getLimitOfFieldSize()).limitNumHeaders(httpConfig.getLimitOnNumberOfHeaders()).maxHeaderBlockSize(httpConfig.getH2MaxHeaderBlockSize()).build();
-        listener.setHandler(handler);
         if (!httpConfig.getH2LimitWindowUpdateFrames()) {
             ((DefaultHttp2LocalFlowController) handler.decoder().flowController()).windowUpdateRatio(0.99999f);
             try {
