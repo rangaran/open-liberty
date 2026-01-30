@@ -102,6 +102,12 @@ public interface Primes {
     @Asynchronous
     CompletableFuture<Short> countByNumberIdBetweenAndEvenNot(long first, long last, boolean isOdd);
 
+    @Query("WHERE numberId <= :cursor2")
+    @OrderBy("name")
+    @OrderBy("numberId")
+    CursoredPage<Prime> cursoredQuery(@Param("cursor2") long maxPrimeNumber,
+                                      PageRequest pageReq);
+
     @Asynchronous
     @Find
     CompletableFuture<Page<Prime>> divisibleByTwo(boolean even,
