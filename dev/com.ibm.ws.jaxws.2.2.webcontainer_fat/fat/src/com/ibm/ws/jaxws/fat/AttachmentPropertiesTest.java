@@ -1,14 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2019, 2026 IBM Corporation and others.
+ * Copyright (c) 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-2.0/
- *
+ * 
  * SPDX-License-Identifier: EPL-2.0
- *
- * Contributors:
- *     IBM Corporation - initial API and implementation
  *******************************************************************************/
 package com.ibm.ws.jaxws.fat;
 
@@ -37,20 +34,16 @@ import com.ibm.websphere.simplicity.log.Log;
 
 import componenttest.annotation.Server;
 import componenttest.custom.junit.runner.FATRunner;
+import componenttest.custom.junit.runner.Mode;
+import componenttest.custom.junit.runner.Mode.TestMode;
 import componenttest.topology.impl.LibertyServer;
 import componenttest.topology.utils.HttpUtils;
 
 /**
- * This case is added for service change work item 87104.
- * When MTOM is enabled on service provider, if client use Service.create(QName serviceName)
- * to create service and there is no need to add
- * service.addPort(portName, SOAPBinding.SOAP11HTTP_MTOM_BINDING, mtom11URL) statement.
- *
- * Additional tests have been added for testing SOAPAction headers when set on the request and the ability for an MTOM enabled
- * Web Service Endpoint to handle them depending on if allowing for mismatching Actions are set in the server.xml configuration
+ * Test MTOM Web Service attachment data availability and properties
  */
 @RunWith(FATRunner.class)
-//@Mode(TestMode.FULL)
+@Mode(TestMode.FULL)
 public class AttachmentPropertiesTest {
     private static final int REQUEST_TIMEOUT = 10;
 
@@ -86,6 +79,8 @@ public class AttachmentPropertiesTest {
 
     /**
      * Negative test for 0KB return
+     * MTOM Web Service attachment data is designed to be read once
+     * In case of multiple reads, data is lost
      *
      * @throws IOException
      */
@@ -101,7 +96,9 @@ public class AttachmentPropertiesTest {
     }
 
     /**
-     * Positive test for 0KB return
+     * To prevent data loss of MTOM Web Service attachment data due to multiple reads
+     * ibm-hold-temp-files property needs to be set to true
+     * Other attachment related properties are also tested in this test method
      *
      * @throws IOException
      */
@@ -150,11 +147,15 @@ public class AttachmentPropertiesTest {
             Log.info(AttachmentPropertiesTest.class, "checkExpectedResponses", "responseContent = " + responseContent);
             if (exact) { //the response content must contain all the expect strings
                 for (String expectStr : expectedResponses) {
-                    return responseContent.equals(expectStr);
+                    if (responseContent.equals(expectStr)) {
+                        return true;
+                    }
                 }
             } else { //the response content could contain one of the expect strings
                 for (String expectStr : expectedResponses) {
-                    return responseContent.contains(expectStr);
+                    if (responseContent.contains(expectStr)) {
+                        return true;
+                    }
                 }
             }
             return false;
