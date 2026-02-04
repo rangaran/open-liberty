@@ -1056,7 +1056,27 @@ javaCmd()
 
   # Set all the parameters for the java command.  We use eval so that each line
   # in jvm.options is treated as a distinct argument.
-  eval "set -- ${JAVA_AGENT_QUOTED} ${JVM_OPTIONS_QUOTED} ${JAVA_DEBUG} ${JVM_ARGS} -jar ${WLP_INSTALL_DIR_QUOTED}/bin/tools/ws-server.jar ""$REMAINING_ARGS"
+  # For client JVMs (not server launch), add IPv4 preference if set, in order to match server's IP stack
+  if [ -z "${JAVA_CMD_LOG}" ]; then
+  
+    # This is a client JVM invocation - load server options and extract IPv4 preference if not already done
+    if [ -z "$SERVER_JVM_OPTIONS_QUOTED" ]; then
+      loadJVMOptionsFiles
+    fi
+    
+    if [ -z "$SERVER_PREFER_IPV4" ]; then
+      extractPreferIPv4Stack
+    fi
+    
+    # Build the complete Java command line arguments and store them in the shell's positional parameters ($1, $2, $3, etc.).
+    # Add IPv4 preference. SERVER_PREFER_IPV4 should either be empty or set to something containing no spaces.
+    eval "set -- ${JAVA_AGENT_QUOTED} ${JVM_OPTIONS_QUOTED} ${JAVA_DEBUG} ${JVM_ARGS} $SERVER_PREFER_IPV4 -jar ${WLP_INSTALL_DIR_QUOTED}/bin/tools/ws-server.jar ""$REMAINING_ARGS"
+    
+  else
+    # Build the complete Java command line arguments and store them in the shell's positional parameters ($1, $2, $3, etc.).
+    # This is for a server JVM invocation.
+    eval "set -- ${JAVA_AGENT_QUOTED} ${JVM_OPTIONS_QUOTED} ${JAVA_DEBUG} ${JVM_ARGS} -jar ${WLP_INSTALL_DIR_QUOTED}/bin/tools/ws-server.jar ""$REMAINING_ARGS"
+  fi
   ARGS="$@"
 
   if [ $ACTION = "checkpoint" ]; then
@@ -1201,7 +1221,57 @@ serverCmdOS400()
   fi
 }
 
+## extractPreferIPv4Stack:
+##   Extracts the java.net.preferIPv4Stack value from SERVER_JVM_OPTIONS_QUOTED
+##   and sets SERVER_PREFER_IPV4 so it can be passed to the server command client JVM.
 ##
+##   NOTE:
+##     preferIPv4Stack is explicitly propagated because a mismatch between
+##     client and server IP stacks (IPv4 vs IPv6) can cause silent command
+##     timeouts when using the server script.
+##
+##   Supported formats in jvm.options:
+##     -Djava.net.preferIPv4Stack=true    -Djava.net.preferIPv4Stack="true"
+##     -Djava.net.preferIPv4Stack=false   -Djava.net.preferIPv4Stack="false"
+##
+##   Note: Spaces around '=' are NOT supported in jvm.options (It's invalid Java syntax).
+##
+extractPreferIPv4Stack()
+{
+  SERVER_PREFER_IPV4=""
+
+  case $SERVER_JVM_OPTIONS_QUOTED in
+     *-Djava.net.preferIPv4Stack=*)
+        # Remove everything up to and including the property name and '='
+        # The remaining string begins with the value, but may include additional JVM options after it.
+        after_equals=${SERVER_JVM_OPTIONS_QUOTED#*-Djava.net.preferIPv4Stack=}
+
+        # Extract value - handle common cases efficiently.
+        # The full option string is wrapped in quotes by escapeForEval, so the value
+        # is expected to end with a closing single quote.
+        case $after_equals in
+           true\'*)
+             # -Djava.net.preferIPv4Stack=true
+             value=true
+             ;;
+          false\'*)
+             # -Djava.net.preferIPv4Stack=false
+             value=false
+             ;;
+          *)
+             # Handle quoted values: -Djava.net.preferIPv4Stack="true"
+             value=$after_equals
+             value=${value#\"}        # Remove leading double quote if present
+             value=${value%%\'*}      # Extract up to first single quote
+             value=${value%%\"*}      # Extract up to first double quote
+             ;;
+        esac
+
+        SERVER_PREFER_IPV4="-Djava.net.preferIPv4Stack=$value"
+        ;;
+  esac
+}
+
 ## serverCmd: Launch a server process.
 ##
 ##   backgroundLogFile
