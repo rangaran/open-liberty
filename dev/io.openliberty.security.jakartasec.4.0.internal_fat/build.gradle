@@ -24,12 +24,3 @@ addRequiredLibraries {
 
 autoFVT.dependsOn ':com.ibm.ws.security.fat.common:assemble'
 autoFVT.dependsOn ':com.ibm.ws.security.fat.common.jwt:assemble'
-//autoFVT.doLast {
-//  
-//   copy {
-//      from project(':com.ibm.ws.security.fat.common').file('publish/shared/config')
-//      into new File(autoFvtDir, 'publish/shared/config')
-//      include '**/allAlgSSLSettings.xml'
-//   }
-// 
-//}
