@@ -274,6 +274,7 @@ steps:
       allowFailures: true
   properties:
     aggregationId: ${Compile Liberty Images:execution_id}
+    fileserverType: personal
     product_image_artifact_execution_id: ${Compile Liberty Images:execution_id}
     bucket_image_artifact_execution_id: ${Compile FATs:execution_id}
     changes_summary_artifact_execution_id: ${Compile Liberty Images:execution_id}
