@@ -5192,7 +5192,7 @@ public class QueryInfo {
                     if (c != null)
                         c.append("FROM ").append(entityInfo.name);
 
-                    if (entityVar_.length() > 0) {
+                    if (entityVar != THIS) {
                         q.append(' ').append(entityVar);
                         if (c != null)
                             c.append(' ').append(entityVar);
@@ -5628,7 +5628,14 @@ public class QueryInfo {
             // In this case, Constraint typed parameters will not be allowed.
             Iterator<String> paramNames = jpqlParamNames.iterator();
             for (int a = 0; a < specialParamsStartAt; a++) {
-                paramNames.hasNext(); // TODO
+                if (!paramNames.hasNext())
+                    throw exc(UnsupportedOperationException.class,
+                              "CWWKD1022.too.many.params",
+                              method.getName(),
+                              repositoryInterface.getName(),
+                              a + 1,
+                              specialParamsStartAt + 1,
+                              jpql);
                 String paramName = paramNames.next();
                 if (trace && tc.isDebugEnabled())
                     Tr.debug(this, tc, "[m] set :" + paramName + ' ' + loggable(args[a]));
