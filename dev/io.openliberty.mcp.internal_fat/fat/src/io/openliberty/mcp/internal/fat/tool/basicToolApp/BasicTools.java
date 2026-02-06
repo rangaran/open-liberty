@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025 IBM Corporation and others.
+ * Copyright (c) 2025, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -520,6 +520,13 @@ public class BasicTools {
     public String getUserJp(@ToolArg(name = "userid",
                                      description = "対象ユーザーのユーザーID。") String userId) { // The user ID of the target user
         return "ID: " + userId + ", Name: 仮名, role: user";
+    }
+
+    @Tool(name = "testNonLatinStringStructuredContent", title = "Not Latin String Structured Content Response",
+          description = "A tool to return a string with structuredContent set. The response should successully return non-latin characters",
+          structuredContent = true)
+    public City testNonLatinStringStructuredContent() {
+        return new City("東京", "日本", 14000000, true);
     }
 
     @Tool(name = "noArgsRequest", title = "call tool without propviding arguments in params", description = "return string made from args and metadata", structuredContent = false)

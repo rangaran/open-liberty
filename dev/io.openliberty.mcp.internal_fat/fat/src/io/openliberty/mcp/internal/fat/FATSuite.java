@@ -73,6 +73,7 @@ import io.openliberty.mcp.internal.fat.tool.ToolTest;
                 GenericToolTest.class,
                 InactiveCdiTest.class,
                 IntrospectorMultiAppTest.class,
+//                LocaleTest.class, // Commented out test until message translation is updated
                 LifecycleTest.class,
                 McpUrlPathTest.class,
                 NonRequiredArgsToolsTest.class,
