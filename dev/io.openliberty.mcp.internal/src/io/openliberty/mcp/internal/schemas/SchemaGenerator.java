@@ -147,7 +147,6 @@ public class SchemaGenerator {
 
         JsonObjectBuilder outputSchema = generateSubSchema(returnType, ctx, schemaAnnotation);
         addDefs(outputSchema, ctx);
-
         return outputSchema.build();
     }
 
