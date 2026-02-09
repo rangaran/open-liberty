@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2021, 2025 IBM Corporation and others.
+ * Copyright (c) 2021, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -116,6 +116,8 @@ public class NettyFrameworkImpl implements ServerQuiesceListener, NettyFramework
 
     private ChannelFrameworkConfig channelConfig;
 
+    private boolean useNativeIO;
+
     @Activate
     protected void activate(ComponentContext context, Map<String, Object> config) {
         if (!ProductInfo.getBetaEdition()) {
@@ -135,26 +137,7 @@ public class NettyFrameworkImpl implements ServerQuiesceListener, NettyFramework
                 }
             });
         }
-        IoHandlerFactory parentFactory;
-        IoHandlerFactory childFactory;
-        if (Epoll.isAvailable()) {
-            parentFactory = EpollIoHandler.newFactory();
-            childFactory = EpollIoHandler.newFactory();
-        } else if (KQueue.isAvailable()) {
-            parentFactory = KQueueIoHandler.newFactory();
-            childFactory = KQueueIoHandler.newFactory();
-        } else {
-            parentFactory = NioIoHandler.newFactory();
-            childFactory = NioIoHandler.newFactory();
-        }
 
-        if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-            Tr.debug(tc, "Created IoHandlerFactories -> parent: " + parentFactory + ", child: " + childFactory);
-        }
-
-        // Compared to channelfw, quiesce is hit every time because
-        // connections are lazy cleaned on deactivate
-        parentGroup = new MultiThreadIoEventLoopGroup(1, parentFactory);
         // Attempt to get the properties from the passed configuration but give priority to
         // the system properties if set
         int maxThreads;
@@ -162,6 +145,7 @@ public class NettyFrameworkImpl implements ServerQuiesceListener, NettyFramework
         if (System.getSecurityManager() == null) {
             maxThreads = Integer.getInteger(NettyConstants.SCALER_MAX_THREADS_PROPERTY, (Integer)config.getOrDefault(NettyConstants.SCALER_MAX_THREADS_PROPERTY, NettyConstants.SCALER_MAX_THREADS));
             metricsWindow = Long.getLong(NettyConstants.SCALER_METRICS_WINDOW_PROPERTY, (Long)config.getOrDefault(NettyConstants.SCALER_METRICS_WINDOW_PROPERTY, NettyConstants.SCALER_METRICS_WINDOW));
+            useNativeIO = Boolean.getBoolean(NettyConstants.USE_NATIVE_TRANSPORT) || (Boolean)config.getOrDefault(NettyConstants.USE_NATIVE_TRANSPORT, true);
         }
         else {
             maxThreads = AccessController.doPrivileged(new PrivilegedAction<Integer>() {
@@ -176,7 +160,47 @@ public class NettyFrameworkImpl implements ServerQuiesceListener, NettyFramework
                     return Long.getLong(NettyConstants.SCALER_METRICS_WINDOW_PROPERTY, (Long)config.getOrDefault(NettyConstants.SCALER_METRICS_WINDOW_PROPERTY, NettyConstants.SCALER_METRICS_WINDOW));
                 }
             });
+            useNativeIO = AccessController.doPrivileged(new PrivilegedAction<Boolean>() {
+                @Override
+                public Boolean run() {
+                    return Boolean.getBoolean(NettyConstants.USE_NATIVE_TRANSPORT) || (Boolean)config.getOrDefault(NettyConstants.USE_NATIVE_TRANSPORT, true);
+                }
+            });
         }
+
+        String systemProperty_useNativeIO = System.getProperty("io.openliberty.netty.internal.useNativeIO", "true");
+        if(systemProperty_useNativeIO.equalsIgnoreCase("false")) {
+            useNativeIO = false;
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                    Tr.debug(tc, "io.openliberty.netty.internal.useNativeIO system property is set to false, enabling native transport.");
+                }
+        }
+
+        if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+            Tr.debug(tc, "useNativeIO set to: " + useNativeIO);
+        }
+
+        IoHandlerFactory parentFactory;
+        IoHandlerFactory childFactory;
+        if (Epoll.isAvailable() && useNativeIO) {
+            parentFactory = EpollIoHandler.newFactory();
+            childFactory = EpollIoHandler.newFactory();
+        } else if (KQueue.isAvailable() && useNativeIO) {
+            parentFactory = KQueueIoHandler.newFactory();
+            childFactory = KQueueIoHandler.newFactory();
+        } else {
+            parentFactory = NioIoHandler.newFactory();
+            childFactory = NioIoHandler.newFactory();
+        }
+
+        if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+            Tr.debug(tc, "Created IoHandlerFactories -> parent: " + parentFactory + ", child: " + childFactory);
+        }
+
+        // Compared to channelfw, quiesce is hit every time because
+        // connections are lazy cleaned on deactivate
+        parentGroup = new MultiThreadIoEventLoopGroup(1, parentFactory);
+
         AutoScalingEventExecutorChooserFactory scaler = createThreadScaler();
         childGroup = new MultiThreadIoEventLoopGroup(maxThreads, null, scaler, childFactory);
         outboundConnections = new DefaultChannelGroup(childGroup.next());
@@ -326,9 +350,9 @@ public class NettyFrameworkImpl implements ServerQuiesceListener, NettyFramework
      * Used for server sockets - based on platform.
      */
     public Class getServerSocketChannelClass() {
-        if(Epoll.isAvailable()){
+        if(Epoll.isAvailable() && useNativeIO){
             return EpollServerSocketChannel.class;
-        } else if (KQueue.isAvailable()) {
+        } else if (KQueue.isAvailable() && useNativeIO){
             return KQueueServerSocketChannel.class;
         } else {
             return NioServerSocketChannel.class;
@@ -339,9 +363,9 @@ public class NettyFrameworkImpl implements ServerQuiesceListener, NettyFramework
      * Used for client sockets - based on platform.
      */
     public Class getSocketChannelClass() {
-        if(Epoll.isAvailable()){
+        if(Epoll.isAvailable() && useNativeIO){
             return EpollSocketChannel.class;
-        } else if (KQueue.isAvailable()) {
+        } else if (KQueue.isAvailable() && useNativeIO){
             return KQueueSocketChannel.class;
         } else {
             return NioSocketChannel.class;
@@ -352,9 +376,9 @@ public class NettyFrameworkImpl implements ServerQuiesceListener, NettyFramework
      * Used in UDP channels - based on platform.
      */
     public Class getDatagramClass() {
-        if (Epoll.isAvailable()) {
+        if (Epoll.isAvailable() && useNativeIO) {
             return EpollDatagramChannel.class;
-        } else if (KQueue.isAvailable()) {
+        } else if (KQueue.isAvailable() && useNativeIO) {
             return KQueueDatagramChannel.class;
         } else {
             return NioDatagramChannel.class;
