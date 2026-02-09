@@ -74,7 +74,8 @@ public class TCPChannelInitializerImpl extends ChannelInitializerWrapper {
         }
         Channel parent = channel.parent();
         if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-            Tr.debug(tc, "Initializing channel: " + channel + " found parent to be: " + parent);
+            Tr.debug(tc, "Initializing channel: processing connection: remote host address [" + channel.remoteAddress() + "] local host address [" + channel.localAddress()
+                         + "] id [" + channel.id() + "] parent " + parent);
         }
         // Add channel to endpoint ChannelGroup if known
         if (parent != null) {
