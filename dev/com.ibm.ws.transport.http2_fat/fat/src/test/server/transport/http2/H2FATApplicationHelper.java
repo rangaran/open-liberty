@@ -6,9 +6,6 @@
  * http://www.eclipse.org/legal/epl-2.0/
  * 
  * SPDX-License-Identifier: EPL-2.0
- *
- * Contributors:
- *     IBM Corporation - initial API and implementation
  *******************************************************************************/
 package test.server.transport.http2;
 
@@ -127,26 +124,14 @@ public class H2FATApplicationHelper {
 
     }
 
-    public static void preTestNettyCheck(LibertyServer runtimeServer, LibertyServer server) throws Exception {
-        // Go through Logs and check if Netty is being used
-        boolean runningNetty = false;
-        // Wait for endpoints to finish loading and get the endpoint started messages
-        server.waitForStringInLog("CWWKO0219I.*");
+    public static void preTestNettyCheck(LibertyServer runtimeServer, LibertyServer serverUnderTest) throws Exception {
+        // Go through Logs and check if Netty is being used for the serverUnderTest
         runtimeServer.waitForStringInLog("CWWKO0219I.*");
-        List<String> test = server.findStringsInLogs("CWWKO0219I.*");
-        LOG.info("preTestNettyCheck : Got port list...... " + Arrays.toString(test.toArray()));
-        LOG.info("preTestNettyCheck : Looking for port: " + server.getHttpSecondaryPort());
-        for (String endpoint : test) {
-            LOG.info("preTestNettyCheck : Endpoint: " + endpoint);
-            if (!endpoint.contains("port " + Integer.toString(server.getHttpSecondaryPort())))
-                continue;
-            LOG.info("preTestNettyCheck : Netty? " + endpoint.contains("io.openliberty.netty.internal.tcp.TCPUtils"));
-            runningNetty = endpoint.contains("io.openliberty.netty.internal.tcp.TCPUtils");
-            break;
-        }
-        if (runningNetty)
+        String endpoint = serverUnderTest.waitForStringInLog("CWWKO0219I.*port " + serverUnderTest.getHttpSecondaryPort() + ".");
+        LOG.info("preTestNettyCheck : Netty enabled? " + ((endpoint == null) ? "false" : endpoint.contains("io.openliberty.netty.internal.tcp.TCPUtils")));
+        if(endpoint != null && endpoint.contains("io.openliberty.netty.internal.tcp.TCPUtils"))
             FATServletClient.runTest(runtimeServer,
-                                     Http2FullModeTests.defaultServletPath + server.getHostname() + "&port=" + server.getHttpSecondaryPort() + "&testdir=" + Utils.TEST_DIR,
+                                     Http2FullModeTests.defaultServletPath + serverUnderTest.getHostname() + "&port=" + serverUnderTest.getHttpSecondaryPort() + "&testdir=" + Utils.TEST_DIR,
                                      "setUsingNetty");
     }
 
