@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018, 2025 IBM Corporation and others.
+ * Copyright (c) 2018, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -3559,12 +3559,9 @@ public class H2FATDriverServlet extends FATServlet {
         String testName = "testGoAwayFrameInvalidErrorCode";
         CountDownLatch blockUntilConnectionIsDone = new CountDownLatch(1);
         Http2Client h2Client = getDefaultH2Client(request, response, blockUntilConnectionIsDone);
-
-        if (!USING_NETTY) {
-            int NO_ERROR = 0x0;
-            FrameGoAway errorFrame = new FrameGoAway(0, null, NO_ERROR, 1, false);
-            h2Client.addExpectedFrame(errorFrame);
-        }
+        int NO_ERROR = 0x0;
+        FrameGoAway errorFrame = new FrameGoAway(0, null, NO_ERROR, 1, false);
+        h2Client.addExpectedFrame(errorFrame);
 
         setupDefaultUpgradedConnection(h2Client, HEADERS_ONLY_URI);
         h2Client.sendFrame(new FrameGoAway(0, new byte[] { (byte) 0, (byte) 1 }, 255, 1, false));
