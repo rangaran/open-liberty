@@ -354,7 +354,6 @@ public class XMLConfigParser {
                             // Any non-whitespace text is a malformed element.
                             Location l = parser.getLocation();
                             String preview = trimmed.length() > 60 ? trimmed.substring(0, 60) + "..." : trimmed;
-                            logError(ThrowBehavior.SOMETIMES_THROW_EXCEPTION, "error.potential.malformed.element", preview, l.getLineNumber(), docLocation);
                             Tr.warning(tc, "warning.potential.malformed.element", preview, l.getLineNumber(), docLocation);
                         }
                     }
