@@ -207,7 +207,7 @@ public class ClassLoadingServiceImpl implements LibertyClassLoadingService<Liber
         this.globalConfig = globalConfig;
         this.digraph = digraph;
         this.metadataIdentifierService = mdiService;
-        this.redefiner = instr == null ? null : new ClassRedefiner(instr);
+        this.redefiner = new ClassRedefiner(instr);
 
         generatorRefs.activate(cCtx);
         metaInfServicesRefs.activate(cCtx);
