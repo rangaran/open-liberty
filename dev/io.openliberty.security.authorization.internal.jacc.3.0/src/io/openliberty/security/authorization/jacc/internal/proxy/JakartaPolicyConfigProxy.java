@@ -76,19 +76,17 @@ public class JakartaPolicyConfigProxy implements PolicyConfiguration {
 
     void resetDelegatePolicyConfig(boolean remove) throws PolicyContextException {
         PolicyConfigurationFactory delegateFactory = factoryProxy.getFactory();
-        if (delegateFactory != null) {
-            synchronized (this) {
-                PolicyConfiguration delegateConfig = delegateFactory.getPolicyConfiguration(contextId, remove);
-                if (remove) {
-                     delete(true);
-                }
-                setState(ContextState.OPEN);
-
-                // Order matters here.  Need to set the config before the factory to avoid a timing window in
-                // getDelegatePolicyConfig where we think the config is already set if the factory is updated
-                currentConfig.set(delegateConfig);
-                currentFactory.set(delegateFactory);
+        synchronized (this) {
+            PolicyConfiguration delegateConfig = delegateFactory == null ? null : delegateFactory.getPolicyConfiguration(contextId, remove);
+            if (remove) {
+                 delete(true);
             }
+            setState(ContextState.OPEN);
+
+            // Order matters here.  Need to set the config before the factory to avoid a timing window in
+            // getDelegatePolicyConfig where we think the config is already set if the factory is updated
+            currentConfig.set(delegateConfig);
+            currentFactory.set(delegateFactory);
         }
     }
 
