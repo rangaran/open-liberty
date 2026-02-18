@@ -12,12 +12,6 @@
  *******************************************************************************/
 package io.openliberty.security.jakartasec.fat.tests;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
-import java.net.HttpURLConnection;
-import java.net.URL;
-
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.AfterClass;
@@ -33,16 +27,19 @@ import componenttest.custom.junit.runner.FATRunner;
 import componenttest.custom.junit.runner.Mode;
 import componenttest.custom.junit.runner.Mode.TestMode;
 import componenttest.topology.impl.LibertyServer;
+import multiple.ham.common.MultipleHAMProtectedResource;
 import multiple.ham.custom.hams.CustomHAMOne;
 
 /**
  * Tests appSecurity-6.0
+ * Tests a custom HAM with one in-built HAM
  */
 @RunWith(FATRunner.class)
 @Mode(TestMode.LITE)
-public class HAMWithInBuiltTests {
+public class HAMWithInBuiltTests extends BaseJakartaSecurity40Test {
 
-    public static final String SERVER_NAME = "jakartaSec40Server";
+    private static final Class<?> c = MultipleHAMDuplicateTests.class;
+
     public static final String APP_NAME = "HAMWithInBuiltApp";
     private static final String CONTEXT_ROOT = "/" + APP_NAME;
     private static final String RESOURCE_PATH = "/resource/test";
@@ -52,17 +49,28 @@ public class HAMWithInBuiltTests {
     @Server(SERVER_NAME)
     public static LibertyServer server;
 
+    @Override
+    protected Class<?> getTestClass() {
+        return c;
+    }
+
+    @Override
+    protected LibertyServer getServer() {
+        return server;
+    }
+
     @BeforeClass
     public static void setUp() throws Exception {
+        HAMWithInBuiltTests instance = new HAMWithInBuiltTests();
         WebArchive multipleHamApp = ShrinkWrap.create(WebArchive.class,
-                                                      APP_NAME + ".war").addPackage("ham.with.in.built").addClass(CustomHAMOne.class);
+                                                      APP_NAME + ".war").addPackage("ham.with.in.built").addClass(CustomHAMOne.class).addClass(MultipleHAMProtectedResource.class);
 
         // The URL is not expected to be modified during this test scope
         url = "http://localhost:" + server.getHttpDefaultPort() + CONTEXT_ROOT + RESOURCE_PATH;
 
         ShrinkHelper.exportDropinAppToServer(server, multipleHamApp, DeployOptions.SERVER_ONLY);
 
-        server.startServer();
+        instance.startServer();
     }
 
     /*
@@ -79,30 +87,20 @@ public class HAMWithInBuiltTests {
     @Test
     public void testCustomHamsWithInBuiltHamPrioritization() throws Exception {
 
-        // Mark the trace before making HTTP connection
-        server.setTraceMarkToEndOfDefaultTrace();
-
-        URL urlObj = new URL(url);
-        HttpURLConnection conn = (HttpURLConnection) urlObj.openConnection();
-
-        conn.setRequestMethod("GET");
-        conn.setDoInput(true);
-        int responseCode = conn.getResponseCode();
-        assertEquals("Expected status code 200 but got " + responseCode, 200, responseCode);
+        executeGetRequestWithTraceMark(url, 200);
 
         String startOfMessage = "Order of HttpAuthenticationMechanisms found";
         String prioritizationOrder = "CustomHAMOne Priority = 100, BasicHttpAuthenticationMechanism";
 
         // Check that warning appears
-        assertNotNull("Warning message should appear in log",
-                      server.waitForStringInTraceUsingMark(startOfMessage));
+        assertStringInTrace("Warning message should appear in log", startOfMessage);
         // Check that warning appears
-        assertNotNull("Warning message should appear in log",
-                      server.waitForStringInTraceUsingMark(prioritizationOrder));
+        assertStringInTrace("Warning message should appear in log", prioritizationOrder);
     }
 
     @AfterClass
     public static void tearDown() throws Exception {
-        server.stopServer();
+        HAMWithInBuiltTests instance = new HAMWithInBuiltTests();
+        instance.stopServer();
     }
 }
