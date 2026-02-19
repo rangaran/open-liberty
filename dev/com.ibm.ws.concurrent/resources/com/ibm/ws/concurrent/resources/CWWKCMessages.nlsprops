@@ -85,8 +85,8 @@ CWWKC1120.future.get.rejected.explanation=The ManagedTaskListener taskSubmitted 
 CWWKC1120.future.get.rejected.useraction=Update the application to avoid invoking get on the Future that is supplied to taskSubmitted and taskStarting.
 
 CWWKC1121.virtual.invalid=CWWKC1121E: The {0} annotation or {1} deployment \
- descriptor element that has the {2} name specifies virtual=true, \
- but virtual threads are not available prior to Java 21. \
+ descriptor element with the name {2} specifies virtual=true, \
+ but virtual threads are not available before Java 21. \
  The Java level used is: {3}.
 CWWKC1121.virtual.invalid.explanation=Virtual threads are not available in the \
  Java version that is used.
