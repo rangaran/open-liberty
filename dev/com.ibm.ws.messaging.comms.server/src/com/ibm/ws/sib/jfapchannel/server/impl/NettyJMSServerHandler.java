@@ -222,7 +222,7 @@ public class NettyJMSServerHandler extends SimpleChannelInboundHandler<WsByteBuf
 	}
 
     /* 
-     * Inactive channel means it's closed. Just invaliate the connection.
+     * Inactive channel means it's closed. Just invalidate the connection.
      */
 	@Override
 	public void channelInactive(ChannelHandlerContext ctx) throws Exception {
@@ -235,7 +235,7 @@ public class NettyJMSServerHandler extends SimpleChannelInboundHandler<WsByteBuf
 		Connection conn = ctx.channel().attr(NettyNetworkConnectionFactory.CONNECTION).get();
 
         if(conn != null) {
-            conn.invalidate(false, new InactiveChannelException(), "Channel Inactive");
+            conn.invalidate(false, new InactiveChannelException(), "Channel Inactive: " + ctx.channel().toString());
         }
 
 		ctx.channel().attr(NettyNetworkConnectionFactory.CONNECTION).set(null);
@@ -256,7 +256,7 @@ public class NettyJMSServerHandler extends SimpleChannelInboundHandler<WsByteBuf
 
         Connection conn = ctx.channel().attr(NettyNetworkConnectionFactory.CONNECTION).get();
         if(conn != null) {
-            conn.invalidate(false, cause, "Exception Caught");
+            conn.invalidate(false, cause, "Exception Caught for Channel: " + ctx.channel().toString());
         }
 		ctx.channel().attr(NettyNetworkConnectionFactory.CONNECTION).set(null);
 
