@@ -41,4 +41,14 @@ public interface PolicyProxy {
         // Default is to throws exception since it isn't expected to be called for pre-EE 11 scenarios
         throw new UnsupportedOperationException();
     }
+
+    /**
+     * Determines if a Policy is configured.  In EE 11, we create the PolicyProxy always even if there
+     * isn't a PolicyFactory defined because it can be added dynamically by applications in their web.xml
+     * or using the PolicyFactory.setPolicyFactory() method.
+     */
+    default public boolean isPolicyConfigured() {
+        // return true for pre EE 11 versions since the PolicyProxy isn't created unless there is a Policy
+        return true;
+    }
 }
