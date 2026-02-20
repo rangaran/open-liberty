@@ -31,6 +31,8 @@ import multiple.ham.inbuilt.MultipleHAMQualifiersApplication;
 
 /**
  * Tests appSecurity-6.0
+ *
+ * Tests that we see CWWKS2610E: Missing a custom handler when using qualified HttpAuthenticationMechanisms when qualifiers are found without a custom handler
  */
 @RunWith(FATRunner.class)
 @Mode(TestMode.LITE)
@@ -64,11 +66,17 @@ public class MissingCustomHandlerTests extends BaseJakartaSecurity40Test {
         server.stopServer();
     }
 
+    /*
+     * Tests multiple custom HAM's with qualifiers without a handler
+     */
     @Test
     public void testCustomHAMWithQualifierWithoutHandler() {
         AppValidator.validateAppOn(server).withClass(MultipleHAMQualifiersApplication.class).withClass(CustomHAMWithQualifier.class).withClass(CustomHAMWithQualifierTwo.class).withClass(MultipleHAMProtectedResource.class).withPackage("multiple.ham.common.qualifiers").failsWith("CWWKS2610E|CWWKZ0002E").run();
     }
 
+    /*
+     * Tests in-built HAM's with qualifiers without a handler
+     */
     @Test
     public void testMultipleInBuiltHAMWithQualifierWithoutHandler() {
         AppValidator.validateAppOn(server).withClass(MultipleHAMQualifiersApplication.class).withClass(MultipleHAMProtectedResource.class).withPackage("multiple.ham.common.qualifiers").failsWith("CWWKS2610E|CWWKZ0002E").run();
