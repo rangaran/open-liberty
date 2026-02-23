@@ -3540,10 +3540,6 @@ public class DataJPATestServlet extends FATServlet {
     @Test
     public void testManyToOneIdClass() {
 
-        if (!isHibernate()) {
-            // TODO enable once EclipseLink 29073 is fixed
-            return;
-        }
         assertEquals(List.of("Discrooger card #2000921022220002",
                              "MonsterCard card #3000921032220002",
                              "Feesa card #4000921042220002",
