@@ -146,7 +146,7 @@ public class JSONFieldsTest {
     }
 
     /*
-     * This test sets the "jsonFields" attribute in the server.xml and verifies the property in the messages.log file.
+     * This test sets the "jsonFields" attribute in the server.xml and verifies the property in the messages.log file
      */
     @Test
     public void testMessageFieldNamesXML() throws Exception {
