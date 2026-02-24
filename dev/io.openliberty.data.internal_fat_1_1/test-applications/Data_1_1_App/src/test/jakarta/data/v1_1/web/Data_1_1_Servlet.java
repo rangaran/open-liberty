@@ -185,6 +185,27 @@ public class Data_1_1_Servlet extends FATServlet {
     }
 
     /**
+     * Supply restrictions to a repository method where one of the restrictions
+     * is a restriction on a boolean attribute.
+     */
+    @Test
+    public void testBooleanAttributeRestrictions() {
+
+        assertEquals(List.of(11, 7, 5, 1),
+                     fractions.where(Restrict.all(_Fraction.denominator.equalTo(12),
+                                                  _Fraction.reduced.isTrue()))
+                                     .map(f -> f.numerator)
+                                     .toList());
+
+        assertEquals(List.of(2, 3, 4),
+                     fractions.withNameLike("%ixths",
+                                            _Fraction.reduced.isFalse(),
+                                            Order.by(_Fraction.numerator.asc()))
+                                     .map(f -> f.numerator)
+                                     .toList());
+    }
+
+    /**
      * Use a repository method that has the Is annotation on one method
      * argument and another method argument is a composite All restriction.
      */
