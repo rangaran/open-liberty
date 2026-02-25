@@ -3451,13 +3451,7 @@ public class WebAppConfiguratorHelper implements ServletConfiguratorHelper {
                 List<String> urlPatterns = servletMapping.getURLPatterns();
                 for (String urlPattern : urlPatterns) {
                     if (isServletSpecLevel31OrHigher()) {
-                        String existingName = urlToServletNameMap.put(urlPattern, servletName);
-                        if ((existingName != null) && !(existingName.equals(servletName))) {
-                            Tr.error(tc,"duplicate.url.pattern.for.servlet.mapping", urlPattern, servletName, existingName);
-                            throw new UnableToAdaptException(nls.getFormattedMessage("duplicate.url.pattern.for.servlet.mapping",
-                                                                                     new Object[]{urlPattern, servletName, existingName} ,
-                                                                                     "servlet-mapping value matches multiple servlets: " + urlPattern));
-                        }
+                        urlToServletNameMap.put(urlPattern, servletName);
                     }
                     webAppConfiguration.addServletMapping(servletName, urlPattern);
                 }
