@@ -95,6 +95,9 @@ public class ConsumerImpl implements Consumer {
     public int getNumCars(long personId) {
         EntityManager em = _activePu.createEntityManager();
         try {
+            em.getEntityManagerFactory().getCache().evict(Person.class, personId);
+            // Clear the persistence context to ensure a clean state after cache eviction
+            em.clear();
             Person p = em.find(Person.class, personId);
             if (p == null) {
                 throw new RuntimeException("null person.id=" + personId);
