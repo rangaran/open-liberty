@@ -23,11 +23,7 @@
 	
 	<network>
 	    <join>
-	        <multicast enabled="true">
-	        </multicast>
-	        <tcp-ip enabled="true">
-	            <interface>127.0.0.1</interface>
-	        </tcp-ip>
+	    		<multicast enabled="true"/>
 	    </join>
 	</network>
 
