@@ -9,8 +9,6 @@
  *******************************************************************************/
 package io.openliberty.netty.internal.impl;
 
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
@@ -87,7 +85,7 @@ import io.openliberty.netty.internal.udp.UDPUtils;
  * Liberty NettyFramework implementation bundle
  */
 @Component(immediate = true, service = { NettyFramework.class, ServerQuiesceListener.class },
-           configurationPolicy = ConfigurationPolicy.OPTIONAL,
+           configurationPolicy = ConfigurationPolicy.REQUIRE,
            configurationPid = "io.openliberty.netty.internal",
            property = { "service.vendor=IBM" })
 public class NettyFrameworkImpl implements ServerQuiesceListener, NettyFramework {
@@ -117,7 +115,7 @@ public class NettyFrameworkImpl implements ServerQuiesceListener, NettyFramework
 
     private ChannelFrameworkConfig channelConfig;
 
-    private boolean useNativeIO;
+    private boolean useNativeIO = true;
 
     @Activate
     protected void activate(ComponentContext context, Map<String, Object> config) {
@@ -126,55 +124,20 @@ public class NettyFrameworkImpl implements ServerQuiesceListener, NettyFramework
             return;
         }
         // Netty specific configurations for performance
-        if (System.getSecurityManager() == null) {
-            setNettySystemProperties();
-        }
-        else {
-            AccessController.doPrivileged(new PrivilegedAction<Void>() {
-                @Override
-                public Void run() {
-                    setNettySystemProperties();
-                    return null;
-                }
-            });
-        }
+        setNettySystemProperties();
 
         // Attempt to get the properties from the passed configuration but give priority to
         // the system properties if set
-        int maxThreads;
-        long metricsWindow;
-        if (System.getSecurityManager() == null) {
-            maxThreads = Integer.getInteger(NettyConstants.SCALER_MAX_THREADS_PROPERTY, (Integer)config.getOrDefault(NettyConstants.SCALER_MAX_THREADS_PROPERTY, NettyConstants.SCALER_MAX_THREADS));
-            metricsWindow = Long.getLong(NettyConstants.SCALER_METRICS_WINDOW_PROPERTY, (Long)config.getOrDefault(NettyConstants.SCALER_METRICS_WINDOW_PROPERTY, NettyConstants.SCALER_METRICS_WINDOW));
-            useNativeIO = Boolean.getBoolean(NettyConstants.USE_NATIVE_TRANSPORT) || (Boolean)config.getOrDefault(NettyConstants.USE_NATIVE_TRANSPORT, true);
-        }
-        else {
-            maxThreads = AccessController.doPrivileged(new PrivilegedAction<Integer>() {
-                @Override
-                public Integer run() {
-                    return Integer.getInteger(NettyConstants.SCALER_MAX_THREADS_PROPERTY, (Integer)config.getOrDefault(NettyConstants.SCALER_MAX_THREADS_PROPERTY, NettyConstants.SCALER_MAX_THREADS));
-                }
-            });
-            metricsWindow = AccessController.doPrivileged(new PrivilegedAction<Long>() {
-                @Override
-                public Long run() {
-                    return Long.getLong(NettyConstants.SCALER_METRICS_WINDOW_PROPERTY, (Long)config.getOrDefault(NettyConstants.SCALER_METRICS_WINDOW_PROPERTY, NettyConstants.SCALER_METRICS_WINDOW));
-                }
-            });
-            useNativeIO = AccessController.doPrivileged(new PrivilegedAction<Boolean>() {
-                @Override
-                public Boolean run() {
-                    return Boolean.getBoolean(NettyConstants.USE_NATIVE_TRANSPORT) || (Boolean)config.getOrDefault(NettyConstants.USE_NATIVE_TRANSPORT, true);
-                }
-            });
-        }
+        int maxThreads = Integer.getInteger(NettyConstants.SCALER_MAX_THREADS_PROPERTY, (Integer) config.get(NettyConstants.SCALER_MAX_THREADS_PROPERTY));
+        long metricsWindow = Long.getLong(NettyConstants.SCALER_METRICS_WINDOW_PROPERTY, (Long) config.get(NettyConstants.SCALER_METRICS_WINDOW_PROPERTY));
+        useNativeIO = (Boolean)config.get(NettyConstants.USE_NATIVE_TRANSPORT);
 
         String systemProperty_useNativeIO = System.getProperty("io.openliberty.netty.internal.useNativeIO", "true");
         if(systemProperty_useNativeIO.equalsIgnoreCase("false")) {
             useNativeIO = false;
-                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-                    Tr.debug(tc, "io.openliberty.netty.internal.useNativeIO system property is set to false, NOT enabling native transport.");
-                }
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                Tr.debug(tc, "io.openliberty.netty.internal.useNativeIO system property is set to false, NOT enabling native transport.");
+            }
         }
 
         if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
@@ -202,7 +165,7 @@ public class NettyFrameworkImpl implements ServerQuiesceListener, NettyFramework
         // connections are lazy cleaned on deactivate
         parentGroup = new MultiThreadIoEventLoopGroup(1, parentFactory);
 
-        AutoScalingEventExecutorChooserFactory scaler = createThreadScaler();
+        AutoScalingEventExecutorChooserFactory scaler = createThreadScaler(config);
         childGroup = new MultiThreadIoEventLoopGroup(maxThreads, null, scaler, childFactory);
         outboundConnections = new DefaultChannelGroup(childGroup.next());
         
@@ -219,70 +182,21 @@ public class NettyFrameworkImpl implements ServerQuiesceListener, NettyFramework
         }
     }
 
-    private AutoScalingEventExecutorChooserFactory createThreadScaler() {
-        int minThreads, maxThreads, upStep, downStep, cycles;
-        long windowSize;
-        double downThreshold, upThreshold;
-        if (System.getSecurityManager() == null) {
-            minThreads = Integer.getInteger(NettyConstants.SCALER_MIN_THREADS_PROPERTY, NettyConstants.SCALER_MIN_THREADS);
-            maxThreads = Integer.getInteger(NettyConstants.SCALER_MAX_THREADS_PROPERTY, NettyConstants.SCALER_MAX_THREADS);
-            windowSize = Long.getLong(NettyConstants.SCALER_WINDOW_PROPERTY, NettyConstants.SCALER_WINDOW);
-            downThreshold = parseDouble(NettyConstants.SCALER_DOWN_THRESHOLD_PROPERTY, NettyConstants.SCALER_DOWN_THRESHOLD);
-            upThreshold = parseDouble(NettyConstants.SCALER_UP_THRESHOLD_PROPERTY, NettyConstants.SCALER_UP_THRESHOLD);
-            upStep = Integer.getInteger(NettyConstants.SCALER_UP_STEP_PROPERTY, NettyConstants.SCALER_UP_STEP);
-            downStep = Integer.getInteger(NettyConstants.SCALER_DOWN_STEP_PROPERTY, NettyConstants.SCALER_DOWN_STEP);
-            cycles = Integer.getInteger(NettyConstants.SCALER_CYCLES_PROPERTY, NettyConstants.SCALER_CYCLES);
-        }
-        else {
-            minThreads = AccessController.doPrivileged(new PrivilegedAction<Integer>() {
-                @Override
-                public Integer run() {
-                    return Integer.getInteger(NettyConstants.SCALER_MIN_THREADS_PROPERTY, NettyConstants.SCALER_MIN_THREADS);
-                }
-            });
-            maxThreads = AccessController.doPrivileged(new PrivilegedAction<Integer>() {
-                @Override
-                public Integer run() {
-                    return Integer.getInteger(NettyConstants.SCALER_MAX_THREADS_PROPERTY, NettyConstants.SCALER_MAX_THREADS);
-                }
-            });
-            windowSize = AccessController.doPrivileged(new PrivilegedAction<Long>() {
-                @Override
-                public Long run() {
-                    return Long.getLong(NettyConstants.SCALER_WINDOW_PROPERTY, NettyConstants.SCALER_WINDOW);
-                }
-            });
-            downThreshold = AccessController.doPrivileged(new PrivilegedAction<Double>() {
-                @Override
-                public Double run() {
-                    return parseDouble(NettyConstants.SCALER_DOWN_THRESHOLD_PROPERTY, NettyConstants.SCALER_DOWN_THRESHOLD);
-                }
-            });
-            upThreshold = AccessController.doPrivileged(new PrivilegedAction<Double>() {
-                @Override
-                public Double run() {
-                    return parseDouble(NettyConstants.SCALER_UP_THRESHOLD_PROPERTY, NettyConstants.SCALER_UP_THRESHOLD);
-                }
-            });
-            upStep = AccessController.doPrivileged(new PrivilegedAction<Integer>() {
-                @Override
-                public Integer run() {
-                    return Integer.getInteger(NettyConstants.SCALER_UP_STEP_PROPERTY, NettyConstants.SCALER_UP_STEP);
-                }
-            });
-            downStep = AccessController.doPrivileged(new PrivilegedAction<Integer>() {
-                @Override
-                public Integer run() {
-                    return Integer.getInteger(NettyConstants.SCALER_DOWN_STEP_PROPERTY, NettyConstants.SCALER_DOWN_STEP);
-                }
-            });
-            cycles = AccessController.doPrivileged(new PrivilegedAction<Integer>() {
-                @Override
-                public Integer run() {
-                    return Integer.getInteger(NettyConstants.SCALER_CYCLES_PROPERTY, NettyConstants.SCALER_CYCLES);
-                }
-            });
-        }
+    /**
+     * Creates a Netty Dynamic Autoscaler based off the values in the passed config map.
+     *
+     * @param config Bundle config containing the necessary items for the Auto Scaler
+     */
+    private AutoScalingEventExecutorChooserFactory createThreadScaler(Map<String, Object> config) {
+        int minThreads = Integer.getInteger(NettyConstants.SCALER_MIN_THREADS_PROPERTY, (Integer) config.get(NettyConstants.SCALER_MIN_THREADS_PROPERTY));
+        int maxThreads = Integer.getInteger(NettyConstants.SCALER_MAX_THREADS_PROPERTY, (Integer) config.get(NettyConstants.SCALER_MAX_THREADS_PROPERTY));
+        long windowSize = Long.getLong(NettyConstants.SCALER_WINDOW_PROPERTY, (Long) config.get(NettyConstants.SCALER_WINDOW_PROPERTY));
+        double downThreshold = parseDouble(NettyConstants.SCALER_DOWN_THRESHOLD_PROPERTY,(Double) config.get(NettyConstants.SCALER_DOWN_THRESHOLD_PROPERTY));
+        double upThreshold = parseDouble(NettyConstants.SCALER_UP_THRESHOLD_PROPERTY, (Double) config.get(NettyConstants.SCALER_UP_THRESHOLD_PROPERTY));
+        int upStep = Integer.getInteger(NettyConstants.SCALER_UP_STEP_PROPERTY, (Integer) config.get(NettyConstants.SCALER_UP_STEP_PROPERTY));
+        int downStep = Integer.getInteger(NettyConstants.SCALER_DOWN_STEP_PROPERTY, (Integer) config.get(NettyConstants.SCALER_DOWN_STEP_PROPERTY));
+        int cycles = Integer.getInteger(NettyConstants.SCALER_CYCLES_PROPERTY, (Integer) config.get(NettyConstants.SCALER_CYCLES_PROPERTY));
+        
         if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
             Tr.debug(tc, "Creating AutoScaler with minThreads: " + minThreads + ", maxThreads: " + maxThreads + ", windowSize: " + windowSize + ", downThreshold: " + downThreshold + ", upThreshold: " + upThreshold + ", upStep: " + upStep + ", downStep: " + downStep + ", cycles: " + cycles);
         }
@@ -299,32 +213,6 @@ public class NettyFrameworkImpl implements ServerQuiesceListener, NettyFramework
         } catch(NumberFormatException e) {
             return defaultValue;
         }
-    }
-
-    /**
-     * Creates a Netty Dynamic Autoscaler based off the values in the passed config map.
-     *
-     * @param config Bundle config containing the necessary items for the Auto Scaler
-     */
-    private AutoScalingEventExecutorChooserFactory createThreadScaler(Map<String, Object> config) {
-        if(config == null) {
-            throw new IllegalArgumentException("Passed config object that was null!!");
-        }
-        int minThreads, maxThreads, upStep, downStep, cycles;
-        long windowSize;
-        double downThreshold, upThreshold;
-        minThreads = (Integer)config.getOrDefault(NettyConstants.SCALER_MIN_THREADS_PROPERTY, NettyConstants.SCALER_MIN_THREADS);
-        maxThreads = (Integer)config.getOrDefault(NettyConstants.SCALER_MAX_THREADS_PROPERTY, NettyConstants.SCALER_MAX_THREADS);
-        upStep = (Integer)config.getOrDefault(NettyConstants.SCALER_UP_STEP_PROPERTY, NettyConstants.SCALER_UP_STEP);
-        downStep = (Integer)config.getOrDefault(NettyConstants.SCALER_DOWN_STEP_PROPERTY, NettyConstants.SCALER_DOWN_STEP);
-        cycles = (Integer)config.getOrDefault(NettyConstants.SCALER_CYCLES_PROPERTY, NettyConstants.SCALER_CYCLES);
-        windowSize = (Long)config.getOrDefault(NettyConstants.SCALER_WINDOW_PROPERTY, NettyConstants.SCALER_WINDOW);
-        downThreshold = (Double)config.getOrDefault(NettyConstants.SCALER_DOWN_THRESHOLD_PROPERTY, NettyConstants.SCALER_DOWN_THRESHOLD);
-        upThreshold = (Double)config.getOrDefault(NettyConstants.SCALER_UP_THRESHOLD_PROPERTY, NettyConstants.SCALER_UP_THRESHOLD);
-        if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-            Tr.debug(tc, "Creating AutoScaler from config with minThreads: " + minThreads + ", maxThreads: " + maxThreads + ", windowSize: " + windowSize + ", downThreshold: " + downThreshold + ", upThreshold: " + upThreshold + ", upStep: " + upStep + ", downStep: " + downStep + ", cycles: " + cycles);
-        }
-        return new AutoScalingEventExecutorChooserFactory(minThreads, maxThreads, windowSize, TimeUnit.MILLISECONDS, downThreshold, upThreshold, upStep, downStep, cycles);
     }
 
     /**
