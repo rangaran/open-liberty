@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025,2026 IBM Corporation and others.
+ * Copyright (c) 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -10,21 +10,22 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-package jakarta.data.metamodel;
+package jakarta.data.spi.expression.path;
 
-import java.time.temporal.Temporal;
+import jakarta.data.expression.BooleanExpression;
+import jakarta.data.expression.NavigableExpression;
+import jakarta.data.metamodel.BooleanAttribute;
 
 /**
  * Method signatures are copied from Jakarta Data.
  */
-record TemporalAttributeRecord<T, V extends Temporal & Comparable<? extends Temporal>>(
-                Class<T> declaringType,
-                String name,
-                Class<V> type)
-                implements TemporalAttribute<T, V> {
+public interface BooleanPath<T, U> extends //
+                Path<T, U>, //
+                BooleanExpression<T> {
 
-    @Override
-    public String toString() {
-        return declaringType.getSimpleName().toLowerCase() + '.' + name;
+    static <T, U> BooleanPath<T, U> of(NavigableExpression<T, U> expression,
+                                       BooleanAttribute<U> attribute) {
+
+        return new BooleanPathRecord<>(expression, attribute);
     }
 }

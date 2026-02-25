@@ -14,14 +14,14 @@ package jakarta.data.spi.expression.path;
 
 import jakarta.data.expression.NavigableExpression;
 import jakarta.data.messages.Messages;
-import jakarta.data.metamodel.NumericAttribute;
+import jakarta.data.metamodel.BooleanAttribute;
 
-record NumericPathRecord<T, U, N extends Number & Comparable<N>>(
+record BooleanPathRecord<T, U>(
                 NavigableExpression<T, U> expression,
-                NumericAttribute<U, N> attribute)
-                implements NumericPath<T, U, N> {
+                BooleanAttribute<U> attribute)
+                implements BooleanPath<T, U> {
 
-    NumericPathRecord {
+    BooleanPathRecord {
         Messages.requireNonNull(expression, "expression");
         Messages.requireNonNull(attribute, "attribute");
     }
@@ -39,8 +39,4 @@ record NumericPathRecord<T, U, N extends Number & Comparable<N>>(
                                                  .toString();
     }
 
-    @Override
-    public Class<? extends N> type() {
-        return attribute.type();
-    }
 }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025,2026 IBM Corporation and others.
+ * Copyright (c) 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -17,27 +17,17 @@ import jakarta.data.messages.Messages;
 /**
  * Method signatures are copied from Jakarta Data.
  */
-record ComparableLiteralRecord<V extends Comparable<?>>(
-                Class<? extends V> type,
-                V value)
-                implements ComparableLiteral<V> {
+record BooleanLiteralRecord(
+                Boolean value)
+                implements BooleanLiteral {
 
-    ComparableLiteralRecord {
+    BooleanLiteralRecord {
         Messages.requireNonNull(value, "value");
     }
 
     @Override
     public String toString() {
-        if (value instanceof Enum e)
-            return e.getClass().getName() + '.' + e.name();
-        if (value instanceof Character c)
-            return c == '\'' ? "''''" : ("'" + c + "'");
-        if (value instanceof Boolean b)
-            return b.toString().toUpperCase();
-        else
-            return "{ComparableLiteral " +
-                   value.getClass().getName() +
-                   " '" + value + "'}";
+        return value ? "TRUE" : "FALSE";
     }
 
 }

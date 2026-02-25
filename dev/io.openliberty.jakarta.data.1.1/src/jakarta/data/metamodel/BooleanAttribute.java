@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025,2026 IBM Corporation and others.
+ * Copyright (c) 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -12,24 +12,26 @@
  *******************************************************************************/
 package jakarta.data.metamodel;
 
-import jakarta.data.expression.Expression;
+import jakarta.data.expression.BooleanExpression;
 import jakarta.data.messages.Messages;
 
 /**
  * Method signatures are copied from Jakarta Data.
  */
-public interface BasicAttribute<T, V> extends Attribute<T>, Expression<T, V> {
+public interface BooleanAttribute<T> //
+                extends ComparableAttribute<T, Boolean>, BooleanExpression<T> {
 
-    static <T, V> BasicAttribute<T, V> of(Class<T> entityClass,
-                                          String name,
-                                          Class<V> attributeType) {
+    static <T> BooleanAttribute<T> of(Class<T> entityClass,
+                                      String name,
+                                      Class<Boolean> attributeType) {
+
         Messages.requireNonNull(entityClass, "entityClass");
         Messages.requireNonNull(name, "name");
         Messages.requireNonNull(attributeType, "attributeType");
 
-        return new BasicAttributeRecord<>(entityClass, name, attributeType);
+        return new BooleanAttributeRecord<>(entityClass, name, attributeType);
     }
 
     @Override
-    Class<V> type();
+    Class<Boolean> type();
 }
