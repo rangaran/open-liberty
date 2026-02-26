@@ -14,9 +14,12 @@ package com.ibm.ws.annocache.test.jandex;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -36,239 +39,304 @@ import junit.framework.Assert;
 
 public class JandexSparseReadTest {
 
-	public static final String SAMPLE_PACKAGE_NAME =
-		"com.ibm.ws.anno.test.data.jandex";
-	
-	public static final String[] SAMPLE_SIMPLE_CLASS_NAMES = {
-		"AnnoChildWithDefault",
-		"AnnoChildWithoutDefault",
-		"AnnoParentWithDefault",
-		"AnnoParentWithoutDefault",
-		"AnnoTarget"
-	};
+    public static final String PUBLISH_CLASSES_ROOT_PATH = "publish/jandexAppClasses/";
 
-	public static final String[] SAMPLE_CLASS_NAMES; 
-	public static final String[] SAMPLE_RESOURCE_NAMES;
+    public static final String SAMPLE_PACKAGE_NAME =
+                    "com.ibm.ws.anno.test.data.jandex";
 
-	static {
-		String classPrefix = SAMPLE_PACKAGE_NAME + '.';
-		String resourcePrefix = SAMPLE_PACKAGE_NAME.replace('.', '/') + '/';
+    public static final String[] SAMPLE_SIMPLE_CLASS_NAMES = {
+                                                              "AnnoChildWithDefault",
+                                                              "AnnoChildWithoutDefault",
+                                                              "AnnoParentWithDefault",
+                                                              "AnnoParentWithoutDefault",
+                                                              "AnnoTarget"
+    };
 
-		String[] classNames = new String[ SAMPLE_SIMPLE_CLASS_NAMES.length ];
-		String[] resourceNames = new String[ SAMPLE_SIMPLE_CLASS_NAMES.length ];
+    public static final String[] JANDEX_INDEX_V13_CLASS_NAMES = {
+                                                                 "testservlet40.jar.jandex_v35.ComputeIntEncloser$ComputeInt",
+                                                                 "testservlet40.jar.jandex_v35.ComputeIntEncloser$1",
+                                                                 "testservlet40.jar.jandex_v35.ComputeIntEncloser",
+                                                                 "testservlet40.jar.jandex_v3.MemberClass$MemberClass_InnerClass",
+                                                                 "testservlet40.jar.jandex_v3.MemberClass",
+                                                                 "testservlet40.jar.jandex_v3.SealedClass",
+                                                                 "testservlet40.jar.jandex_v3.SealedClass_SubclassA",
+                                                                 "testservlet40.jar.jandex_v3.SealedClass_SubclassB",
+                                                                 "testservlet40.jar.jandex_v3.SealedClass_SubclassB2",
+                                                                 "testservlet40.jar.jandex_v3.SealedClass_SubclassC",
+                                                                 "testservlet40.jar.jandex_v3.SubInterface",
+                                                                 "testservlet40.jar.jandex_v3.SuperInterface",
+                                                                 "testservlet40.jar.jandex_v3.SubinterfacesImpl",
+                                                                 "testservlet40.jar.jandex_v3.TypeParamaterClass"
+    };
+    
+    public static final String[] JANDEX_INDEX_V13_RESOURCE_NAMES = {
+                                                                    "ComputeIntEncloser$ComputeInt.class",
+                                                                    "ComputeIntEncloser$1.class",
+                                                                    "ComputeIntEncloser.class",
+                                                                    "MemberClass$MemberClass_InnerClass.class",
+                                                                    "MemberClass.class",
+                                                                    "SealedClass.class",
+                                                                    "SealedClass_SubclassA.class",
+                                                                    "SealedClass_SubclassB.class",
+                                                                    "SealedClass_SubclassB2.class",
+                                                                    "SealedClass_SubclassC.class",
+                                                                    "SubInterface.class",
+                                                                    "SuperInterface.class",
+                                                                    "SubinterfacesImpl.class",
+                                                                    "TypeParamaterClass.class"
+       };
 
-		for ( int sampleNo = 0; sampleNo < SAMPLE_SIMPLE_CLASS_NAMES.length; sampleNo++ ) {
-			String simpleName = SAMPLE_SIMPLE_CLASS_NAMES[sampleNo];
-			classNames[sampleNo] = classPrefix + simpleName;
-			resourceNames[sampleNo] = resourcePrefix + simpleName + ".class";
-		}
+    public static final String[] SAMPLE_CLASS_NAMES; 
+    public static final String[] SAMPLE_RESOURCE_NAMES;
 
-		SAMPLE_CLASS_NAMES = classNames;
-		SAMPLE_RESOURCE_NAMES = resourceNames;
-	}
+    public static final String[] SIMPLE_AND_V13_RESOURCE_NAMES;
+    public static final String[] SIMPLE_AND_V13_CLASS_NAMES;
 
-	//
+    static {
+        String classPrefix = SAMPLE_PACKAGE_NAME + '.';
+        String resourcePrefix = SAMPLE_PACKAGE_NAME.replace('.', '/') + '/';
 
-	@Test
-	public void testReadsVersion6() throws IOException {
-		testReads(SAMPLE_CLASS_NAMES, SAMPLE_RESOURCE_NAMES, 6); // throws IOException
-	}
+        String[] classNames = new String[ SAMPLE_SIMPLE_CLASS_NAMES.length ];
+        String[] resourceNames = new String[ SAMPLE_SIMPLE_CLASS_NAMES.length ];
+        String[] v13ResourceNames = new String[ SAMPLE_SIMPLE_CLASS_NAMES.length + JANDEX_INDEX_V13_RESOURCE_NAMES.length];
 
-	@Test
-	public void testReadsVersion7() throws IOException {
-		testReads(SAMPLE_CLASS_NAMES, SAMPLE_RESOURCE_NAMES, 7); // throws IOException
-	}
+        int v13Index = 0;
+        for ( int sampleNo = 0; sampleNo < SAMPLE_SIMPLE_CLASS_NAMES.length; sampleNo++ ) {
+            String simpleName = SAMPLE_SIMPLE_CLASS_NAMES[sampleNo];
+            classNames[sampleNo] = classPrefix + simpleName;
+            resourceNames[sampleNo] = resourcePrefix + simpleName + ".class";
+            v13ResourceNames[sampleNo] = resourcePrefix + simpleName + ".class";
+            v13Index++;
+        }
 
-	@Test
-	public void testReadsVersion8() throws IOException {
-		testReads(SAMPLE_CLASS_NAMES, SAMPLE_RESOURCE_NAMES, 8); // throws IOException
-	}
+        for ( int sampleNo = 0; sampleNo < JANDEX_INDEX_V13_RESOURCE_NAMES.length; sampleNo++ ) {
+            String simpleName = JANDEX_INDEX_V13_RESOURCE_NAMES[sampleNo];
+            v13ResourceNames[v13Index] = simpleName;
+            v13Index++;
+        }
 
-	@Test
-	public void testReadsVersion9() throws IOException {
-		testReads(SAMPLE_CLASS_NAMES, SAMPLE_RESOURCE_NAMES, 9); // throws IOException
-	}
-	
-	@Test
-	public void testReadsVersion10() throws IOException {
-		testReads(SAMPLE_CLASS_NAMES, SAMPLE_RESOURCE_NAMES, 10); // throws IOException
-	}
-	
-	@Test
-	public void testReadsVersion11() throws IOException {
-	    try {
-		System.setProperty("com.ibm.ws.beta.edition", "true");
-		testReads(SAMPLE_CLASS_NAMES, SAMPLE_RESOURCE_NAMES, 11); // throws IOException
-	    } finally {
-	        System.setProperty("com.ibm.ws.beta.edition", "false");
-	    }
-	}
+        SAMPLE_CLASS_NAMES = classNames;
+        SAMPLE_RESOURCE_NAMES = resourceNames;
+        SIMPLE_AND_V13_RESOURCE_NAMES = v13ResourceNames;
 
-	@Test
-	public void testReadsVersion12() throws IOException {
-	    try {
-                System.setProperty("com.ibm.ws.beta.edition", "true");
-                testReads(SAMPLE_CLASS_NAMES, SAMPLE_RESOURCE_NAMES, 12); // throws IOException
-            } finally {
-                System.setProperty("com.ibm.ws.beta.edition", "false");
+        SIMPLE_AND_V13_CLASS_NAMES = Arrays.copyOf(SAMPLE_CLASS_NAMES, SAMPLE_SIMPLE_CLASS_NAMES.length + JANDEX_INDEX_V13_CLASS_NAMES.length);
+        System.arraycopy(JANDEX_INDEX_V13_CLASS_NAMES, 0, SIMPLE_AND_V13_CLASS_NAMES, SAMPLE_SIMPLE_CLASS_NAMES.length, JANDEX_INDEX_V13_CLASS_NAMES.length);
+    }
+
+    //
+
+    @Test
+    public void testReadsVersion6() throws IOException {
+        testReads(SAMPLE_CLASS_NAMES, SAMPLE_RESOURCE_NAMES, 6); // throws IOException
+    }
+
+    @Test
+    public void testReadsVersion7() throws IOException {
+        testReads(SAMPLE_CLASS_NAMES, SAMPLE_RESOURCE_NAMES, 7); // throws IOException
+    }
+
+    @Test
+    public void testReadsVersion8() throws IOException {
+        testReads(SAMPLE_CLASS_NAMES, SAMPLE_RESOURCE_NAMES, 8); // throws IOException
+    }
+
+    @Test
+    public void testReadsVersion9() throws IOException {
+        testReads(SAMPLE_CLASS_NAMES, SAMPLE_RESOURCE_NAMES, 9); // throws IOException
+    }
+
+    @Test
+    public void testReadsVersion10() throws IOException {
+        testReads(SAMPLE_CLASS_NAMES, SAMPLE_RESOURCE_NAMES, 10); // throws IOException
+    }
+
+    @Test
+    public void testReadsVersion11() throws IOException {
+        try {
+            System.setProperty("com.ibm.ws.beta.edition", "true");
+            testReads(SIMPLE_AND_V13_CLASS_NAMES, SIMPLE_AND_V13_RESOURCE_NAMES, 11); // throws IOException
+        } finally {
+            System.setProperty("com.ibm.ws.beta.edition", "false");
+        }
+    }
+
+    @Test
+    public void testReadsVersion12() throws IOException {
+        try {
+            System.setProperty("com.ibm.ws.beta.edition", "true");
+            testReads(SIMPLE_AND_V13_CLASS_NAMES, SIMPLE_AND_V13_RESOURCE_NAMES, 12); // throws IOException
+        } finally {
+            System.setProperty("com.ibm.ws.beta.edition", "false");
+        }
+    }
+
+    @Test
+    public void testReadsVersion13() throws IOException {
+        try {
+            System.setProperty("com.ibm.ws.beta.edition", "true");
+            testReads(SIMPLE_AND_V13_CLASS_NAMES, SIMPLE_AND_V13_RESOURCE_NAMES, 13); // throws IOException
+        } finally {
+            System.setProperty("com.ibm.ws.beta.edition", "false");
+        }
+    }
+
+    //
+
+    public Indexer createIndexer() {
+        return new Indexer();
+    }
+
+    public IndexWriter createWriter(OutputStream output) {
+        return new IndexWriter(output);
+    }
+
+    public IndexReader createReader(InputStream input) {
+        return new IndexReader(input);
+    }
+
+    public SparseIndexReader createSparseReader(InputStream input) throws IOException {
+        return new SparseIndexReader(input); // throws IOException
+    }
+
+    //
+
+    public InputStream openResource(String resource) throws IOException {
+
+        File maybeClass = new File(PUBLISH_CLASSES_ROOT_PATH + "/" + resource);
+        final String dir = System.getProperty("user.dir");
+        
+        if (maybeClass.exists()) {
+            InputStream resourceStream = new FileInputStream(maybeClass);
+            if ( resourceStream.available() <= 0 ) {
+                throw new IOException("Failed to open resource [ " + resource + " ]");
             }
-	}
-	
-	@Test
-	public void testReadsVersion13() throws IOException {
-	    try {
-                System.setProperty("com.ibm.ws.beta.edition", "true");
-                testReads(SAMPLE_CLASS_NAMES, SAMPLE_RESOURCE_NAMES, 13); // throws IOException
-            } finally {
-                System.setProperty("com.ibm.ws.beta.edition", "false");
+            return resourceStream;
+        } else {
+            InputStream resourceStream = getClass().getClassLoader().getResourceAsStream(resource);
+            if ( resourceStream == null ) {
+                throw new IOException("Failed to open resource [ " + resource + " ]");
             }
-	}
+            return resourceStream;
+        }
+    }
 
-	//
+    public void add(String resource, Indexer indexer) throws IOException {
+        try ( InputStream resourceStream = openResource(resource) ) { // throws IOException
+            indexer.index(resourceStream); // throws IOException
+        }
+    }
 
-	public Indexer createIndexer() {
-		return new Indexer();
-	}
+    public Index index(String[] resources) throws IOException {
+        Indexer indexer = createIndexer();
+        for ( String resource : resources ) {
+            add(resource, indexer); // throws IOException
+        }
+        return indexer.complete();
+    }
 
-	public IndexWriter createWriter(OutputStream output) {
-		return new IndexWriter(output);
-	}
-	
-	public IndexReader createReader(InputStream input) {
-		return new IndexReader(input);
-	}
+    public byte[] write(Index index, int version) throws IOException {
+        ByteArrayOutputStream byteStream = new ByteArrayOutputStream(8 * 1024);
 
-	public SparseIndexReader createSparseReader(InputStream input) throws IOException {
-		return new SparseIndexReader(input); // throws IOException
-	}
+        IndexWriter writer = createWriter(byteStream);
+        @SuppressWarnings("unused")
 
-	//
+        int bytesWritten = writer.write(index, version); // throws IOException
 
-	public InputStream openResource(String resource) throws IOException {
-		InputStream resourceStream = getClass().getClassLoader().getResourceAsStream(resource);
-		if ( resourceStream == null ) {
-			throw new IOException("Failed to open resource [ " + resource + " ]");
-		}
-		return resourceStream;
-	}
+        return byteStream.toByteArray();
+    }
 
-	public void add(String resource, Indexer indexer) throws IOException {
-		try ( InputStream resourceStream = openResource(resource) ) { // throws IOException
-			indexer.index(resourceStream); // throws IOException
-		}
-	}
-	
-	public Index index(String[] resources) throws IOException {
-		Indexer indexer = createIndexer();
-		for ( String resource : resources ) {
-			add(resource, indexer); // throws IOException
-		}
-		return indexer.complete();
-	}
+    public byte[] createRawIndex(String[] resources, int version) throws IOException {
+        Indexer indexer = createIndexer();
+        for ( String resource : resources ) {
+            add(resource, indexer); // throws IOException
+        }
+        Index index = indexer.complete();
 
-	public byte[] write(Index index, int version) throws IOException {
-		ByteArrayOutputStream byteStream = new ByteArrayOutputStream(8 * 1024);
+        byte[] rawIndex = write(index, version); // throws IOException
+        return rawIndex;
+    }
 
-		IndexWriter writer = createWriter(byteStream);
-		@SuppressWarnings("unused")
+    public Index readIndex(byte[] rawIndex) throws IOException {
+        ByteArrayInputStream input = new ByteArrayInputStream(rawIndex);
+        IndexReader reader = createReader(input);
+        Index index = reader.read(); // throws IOException
+        return index;
+    }
 
-		int bytesWritten = writer.write(index, version); // throws IOException
+    public SparseIndex readSparseIndex(byte[] rawIndex) throws IOException {
+        ByteArrayInputStream input = new ByteArrayInputStream(rawIndex);
+        SparseIndexReader reader = createSparseReader(input);
+        return reader.getIndex();
+    }
 
-		return byteStream.toByteArray();
-	}
+    public void testReads(String[] classNames, String[] resources, int version) throws IOException {
+        System.out.println("Testing reads; version [ " + version + " ]");
+        for ( String className : classNames ) {
+            System.out.println("  [ " + className + " ]");
+        }
 
-	public byte[] createRawIndex(String[] resources, int version) throws IOException {
-		Indexer indexer = createIndexer();
-		for ( String resource : resources ) {
-			add(resource, indexer); // throws IOException
-		}
-		Index index = indexer.complete();
+        System.out.println("Generating, writing, and reading indexes");
 
-		byte[] rawIndex = write(index, version); // throws IOException
-		return rawIndex;
-	}
+        byte[] rawIndex = createRawIndex(resources, version); // throws IOException
+        Index index = readIndex(rawIndex); // throws IOException
+        SparseIndex sparseIndex = readSparseIndex(rawIndex); // throws IOException
 
-	public Index readIndex(byte[] rawIndex) throws IOException {
-		ByteArrayInputStream input = new ByteArrayInputStream(rawIndex);
-		IndexReader reader = createReader(input);
-		Index index = reader.read(); // throws IOException
-		return index;
-	}
+        System.out.println("Validating reads");
 
-	public SparseIndex readSparseIndex(byte[] rawIndex) throws IOException {
-		ByteArrayInputStream input = new ByteArrayInputStream(rawIndex);
-		SparseIndexReader reader = createSparseReader(input);
-		return reader.getIndex();
-	}
+        boolean valid = validate(classNames, index, sparseIndex);
+        System.out.println( "Testing reads; version [ " + version + " ]: " + (valid ? "PASS" : "FAIL") );
+        Assert.assertTrue("Incorrect read", valid); 
+    }
 
-	public void testReads(String[] classNames, String[] resources, int version) throws IOException {
-		System.out.println("Testing reads; version [ " + version + " ]");
-		for ( String className : classNames ) {
-			System.out.println("  [ " + className + " ]");
-		}
+    public boolean validate(String[] classNames, Index fullFndex, SparseIndex sparseIndex) {
+        Set<String> expectedNames = new HashSet<String>(classNames.length);
+        for ( String className : classNames ) {
+            expectedNames.add(className);
+        }
 
-		System.out.println("Generating, writing, and reading indexes");
+        Set<String> actualFullNames = new HashSet<String>(classNames.length);
+        Collection<ClassInfo> indexClasses = fullFndex.getKnownClasses();
+        for ( ClassInfo classInfo : indexClasses ) {
+            actualFullNames.add( classInfo.name().toString() );
+        }
 
-		byte[] rawIndex = createRawIndex(resources, version); // throws IOException
-		Index index = readIndex(rawIndex); // throws IOException
-		SparseIndex sparseIndex = readSparseIndex(rawIndex); // throws IOException
+        Set<String> actualSparseNames = new HashSet<String>(classNames.length);
+        Collection<? extends SparseClassInfo> sparseClasses = sparseIndex.getKnownClasses();
+        for ( SparseClassInfo classInfo : sparseClasses ) {
+            actualSparseNames.add( classInfo.name().toString() );
+        }
 
-		System.out.println("Validating reads");
+        int missingFull = 0;
+        int extraFull = 0;
 
-		boolean valid = validate(classNames, index, sparseIndex);
-		System.out.println( "Testing reads; version [ " + version + " ]: " + (valid ? "PASS" : "FAIL") );
-		Assert.assertTrue("Incorrect read", valid); 
-	}
+        int missingSparse = 0;
+        int extraSparse = 0;
 
-	public boolean validate(String[] classNames, Index fullFndex, SparseIndex sparseIndex) {
-		Set<String> expectedNames = new HashSet<String>(classNames.length);
-		for ( String className : classNames ) {
-			expectedNames.add(className);
-		}
+        for ( String expectedName : expectedNames ) {
+            if ( !actualFullNames.contains(expectedName) ) {
+                System.out.println("Full read missing [ " + expectedName + " ]");
+                missingFull++;
+            }
+            if ( !actualSparseNames.contains(expectedName) ) {
+                System.out.println("Sparse read missing [ " + expectedName + " ]");
+                missingSparse++;
+            }
+        }
 
-		Set<String> actualFullNames = new HashSet<String>(classNames.length);
-		Collection<ClassInfo> indexClasses = fullFndex.getKnownClasses();
-		for ( ClassInfo classInfo : indexClasses ) {
-			actualFullNames.add( classInfo.name().toString() );
-		}
+        for ( String fullName : actualFullNames ) {
+            if ( !expectedNames.contains(fullName) ) {
+                System.out.println("Full read added [ " + fullName + " ]");
+                extraFull++;
+            }
+        }
 
-		Set<String> actualSparseNames = new HashSet<String>(classNames.length);
-		Collection<? extends SparseClassInfo> sparseClasses = sparseIndex.getKnownClasses();
-		for ( SparseClassInfo classInfo : sparseClasses ) {
-			actualSparseNames.add( classInfo.name().toString() );
-		}
+        for ( String sparseName : actualSparseNames ) {
+            if ( !expectedNames.contains(sparseName) ) {
+                System.out.println("Sparse read added [ " + sparseName + " ]");
+                extraSparse++;
+            }
+        }
 
-		int missingFull = 0;
-		int extraFull = 0;
-
-		int missingSparse = 0;
-		int extraSparse = 0;
-
-		for ( String expectedName : expectedNames ) {
-			if ( !actualFullNames.contains(expectedName) ) {
-				System.out.println("Full read missing [ " + expectedName + " ]");
-				missingFull++;
-			}
-			if ( !actualSparseNames.contains(expectedName) ) {
-				System.out.println("Sparse read missing [ " + expectedName + " ]");
-				missingSparse++;
-			}
-		}
-
-		for ( String fullName : actualFullNames ) {
-			if ( !expectedNames.contains(fullName) ) {
-				System.out.println("Full read added [ " + fullName + " ]");
-				extraFull++;
-			}
-		}
-
-		for ( String sparseName : actualSparseNames ) {
-			if ( !expectedNames.contains(sparseName) ) {
-				System.out.println("Sparse read added [ " + sparseName + " ]");
-				extraSparse++;
-			}
-		}
-
-		return ( (missingFull == 0) && (extraFull == 0) && (missingSparse == 0) && (extraSparse == 0) );
-	}
+        return ( (missingFull == 0) && (extraFull == 0) && (missingSparse == 0) && (extraSparse == 0) );
+    }
 }
