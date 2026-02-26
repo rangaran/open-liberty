@@ -52,6 +52,15 @@ public class JandexSparseReadTest {
                                                               "AnnoTarget"
     };
 
+    /*
+     * These classes have been copied over from com.ibm.ws.anno_fat, and are stored under the publish dir
+     * 
+     * We have copied them over because they contain java17 language constructs that Jandex includes data on in its indexes.
+     * While we don't use that data ourselves, we want to test indexes that include it to ensure it doesn't disrupt access to
+     * the data we do want.
+     * 
+     * They are pre-compiled to avoid having the project require java17.
+     */
     public static final String[] JANDEX_INDEX_V13_CLASS_NAMES = {
                                                                  "testservlet40.jar.jandex_v35.ComputeIntEncloser$ComputeInt",
                                                                  "testservlet40.jar.jandex_v35.ComputeIntEncloser$1",
@@ -152,31 +161,57 @@ public class JandexSparseReadTest {
 
     @Test
     public void testReadsVersion11() throws IOException {
+        String initialValue = System.getProperty("com.ibm.ws.beta.edition");
         try {
             System.setProperty("com.ibm.ws.beta.edition", "true");
             testReads(SIMPLE_AND_V13_CLASS_NAMES, SIMPLE_AND_V13_RESOURCE_NAMES, 11); // throws IOException
         } finally {
-            System.setProperty("com.ibm.ws.beta.edition", "false");
+            resetSysetmProperty(initialValue);
         }
     }
 
     @Test
     public void testReadsVersion12() throws IOException {
+        String initialValue = System.getProperty("com.ibm.ws.beta.edition");
         try {
             System.setProperty("com.ibm.ws.beta.edition", "true");
             testReads(SIMPLE_AND_V13_CLASS_NAMES, SIMPLE_AND_V13_RESOURCE_NAMES, 12); // throws IOException
         } finally {
-            System.setProperty("com.ibm.ws.beta.edition", "false");
+            resetSysetmProperty(initialValue);
         }
     }
 
     @Test
     public void testReadsVersion13() throws IOException {
+        String initialValue = System.getProperty("com.ibm.ws.beta.edition");
         try {
             System.setProperty("com.ibm.ws.beta.edition", "true");
             testReads(SIMPLE_AND_V13_CLASS_NAMES, SIMPLE_AND_V13_RESOURCE_NAMES, 13); // throws IOException
         } finally {
+            resetSysetmProperty(initialValue);
+        }
+    }
+    
+    @Test
+    public void testReadsVersion13TestBetaGuard() throws IOException {
+
+        String initialValue = System.getProperty("com.ibm.ws.beta.edition");
+        try {
             System.setProperty("com.ibm.ws.beta.edition", "false");
+            testReads(SIMPLE_AND_V13_CLASS_NAMES, SIMPLE_AND_V13_RESOURCE_NAMES, 13); // throws IOException
+            Assert.fail("We did not get an error saing v13 is unavailable, we must be running with the beta code enabled");
+        } catch(IllegalArgumentException e) {
+            Assert.assertTrue("expected \"Unsupported index version [ 13 ]\" but got " + e.toString(),  e.toString().contains("Unsupported index version [ 13 ]"));
+        } finally {
+            resetSysetmProperty(initialValue);
+        }
+    }
+    
+    private void resetSysetmProperty(String value) {
+        if (value == null) {
+            System.clearProperty("com.ibm.ws.beta.edition");
+        } else {
+            System.setProperty("com.ibm.ws.beta.edition", value);
         }
     }
 
@@ -202,9 +237,10 @@ public class JandexSparseReadTest {
 
     public InputStream openResource(String resource) throws IOException {
 
+        // Adding an extra step to support reading pre-compiled classes
+        // This step is attempted for all classes but is only expected to be used for java17 classes
+        // which must be precompiled.
         File maybeClass = new File(PUBLISH_CLASSES_ROOT_PATH + "/" + resource);
-        final String dir = System.getProperty("user.dir");
-        
         if (maybeClass.exists()) {
             InputStream resourceStream = new FileInputStream(maybeClass);
             if ( resourceStream.available() <= 0 ) {
