@@ -4060,12 +4060,43 @@ public class QueryInfo {
                                    DataVersionCompatibility compat) {
         final boolean trace = TraceComponent.isAnyTracingEnabled();
 
+        // Find out how many parameters the method supplies to the query
+        // versus which method parameters are special parameters.
+        boolean addsToWHERE = false;
+        Parameter[] params = method.getParameters();
+        Set<Class<?>> specialParamTypes = compat.specialParamTypes();
+        for (int i = 0; i < params.length; i++) {
+            Class<?> paramType = params[i].getType();
+            if (specialParamTypes.contains(paramType)) {
+                if (i < specialParamsStartAt)
+                    specialParamsStartAt = i;
+                if ("jakarta.data.restrict.Restriction".equals(paramType.getName())) // TODO 1.1
+                    if (addsToWHERE)
+                        throw exc(UnsupportedOperationException.class,
+                                  "CWWKD1017.dup.special.param",
+                                  method.getName(),
+                                  repositoryInterface.getName(),
+                                  "Restriction");
+                    else
+                        addsToWHERE = true;
+            } else if (i > specialParamsStartAt) {
+                throw exc(UnsupportedOperationException.class,
+                          "CWWKD1098.spec.param.position.err",
+                          method.getName(),
+                          repositoryInterface.getName(),
+                          params[specialParamsStartAt].getName(),
+                          Util.names(specialParamTypes));
+            }
+        }
+
+        jpqlParamCount = specialParamsStartAt;
+
         // for collecting names of named parameters:
         LinkedHashSet<String> qlParamNames = new LinkedHashSet<>();
 
         // indices at which the query needs to be modified, along with the
         // type of modification needed
-        TreeMap<Integer, QueryEdit> modifyAt;
+        TreeMap<Integer, QueryEdit> modifyAt = null;
 
         int length = ql.length();
         int startAt = 0;
@@ -4074,66 +4105,50 @@ public class QueryInfo {
                Character.isWhitespace(firstChar = ql.charAt(startAt)))
             startAt++;
 
-        if (firstChar == 'D' || firstChar == 'd') {
-            // DELETE FROM EntityName[ WHERE ...]
-            if (startAt + 12 < length
-                && ql.regionMatches(true, startAt + 1, "ELETE", 0, 5)
-                && Character.isWhitespace(ql.charAt(startAt + 6))) {
-                type = QM_DELETE;
-                startAt += 7; // start of FROM
-            }
+        if ((firstChar == 'D' || firstChar == 'd') &&
+            startAt + 12 < length &&
+            ql.regionMatches(true, startAt + 1, "ELETE", 0, 5) &&
+            Character.isWhitespace(ql.charAt(startAt + 6))) {
 
-            modifyAt = parseQuery(ql, startAt, null, true, entityInfos, qlParamNames);
+            type = QM_DELETE; // DELETE FROM EntityName[ WHERE ...]
 
-            if (entityInfo == null)
-                setEntityInfo(entityInfos, primaryEntityInfoFuture);
+            startAt += 7; // start of FROM
 
-            // TODO move this later into shared code with all paths
-            if (modifyAt.isEmpty() || entityInfo.recordClass == null)
-                jpql = ql;
+            modifyAt = parseQuery(ql, startAt, false, addsToWHERE, entityInfos, qlParamNames);
+        } else if ((firstChar == 'U' || firstChar == 'u') &&
+                   startAt + 13 < length &&
+                   ql.regionMatches(true, startAt + 1, "PDATE", 0, 5) &&
+                   Character.isWhitespace(ql.charAt(startAt + 6))) {
+
+            type = QM_UPDATE; // UPDATE EntityName SET ...[ WHERE ...]
+
+            int entityNameStartAt = startAt += 7;
+            for (; startAt < length && Character.isWhitespace(ql.charAt(startAt)); startAt++);
+            StringBuilder entityName = new StringBuilder();
+            for (char ch; startAt < length && Character.isJavaIdentifierPart(ch = ql.charAt(startAt)); startAt++)
+                entityName.append(ch);
+            if (entityName.length() > 0)
+                setEntityInfo(entityName.toString(), entityInfos, ql);
             else
-                jpql = replaceQuery(ql, modifyAt);
-        } else if (firstChar == 'U' || firstChar == 'u') {
-            // UPDATE EntityName[ SET ... WHERE ...]
-            int entityNameStartAt = -1;
-            if (startAt + 13 < length
-                && ql.regionMatches(true, startAt + 1, "PDATE", 0, 5)
-                && Character.isWhitespace(ql.charAt(startAt + 6))) {
-                type = QM_UPDATE;
-                entityNameStartAt = startAt += 7;
-                for (; startAt < length && Character.isWhitespace(ql.charAt(startAt)); startAt++);
-                StringBuilder entityName = new StringBuilder();
-                for (char ch; startAt < length && Character.isJavaIdentifierPart(ch = ql.charAt(startAt)); startAt++)
-                    entityName.append(ch);
-                if (entityName.length() > 0)
-                    setEntityInfo(entityName.toString(), entityInfos, ql);
-                else
-                    throw exc(UnsupportedOperationException.class,
-                              "CWWKD1030.ql.lacks.entity",
-                              ql,
-                              method.getName(),
-                              repositoryInterface.getName(),
-                              "UPDATE",
-                              "UPDATE [entity_name] SET [update_items] WHERE [conditional_expression]");
+                throw exc(UnsupportedOperationException.class,
+                          "CWWKD1030.ql.lacks.entity",
+                          ql,
+                          method.getName(),
+                          repositoryInterface.getName(),
+                          "UPDATE",
+                          "UPDATE [entity_name] SET [update_items] WHERE [conditional_expression]");
 
-                entityVar = parseIdentificationVariable(startAt, length, ql);
-                entityVar_ = entityVar + '.';
-            }
+            entityVar = parseIdentificationVariable(startAt, length, ql);
+            entityVar_ = entityVar + '.';
 
-            modifyAt = parseQuery(ql, startAt, null, false, entityInfos, qlParamNames);
+            modifyAt = parseQuery(ql, startAt, false, addsToWHERE, entityInfos, qlParamNames);
 
-            modifyAt.put(entityNameStartAt, QueryEdit.REPLACE_RECORD_ENTITY);
+            if (entityInfo == null || entityInfo.recordClass != null)
+                modifyAt.put(entityNameStartAt, QueryEdit.REPLACE_RECORD_ENTITY);
+        }
 
-            if (entityInfo == null)
-                setEntityInfo(entityInfos, primaryEntityInfoFuture);
-
-            // TODO move this later into shared code with all paths
-            if (entityInfo.recordClass == null)
-                jpql = ql;
-            else
-                jpql = replaceQuery(ql, modifyAt);
-        } else { // SELECT ... or FROM ... or WHERE ... or ORDER BY ...
-            type = FIND;
+        if (type == null) {
+            type = FIND; // SELECT ... or FROM ... or WHERE ... or ORDER BY ...
 
             int select0 = -1;
             if (length > startAt + 6
@@ -4144,26 +4159,22 @@ public class QueryInfo {
                 // or ORDER BY clause, or the end of the query
             }
 
-            modifyAt = parseQuery(ql, startAt, select0 >= 0, true, entityInfos, qlParamNames);
-
-            if (entityInfo == null)
-                setEntityInfo(entityInfos, primaryEntityInfoFuture);
-
-            jpql = replaceQuery(ql, modifyAt);
+            addsToWHERE |= CursoredPage.class.equals(multiType);
+            modifyAt = parseQuery(ql, startAt, select0 >= 0, addsToWHERE, entityInfos, qlParamNames);
         }
 
-        // Find out how many parameters the method supplies to the query
-        // and which of those parameters are named parameters.
+        if (entityInfo == null)
+            setEntityInfo(entityInfos, primaryEntityInfoFuture);
+
+        if (modifyAt.isEmpty())
+            jpql = ql;
+        else
+            jpql = replaceQuery(ql, modifyAt);
+
+        // Validation of method parameters vs parameters in the query
         int qlParamNameCount = qlParamNames.size();
         boolean hasExtraParam = false;
-        Parameter[] params = method.getParameters();
-        Set<Class<?>> specialParamTypes = compat.specialParamTypes();
-        for (int i = 0; i < params.length; jpqlParamCount = ++i) {
-            if (specialParamTypes.contains(params[i].getType())) {
-                specialParamsStartAt = i;
-                break;
-            }
-
+        for (int i = 0; i < specialParamsStartAt; i++) {
             Param param = params[i].getAnnotation(Param.class);
             String paramName = null;
             if (param != null) {
@@ -4953,40 +4964,43 @@ public class QueryInfo {
      * Locate the names of named parameters after the specified point in the query
      * and populate them into the paramNames list.
      *
-     * @param ql                        query language
-     * @param startAt                   starting position in the query language
-     * @param findQueryStartsWithSelect indicates whether or not a find query begins
-     *                                      with SELECT. Null if a DELETE or UPDATE.
-     * @param initEntityVar             indicates whether or not to initialize entityVar.
-     * @param entityInfos               map of entity name to entity information.
-     * @param qlParamNames              list to populate with the names of named
-     *                                      parameters.
-     * @param modifyAt                  list into which to add the possible starting
-     *                                      indices of entity names of FROM clauses.
+     * This method relies on the query type being one of: FIND, QM_DELETE, QM_UPDATE
+     *
+     * @param ql                 query language
+     * @param startAt            starting position in the query language
+     * @param startsWithSelect   indicates whether or not a find query begins
+     *                               with SELECT. False if a DELETE or UPDATE.
+     * @param encloseWhereClause indicates if the WHERE clause must be enclosed in
+     *                               parentheses so that conditions can be added
+     *                               to it (for cursor pagination or Restriction).
+     * @param entityInfos        map of entity name to entity information.
+     * @param qlParamNames       list to populate with the names of named parameters.
      * @return indices at which the query needs to be modified, along with the type
      *         of modification needed
      */
     private TreeMap<Integer, QueryEdit> //
                     parseQuery(String ql,
                                final int startAt,
-                               Boolean findQueryStartsWithSelect,
-                               boolean initEntityVar,
+                               boolean startsWithSelect,
+                               boolean encloseWhereClause,
                                Map<String, CompletableFuture<EntityInfo>> entityInfos,
                                LinkedHashSet<String> qlParamNames) {
         TreeMap<Integer, QueryEdit> modifyAt = new TreeMap<>();
 
         int length = ql.length();
-        boolean hasTopLevelSelectClause = findQueryStartsWithSelect == Boolean.TRUE;
+        boolean hasTopLevelSelectClause = startsWithSelect;
         boolean isCursoredPage = CursoredPage.class.equals(multiType);
-        boolean countPages = isCursoredPage || Page.class.equals(multiType);
+        boolean countPages = type == FIND &&
+                             (isCursoredPage || Page.class.equals(multiType));
         int countReplacesFirstSelectAt = hasTopLevelSelectClause && countPages //
                         ? startAt // position after SELECT
                         : -1; // SELECT clause is not present
         int countReplacesFirstSelectEndingAt = -1;
         int numTopLevelFromClauses = 0;
-        boolean insertRecordConstructors = producer.compat().atLeast(1, 1) &&
+        boolean initEntityVar = type != QM_UPDATE;
+        boolean insertRecordConstructors = type == FIND &&
+                                           producer.compat().atLeast(1, 1) &&
                                            singleType.isRecord();
-        boolean needsParenthesesEnd = false;
         int insertConstructorBeginAt = hasTopLevelSelectClause && insertRecordConstructors //
                         ? parseSelectForConstructor(ql, startAt, modifyAt) //
                         : -1;
@@ -4995,9 +5009,11 @@ public class QueryInfo {
         // the query directly returns the values of the path expression."
         int numPossibleConstructorArgs = insertConstructorBeginAt == -1 ? 0 : 1;
 
-        Integer addFromAt = findQueryStartsWithSelect == null //
-                        ? -1 // never, it's a DELETE or UPDATE so it always has FROM
-                        : null; // unknown, check for FROM at depth 0 in query
+        Integer addFromAt = type == FIND //
+                        ? null // unknown, check for FROM at depth 0 in query
+                        : -1; // never, it's a DELETE or UPDATE so it always has FROM
+        int encloseWhereBeginAt = -1;
+        int encloseWhereEndAt = -1;
         int depth = 0; // depth of parentheses, to ignore EXTRACT(* FROM *) and subqueries
         boolean isLiteral = false;
         StringBuilder paramName = null;
@@ -5010,6 +5026,8 @@ public class QueryInfo {
                 depth++;
             } else if (!isLiteral && ch == ')') {
                 depth = depth > 0 ? depth - 1 : 0;
+                if (i < encloseWhereEndAt)
+                    encloseWhereEndAt = i;
             } else if (ch == '\'') {
                 if (isLiteral) {
                     if (i + 1 < length && ql.charAt(i + 1) == '\'')
@@ -5049,7 +5067,8 @@ public class QueryInfo {
                         }
 
                         i += 4;
-                        modifyAt.put(i + 1, QueryEdit.REPLACE_RECORD_ENTITY);
+                        if (entityInfo == null || entityInfo.recordClass != null)
+                            modifyAt.put(i + 1, QueryEdit.REPLACE_RECORD_ENTITY);
 
                         if (depth == 0 && initEntityVar) {
                             // determine the entity identification variable
@@ -5062,7 +5081,7 @@ public class QueryInfo {
                                 entityName.append(c);
                             if (entityName.length() > 0)
                                 setEntityInfo(entityName.toString(), entityInfos, ql);
-                            else if (findQueryStartsWithSelect == null) // a DELETE query
+                            else if (type != FIND) // a DELETE query
                                 throw exc(UnsupportedOperationException.class,
                                           "CWWKD1030.ql.lacks.entity",
                                           ql,
@@ -5121,20 +5140,35 @@ public class QueryInfo {
                                                  QueryEdit.ADD_CONSTRUCTOR_END);
                                 numPossibleConstructorArgs = 0;
                             }
-                            if (needsParenthesesEnd) {
-                                needsParenthesesEnd = false;
-                                modifyAt.put(i, QueryEdit.ADD_PARENTHESIS_END);
+                            if (encloseWhereBeginAt > 0) {
                                 if (isCursoredPage)
                                     throw excCursorPaginationNotAllowed(ql, i, isOrder);
+                                int p = i - 1;
+                                while (p > 0 && Character.isWhitespace(ql.charAt(p)))
+                                    p--;
+                                if (encloseWhereEndAt != p) {
+                                    modifyAt.put(encloseWhereBeginAt,
+                                                 QueryEdit.ADD_PARENTHESIS_BEGIN);
+                                    modifyAt.put(p + 1,
+                                                 QueryEdit.ADD_PARENTHESIS_END);
+                                } // else it is already enclosed in parentheses
+                                encloseWhereBeginAt = -1;
+                                encloseWhereEndAt = -1;
                             }
                             if (addFromAt == null)
                                 addFromAt = isSelect ? 0 : i;
                             i += l;
                             if (isWhere) {
                                 hasWhere = true;
-                                if (isCursoredPage) {
-                                    modifyAt.put(i, QueryEdit.ADD_PARENTHESIS_BEGIN);
-                                    needsParenthesesEnd = true;
+                                if (encloseWhereClause) {
+                                    while (i < length && Character.isWhitespace(ql.charAt(i)))
+                                        i++;
+                                    if (i < length) {
+                                        encloseWhereBeginAt = i;
+                                        encloseWhereEndAt = ql.charAt(i) == '(' //
+                                                        ? length // adjusts for next )
+                                                        : -1;
+                                    }
                                 }
                             } else if (isSelect) {
                                 hasTopLevelSelectClause = true;
@@ -5196,12 +5230,12 @@ public class QueryInfo {
                          QueryEdit.REPLACE_SELECT_IN_COUNT_END);
         }
 
-        if (!hasTopLevelSelectClause && findQueryStartsWithSelect == Boolean.FALSE)
+        if (type == FIND && !hasTopLevelSelectClause)
             modifyAt.put(QueryEdit.BEFORE_QUERY,
                          QueryEdit.ADD_SELECT_IF_NEEDED);
 
         if (addFromAt == null)
-            if (findQueryStartsWithSelect == Boolean.TRUE)
+            if (startsWithSelect)
                 addFromAt = length;
             else if (startAt < length && ql.charAt(startAt) == '(')
                 addFromAt = -1; // not a JDQL query
@@ -5220,9 +5254,17 @@ public class QueryInfo {
                              QueryEdit.ADD_CONSTRUCTOR_END);
         }
 
-        if (needsParenthesesEnd)
-            modifyAt.put(length,
-                         QueryEdit.ADD_PARENTHESIS_END);
+        if (encloseWhereBeginAt > 0) {
+            int p = length - 1;
+            while (p > 0 && Character.isWhitespace(ql.charAt(p)))
+                p--;
+            if (encloseWhereEndAt != p) {
+                modifyAt.put(encloseWhereBeginAt,
+                             QueryEdit.ADD_PARENTHESIS_BEGIN);
+                modifyAt.put(p + 1,
+                             QueryEdit.ADD_PARENTHESIS_END);
+            }
+        }
 
         return modifyAt;
     }
