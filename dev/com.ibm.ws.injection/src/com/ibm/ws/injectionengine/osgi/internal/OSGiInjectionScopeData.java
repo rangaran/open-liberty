@@ -14,7 +14,6 @@ package com.ibm.ws.injectionengine.osgi.internal;
 
 import java.io.PrintWriter;
 import java.lang.annotation.Annotation;
-import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -57,6 +56,13 @@ import com.ibm.wsspi.injectionengine.InjectionException;
  */
 public class OSGiInjectionScopeData extends InjectionScopeData implements DeferredReferenceData {
     private static final TraceComponent tc = Tr.register(OSGiInjectionScopeData.class);
+
+    /**
+     * Deferred reference data processing results expiration interval in nanoseconds.
+     * Determines how long after deferred reference data processing completes that
+     * threads will attempt a second lookup of java:app and java:module scopes.
+     */
+    private static final long DEFERRED_RESULT_EXPIRATION = TimeUnit.SECONDS.toNanos(30);
 
     /**
      * The "primary" namespace for this scope data, which corresponds to this
@@ -136,11 +142,11 @@ public class OSGiInjectionScopeData extends InjectionScopeData implements Deferr
     /**
      * The result of {@link #processDeferredReferenceData} for the list of reference contexts
      * that were registered for deferred processing if a non-java:comp request is made. The
-     * result includes a boolean indicating whether or not deferred reference data was processed
-     * and an expiration for the result (1 minute after completion; nanoseconds).
+     * result is the nanoTime when deferred processing completed or Long.MIN_VALUE if there
+     * was no deferred metadata processed.
      *
      * This field is initialized lazily and cleared if no reference data was processed or
-     * 1 minute after reference data was processed.
+     * 30 seconds after reference data was processed.
      *
      * JNDI lookups are attempted first without deferred reference data and retried if
      * deferred reference data is processed, so the result should be kept a reasonable
@@ -148,7 +154,7 @@ public class OSGiInjectionScopeData extends InjectionScopeData implements Deferr
      *
      * @see #deferredReferenceDatas
      */
-    private CompletableFuture<Map.Entry<Boolean, Long>> deferredReferenceDatasFuture;
+    private CompletableFuture<Long> deferredReferenceDatasFuture;
 
     public OSGiInjectionScopeData(J2EEName j2eeName, NamingConstants.JavaColonNamespace namespace, OSGiInjectionScopeData parent, ReentrantReadWriteLock nonCompEnvLock) {
         super(j2eeName);
@@ -540,7 +546,7 @@ public class OSGiInjectionScopeData extends InjectionScopeData implements Deferr
         deferredReferenceDatas = null;
 
         if (deferredReferenceDatasFuture != null) {
-            deferredReferenceDatasFuture.complete(new SimpleEntry<Boolean, Long>(false, 0L));
+            deferredReferenceDatasFuture.complete(Long.MIN_VALUE);
             deferredReferenceDatasFuture = null;
         }
     }
@@ -555,7 +561,7 @@ public class OSGiInjectionScopeData extends InjectionScopeData implements Deferr
 
         if (deferredReferenceDatas == null) {
             deferredReferenceDatas = new LinkedHashMap<DeferredReferenceData, Boolean>();
-            deferredReferenceDatasFuture = new CompletableFuture<Map.Entry<Boolean, Long>>();
+            deferredReferenceDatasFuture = new CompletableFuture<Long>();
             if (parent != null && deferredReferenceDataEnabled) {
                 parent.addDeferredReferenceData(this);
             }
@@ -577,6 +583,15 @@ public class OSGiInjectionScopeData extends InjectionScopeData implements Deferr
 
         if (deferredReferenceDatas != null) {
             deferredReferenceDatas.remove(refData);
+
+            if (deferredReferenceDatas.isEmpty()) {
+                deferredReferenceDatas = null;
+
+                if (deferredReferenceDatasFuture != null) {
+                    deferredReferenceDatasFuture.complete(Long.MIN_VALUE);
+                    deferredReferenceDatasFuture = null;
+                }
+            }
         }
 
         if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled()) {
@@ -597,7 +612,7 @@ public class OSGiInjectionScopeData extends InjectionScopeData implements Deferr
         }
 
         Map<DeferredReferenceData, Boolean> deferredReferenceDatas;
-        CompletableFuture<Map.Entry<Boolean, Long>> currentFuture;
+        CompletableFuture<Long> currentFuture;
         synchronized (this) {
             deferredReferenceDatas = this.deferredReferenceDatas;
             this.deferredReferenceDatas = null;
@@ -630,7 +645,7 @@ public class OSGiInjectionScopeData extends InjectionScopeData implements Deferr
 
                 // Unblock any concurrent access and clear the future if no longer required.
                 if (deferredReferenceDatasFuture != null) {
-                    deferredReferenceDatasFuture.complete(new SimpleEntry<Boolean, Long>(any, System.nanoTime() + TimeUnit.SECONDS.toNanos(60)));
+                    deferredReferenceDatasFuture.complete(any ? System.nanoTime() : Long.MIN_VALUE);
 
                     // If there was no deferred reference data processed, no need to keep future.
                     if (!any) {
@@ -643,12 +658,13 @@ public class OSGiInjectionScopeData extends InjectionScopeData implements Deferr
                 // Wait a reasonable amount of time for deferred processing to complete
                 if (isTraceOn && tc.isDebugEnabled())
                     Tr.debug(tc, "waiting up to 60 seconds for completion of " + currentFuture);
-                Entry<Boolean, Long> result = currentFuture.get(60, TimeUnit.SECONDS);
+                Long result = currentFuture.get(60, TimeUnit.SECONDS);
 
                 // Return the result for a reasonable amount of time after processing has
-                // completed (60s); then just remove the future as it is no longer needed.
-                if (result.getValue() > System.nanoTime()) {
-                    any = result.getKey();
+                // completed (30s); then just remove the future as it is no longer needed.
+                // Result is true if the future returned a nanoTime other than MIN_VALUE.
+                if (result != Long.MIN_VALUE && System.nanoTime() - result < DEFERRED_RESULT_EXPIRATION) {
+                    any = true;
                 } else {
                     synchronized (this) {
                         deferredReferenceDatasFuture = null;
