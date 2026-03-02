@@ -96,15 +96,5 @@
         <config-property-type>java.lang.String</config-property-type> 
       </config-property>
     </adminobject>
-	<adminobject>
-		<adminobject-interface>ra.DummyInterface</adminobject-interface>
-		<adminobject-class>ra.DummyImpl</adminobject-class>
-		 <config-property>
-			<description>The message</description>
-			<config-property-name>message</config-property-name>
-			<config-property-type>java.lang.String</config-property-type>
-			<config-property-confidential>false</config-property-confidential>
-	    </config-property>
-	</adminobject>
   </resourceadapter>
 </connector>

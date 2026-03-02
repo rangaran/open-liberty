@@ -10,7 +10,5 @@
 	<classpathentry kind="src" path="test-applications/fvtweb/src"/>
 	<classpathentry kind="src" path="test-resourceadapters/fvtra/src"/>
 	<classpathentry kind="src" path="test-libraries/testlib/src"/>
-	<classpathentry kind="src" path="test-applications/cdiweb/src"/>
-	<classpathentry kind="src" path="test-libraries/cdilib/src"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
