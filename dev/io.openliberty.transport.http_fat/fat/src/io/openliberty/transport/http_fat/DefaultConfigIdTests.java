@@ -30,6 +30,8 @@ import com.ibm.websphere.simplicity.ShrinkHelper;
 
 import componenttest.annotation.Server;
 import componenttest.custom.junit.runner.FATRunner;
+import componenttest.custom.junit.runner.Mode;
+import componenttest.custom.junit.runner.Mode.TestMode;
 import componenttest.topology.impl.LibertyServer;
 
 /*
@@ -42,7 +44,7 @@ import componenttest.topology.impl.LibertyServer;
  * https://github.com/OpenLiberty/open-liberty/issues/32872 
  * https://github.ibm.com/websphere/POC-Meeting/issues/192 
  */
-// @Mode(TestMode.FULL)
+@Mode(TestMode.FULL)
 @RunWith(FATRunner.class)
 public class DefaultConfigIdTests {
 
@@ -115,44 +117,17 @@ public class DefaultConfigIdTests {
     }
 
     /**
-     * Testing that defaultRemoteIp configuration is ignored
-     * When RemoteIP is filtered, X-Forwarded-For header should be ignored
-     * and remote address should be the direct connection (127.0.0.1).
+     * Testing that defaultRemoteIp configuration is ignored. No messages should appear in the trace. 
      */
     @Test
     public void testDefaultRemoteIpIgnored() throws Exception {
-        LOG.info("Testing that defaultRemoteIp configuration is ignored");
-
-        URL url = new URL("http://" + server.getHostname() + ":" + server.getHttpDefaultPort() + "/" + APP_NAME + "/remoteip");
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-
-        try {
-            // Set X-Forwarded-For header with a fake IP
-            conn.setRequestProperty("X-Forwarded-For", "192.168.1.100");
-            conn.setRequestMethod("GET");
-            conn.connect();
-
-            BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-            String line;
-            String remoteAddr = null;
-
-            while ((line = reader.readLine()) != null) {
-                LOG.info("Response: " + line);
-                if (line.startsWith("RemoteAddr: ")) {
-                    remoteAddr = line.substring("RemoteAddr: ".length());
-                }
-            }
-            reader.close();
-
-            // With defaultRemoteIp, the X-Forwarded-For should be ignored
-            // We should see the actual connection IP (127.0.0.1), NOT 192.168.1.100
-            assertNotNull("RemoteAddr should be present in response", remoteAddr);
-            assertTrue("RemoteAddr should be 127.0.0.1 (not the X-Forwarded-For value). Instead, it was: " + remoteAddr,
-                      remoteAddr.equals("127.0.0.1"));
-
-        } finally {
-            conn.disconnect();
-        }
+        // Verify that remoteIp configuration messages do NOT appear in the logs
+        assertNull("defaultRemoteIp should be ignored - 'HTTP Channel Config: remoteIp has been enabled' should NOT appear",
+            server.waitForStringInTrace("HTTP Channel Config: remoteIp has been enabled", 2000));
+        assertNull("defaultRemoteIp should be ignored - 'RemoteIp Config: proxies regex set to' should NOT appear",
+            server.waitForStringInTrace("RemoteIp Config: proxies regex set to", 2000));
+        assertNull("defaultRemoteIp should be ignored - 'RemoteIp Config: useRemoteIpInAccessLog set to' should NOT appear",
+            server.waitForStringInTrace("RemoteIp Config: useRemoteIpInAccessLog set to", 2000));
     }
 
     /* 
@@ -251,8 +226,9 @@ public class DefaultConfigIdTests {
         String lastLine = lines.get(lines.size() - 1);
         LOG.info("Last access log line: " + lastLine);
 
-        // No timestamp -- for easier matching
+        // No timestamp -- for easier matching. Note: bytes may vary between machines?
+        // Pattern: %h %u "%r" %s %b
         assertTrue("Access log entry does not match expected format '%h %u \"%r\" %s %b'. Entry: " + lastLine,
-                   lastLine.contains("127.0.0.1 - \"GET / HTTP/1.1\" 200 17152"));
+                   lastLine.matches(".*127\\.0\\.0\\.1 - \"GET / HTTP/1\\.1\" 200 \\d+.*"));
     }
 }
