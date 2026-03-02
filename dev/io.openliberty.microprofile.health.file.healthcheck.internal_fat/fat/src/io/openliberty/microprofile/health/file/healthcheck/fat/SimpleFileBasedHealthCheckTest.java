@@ -105,6 +105,35 @@ public class SimpleFileBasedHealthCheckTest {
         }
     }
 
+    /* 
+     * For tests checking for the ready and live file, check periodically instead of waiting for whole 10s.
+     */
+    public void waitForModifiedTimestamp(File serverRootDirFile) throws Exception {
+        long readyFileModifiedTimestamp = HealthFileUtils.getLastModifiedTime(HealthFileUtils.getReadyFile(serverRootDirFile));
+        long liveFileModifiedTimestamp = HealthFileUtils.getLastModifiedTime(HealthFileUtils.getLiveFile(serverRootDirFile));
+
+        long deadlineTime = System.currentTimeMillis() + 10000;
+
+        boolean readyFileUpdated = false;
+        boolean liveFileUpdated = false;
+
+        while ((readyFileUpdated == false || liveFileUpdated == false) && System.currentTimeMillis() < deadlineTime) {
+            long newUpdatedReadyFileTimestamp = HealthFileUtils.getLastModifiedTime(HealthFileUtils.getReadyFile(serverRootDirFile));
+            long newUpdatedLiveFileTimestamp = HealthFileUtils.getLastModifiedTime(HealthFileUtils.getLiveFile(serverRootDirFile));
+
+            if (liveFileUpdated == false && newUpdatedLiveFileTimestamp > liveFileModifiedTimestamp) {
+                liveFileModifiedTimestamp = newUpdatedLiveFileTimestamp;
+                liveFileUpdated = true;
+            }
+            if (readyFileUpdated == false && newUpdatedReadyFileTimestamp > readyFileModifiedTimestamp) {
+                readyFileModifiedTimestamp = newUpdatedReadyFileTimestamp;
+                readyFileUpdated = true;
+            }
+
+            TimeUnit.MILLISECONDS.sleep(250);
+        }
+    }
+
     @Test
     /*
      * No configuration used.
@@ -138,8 +167,7 @@ public class SimpleFileBasedHealthCheckTest {
          */
         Assert.assertTrue("Expected all files to be created: Review isAllHealthCheckFilesCreated logs for state of files.", FATSuite.isFilesCreated(serverRootDirFile));
 
-        //Want to wait time to check that files have been updated.
-        TimeUnit.SECONDS.sleep(10);
+        waitForModifiedTimestamp(serverRootDirFile);
 
         //Check that live and ready files have been updating.
         Assert.assertTrue(Constants.READY_SHOULD_HAVE_UPDATED,
@@ -198,7 +226,6 @@ public class SimpleFileBasedHealthCheckTest {
         Assert.assertFalse(Constants.LIVE_SHOULD_NOT_HAVE_CREATED, HealthFileUtils.getLiveFile(serverRootDirFile).exists());
 
     }
-
 
     @Test
     /*
@@ -369,7 +396,7 @@ public class SimpleFileBasedHealthCheckTest {
         con.connect();
         Assert.assertTrue("200 Response code expected", con.getResponseCode() == 200);
 
-        TimeUnit.SECONDS.sleep(10);
+        waitForModifiedTimestamp(serverRootDirFile);
 
         Assert.assertTrue(Constants.LIVE_SHOULD_HAVE_UPDATED, HealthFileUtils.isLastModifiedTimeWithinLast(HealthFileUtils.getLiveFile(serverRootDirFile), Duration.ofSeconds(8)));
         Assert.assertTrue(Constants.READY_SHOULD_HAVE_UPDATED,
@@ -445,7 +472,8 @@ public class SimpleFileBasedHealthCheckTest {
         con.connect();
         Assert.assertTrue("200 Response code expected", con.getResponseCode() == 200);
 
-        TimeUnit.SECONDS.sleep(10);
+        waitForModifiedTimestamp(serverRootDirFile);
+        
         Assert.assertTrue(Constants.READY_SHOULD_HAVE_UPDATED,
                           HealthFileUtils.isLastModifiedTimeWithinLast(HealthFileUtils.getReadyFile(serverRootDirFile), Duration.ofSeconds(8)));
         Assert.assertTrue(Constants.LIVE_SHOULD_HAVE_UPDATED,
