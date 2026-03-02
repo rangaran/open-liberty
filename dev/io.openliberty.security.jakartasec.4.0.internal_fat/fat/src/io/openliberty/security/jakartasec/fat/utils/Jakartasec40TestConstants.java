@@ -25,7 +25,8 @@ public class Jakartasec40TestConstants {
 //                                                                       "CWWKS2601W", // The environment variable used for password value is empty or unset
 //                                                                       "CWWKS2602E", // The credential is not a UsernamePasswordCredential and cannot be validated
 //                                                                       "CWWKS2603W", // The (EL) expression used for the annotation attribute cannot be resolved
-                                                                       "CWWKS1859E" //  Password decoding error
+                                                                       "CWWKS1859E", //  Password decoding error
+                                                                       "CWWKS1865W" // One or more of your AES-encrypted passwords were encrypted without a custom encryption key
     };
 
     // Test credentials

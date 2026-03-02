@@ -1,4 +1,4 @@
-<server description="Used for InMemoryIdentityStore enablement tests not allowing the use of the store">
+<server description="Used for InMemoryIdentityStore enablement tests when the corresponding element is missing">
 
     <featureManager>
         <feature>servlet-6.1</feature>

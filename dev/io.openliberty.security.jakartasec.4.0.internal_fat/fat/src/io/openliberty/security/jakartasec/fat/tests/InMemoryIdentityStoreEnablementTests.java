@@ -55,6 +55,7 @@ public class InMemoryIdentityStoreEnablementTests extends BaseJakartaSecurity40T
     private static final String CONTEXT_ROOT = "/" + APP_NAME;
     private static final String RESOURCE_PATH = "/resource/test";
     public static final String SERVER_XML_ID_STORE_DISABLED = "inMemoryIdStoreDisabled.xml";
+    public static final String SERVER_XML_ID_STORE_MISSING_ELEMENT = "inMemoryIdStoreNoElement.xml";
 
     private static String url = null;
 
@@ -103,19 +104,35 @@ public class InMemoryIdentityStoreEnablementTests extends BaseJakartaSecurity40T
     }
 
     /**
-     * Test that the specified in-memory identity store is enabled by the default configuration that has the required enablement element.
+     * Test that the specified in-memory identity store is enabled when having the required element in the config file.
      * Test the log file output for in-memory store usage warning for sanity.
      * This should only ever appear once upon the first invocation of authentication against the in memory identity store data.
      */
     @Test
     public void testInMemStoreIsAllowed() throws Exception {
-        logInfo("testInMemStoreIsAllowed", "Testing that in-mem identity store is enabled in the default config file");
+        logInfo("testInMemStoreIsAllowed", "Testing that in-mem identity store is enabled when having the required element in the config file");
 
         // Should get 200 and proceed
         executeGetRequest(url, USER_THEO, VALID_PASSWORD, 200);
         assertEquals("Warning message should appear in log once", 1, server.waitForMultipleStringsInLog(1, PRODUCTION_USE_WARNING_MSG));
 
         logInfo("testInMemStoreIsAllowed", "Test passed");
+    }
+
+    /**
+     * Test that the specified in-memory identity store is not enable (by default) when the required element is missing in the config.
+     */
+    //@Test
+    public void testInMemStoreNotAllowedIfElementIsAbsent() throws Exception {
+        logInfo("testInMemStoreNotAllowedIfElementIsAbsent", "Testing that in-mem identity store is not enabled when element is missing");
+
+        RemoteFile consoleLogFile = server.getConsoleLogFile();
+        setServerConfig(SERVER_XML_ID_STORE_MISSING_ELEMENT, consoleLogFile, server);
+
+        // Should get 401 since in-memory id-store is not enabled
+        executeGetRequest(url, USER_THEO, VALID_PASSWORD, 401);
+
+        logInfo("testInMemStoreNotAllowedIfElementIsAbsent", "Test passed");
     }
 
     /**
