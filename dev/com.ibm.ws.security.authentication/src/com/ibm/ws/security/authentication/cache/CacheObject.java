@@ -16,9 +16,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
-import java.security.AccessController;
 import java.security.Principal;
-import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -95,12 +93,7 @@ public class CacheObject implements Serializable {
     }
 
     public CacheObject copy() {
-        CacheObject copy = AccessController.doPrivileged(new PrivilegedAction<CacheObject>() {
-            @Override
-            public CacheObject run() {
-                return new CacheObject(subject == null ? null : new Subject(subject.isReadOnly(), subject.getPrincipals(), subject.getPublicCredentials(), subject.getPrivateCredentials()));
-            }
-        });
+        CacheObject copy = new CacheObject(subject == null ? null : new Subject(subject.isReadOnly(), subject.getPrincipals(), subject.getPublicCredentials(), subject.getPrivateCredentials()));
         if (!lookupKeys.isEmpty()) {
             copy.lookupKeys.addAll(lookupKeys);
         }
