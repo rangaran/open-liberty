@@ -32,8 +32,12 @@ public class ManagedExecutorRunnableWrapper implements AsyncClientRunnableWrappe
     public void prepare(Message message) {
         Executor executor = message.getExchange().get(Executor.class);
         if (executor instanceof WSManagedExecutorService) {
-            final ThreadContextDescriptor tcd = ((WSManagedExecutorService) executor).captureThreadContext(null);
-            message.put(ThreadContextDescriptor.class, tcd);
+            // This prevents overwriting good context captured earlier in HTTPConduit.prepare()
+            ThreadContextDescriptor existingTcd = message.get(ThreadContextDescriptor.class);
+            if (existingTcd == null) {
+                final ThreadContextDescriptor tcd = ((WSManagedExecutorService) executor).captureThreadContext(null);
+                message.put(ThreadContextDescriptor.class, tcd);
+            }
         }
     }
 
