@@ -11,7 +11,6 @@ package com.ibm.ws.http.netty.message;
 
 import static com.ibm.ws.http.netty.message.NettyBaseMessage.MessageType.REQUEST;
 
-import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
