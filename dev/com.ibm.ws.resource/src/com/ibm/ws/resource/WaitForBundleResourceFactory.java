@@ -55,7 +55,6 @@ public class WaitForBundleResourceFactory implements SynchronousBundleListener, 
         this.requiredStateMask = requiredStateMask;
     }
 
-    // TODO clean up bundle listener
     public final void listenForBundle() {
         bundleContext.addBundleListener(this);
 
@@ -133,6 +132,10 @@ public class WaitForBundleResourceFactory implements SynchronousBundleListener, 
 
     @Override
     public void destroy() throws Exception {
+        // The resource factory is being destroyed which indicates the application is being
+        // uninstalled or modified, stop any bundle listener still waiting.
+        cleanupListener();
+
         ResourceFactory rf = delegate.get();
         if (rf != null) {
             rf.destroy();
