@@ -107,7 +107,7 @@ public class GlobalClassloadingConfiguration {
                 parentPackagesProp = null;
             }
         }
-        Set<String> mandatoryPackages = findSystemMandatoryPackages(parentPackagesProp, context.getBundle(Constants.SYSTEM_BUNDLE_LOCATION));
+        Set<String> mandatoryPackages = findSystemMandatoryPackages(context.getBundle(Constants.SYSTEM_BUNDLE_LOCATION));
         jvmPackages = new JVMPackages(parentProp, parentPackagesProp, context.getProperty(BootstrapConstants.INITPROP_BOOT_PACKAGES), mandatoryPackages);
 
         modified(properties);
@@ -117,7 +117,12 @@ public class GlobalClassloadingConfiguration {
      * @param parentPackagesProp
      * @return
      */
-    private Set<String> findSystemMandatoryPackages(String parentPackagesProp, Bundle systemBundle) {
+    private Set<String> findSystemMandatoryPackages(Bundle systemBundle) {
+        if (!java9Plus) {
+            // On Java 8 we always delegate to the parent loader;
+            // We can avoid doing the system bundle wiring check for mandatory packages here.
+            return Collections.emptySet();
+        }
         BundleWiring systemWiring = systemBundle == null ? null : systemBundle.adapt(BundleWiring.class);
         if (systemWiring == null) {
             return Collections.emptySet();
@@ -127,7 +132,7 @@ public class GlobalClassloadingConfiguration {
         for (BundleCapability export : systemWiring.getCapabilities(PackageNamespace.PACKAGE_NAMESPACE)) {
             if (export.getDirectives().get(AbstractWiringNamespace.CAPABILITY_MANDATORY_DIRECTIVE) != null) {
                 // We don't care what the mandatory directive value is.  If it is anything but null
-                // we added the package name to the parent packages list to avoid filtering it.
+                // we add the package name to the mandatory packages to avoid filtering it.
                 result.add((String) export.getAttributes().get(PackageNamespace.PACKAGE_NAMESPACE));
             }
         }
