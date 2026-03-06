@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025 IBM Corporation and others.
+ * Copyright (c) 2025,2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -29,7 +29,7 @@ import jakarta.persistence.Id;
 @Entity
 public class Fraction {
 
-    @Column(nullable = false)
+    @Column(nullable = false, precision = 12, scale = 4)
     BigDecimal ceiling; // ceiling 4 digits past the decimal point
 
     @Column(nullable = false)
@@ -51,7 +51,7 @@ public class Fraction {
     @Column(nullable = false)
     boolean reduced;
 
-    @Column(nullable = false)
+    @Column(nullable = false, precision = 10, scale = 4)
     BigDecimal truncated; // truncated to 4 digits past the decimal point
 
     @Column(nullable = false)
@@ -214,7 +214,7 @@ public class Fraction {
                         .append(String.format("%04d",
                                               truncated.movePointRight(4).intValue()))
                         .append("⌋ =0.")
-                        //.append(digits)
+                        .append(digits)
                         .append(' ')
                         .append(type)
                         .append(' ')
