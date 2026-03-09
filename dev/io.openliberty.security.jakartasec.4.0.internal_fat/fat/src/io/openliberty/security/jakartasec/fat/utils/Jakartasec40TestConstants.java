@@ -27,7 +27,7 @@ public class Jakartasec40TestConstants {
 //                                                                       "CWWKS2602E", // The credential is not a UsernamePasswordCredential and cannot be validated
 //                                                                       "CWWKS2603W", // The (EL) expression used for the annotation attribute cannot be resolved
                                                                        "CWWKS1859E", //  Password decoding error
-                                                                       "CWWKS1865W" // One or more of your AES-encrypted passwords were encrypted without a custom encryption key
+                                                                       "CWWKS1865W"
     };
 
     // Test credentials
@@ -59,6 +59,9 @@ public class Jakartasec40TestConstants {
     public static final String PRODUCTION_USE_WARNING_MSG = "CWWKS2600W"; // Warning about using in-memory store
     public static final String WRONG_CRED_ERROR_MSG = "CWWKS1859E"; // The password was not decrypted because a decoding error was reported
     public static final String EL_WARNING_MSG = "CWWKS2603W"; // The Expression Language (EL) expression for the ''{0}'' attribute of the identity store annotation cannot be resolved to a valid value
+    public static final String AES_ENCRYPTED_PWD_WARNING_MSG = "CWWKS1865W"; // One or more of your AES-encrypted passwords were encrypted without a custom encryption key
+    public static final String BADLY_DECODED_PWD_ERROR_MSG = "CWWKS1859E"; // The password was not decrypted because a decoding error was reported
+
     // XOR and AES-256 encoded (All decode to "reallysecretpassw0rd")
     public static final String PASSWORD_XOR_VALID = "{xor}LTo+MzMmLDo8LTorLz4sLChvLTs=";
     public static final String PASSWORD_AES_VALID = "{aes}ARB1cE2gxoEqBslQEaIs6YtFYjKFXresn8v7rkpD7I8EnQAGL8YayKrendxKW/zv4VOxwWNUv3yAUxSsAzeMi9nkWYBGf3LblwzeJYh3/t5hjoztC0/KCILy8GLlQbN4J66gr/IS9xpTL3iF0hiqOr/UzkA+8Nw=";
