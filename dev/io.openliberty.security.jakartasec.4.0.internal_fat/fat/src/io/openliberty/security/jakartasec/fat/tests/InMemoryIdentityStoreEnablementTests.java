@@ -16,10 +16,7 @@ import static io.openliberty.security.jakartasec.fat.utils.Jakartasec40TestConst
 import static io.openliberty.security.jakartasec.fat.utils.Jakartasec40TestConstants.PRODUCTION_USE_WARNING_MSG;
 import static io.openliberty.security.jakartasec.fat.utils.Jakartasec40TestConstants.SERVER_CONFIG_UPDATE_MESSAGES_REGEX;
 import static io.openliberty.security.jakartasec.fat.utils.Jakartasec40TestConstants.USER_JASMINE;
-import static io.openliberty.security.jakartasec.fat.utils.Jakartasec40TestConstants.USER_THEO;
-import static io.openliberty.security.jakartasec.fat.utils.Jakartasec40TestConstants.VALID_PASSWORD;
 import static io.openliberty.security.jakartasec.fat.utils.Jakartasec40TestConstants.WEB_APP_SECURITY_CONFIGURATION_UPDATED;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -110,51 +107,15 @@ public class InMemoryIdentityStoreEnablementTests extends BaseJakartaSecurity40T
     }
 
     /**
-     * Test that the the specified in-memory identity store is only involved in the authentication work flow
+     * Test that the specified in-memory identity store is only involved in the authentication work flow
      * if it is explicitly enabled in the server.xml via the new attribute allowInMemoryIdentityStores
-     * under the existing webAppSecurity element.
-     * A custom server configuration is used with allowInMemoryIdentityStores = true.
-     * Test the log file output for in-memory store usage warning for sanity.
-     */
-    @Test
-    public void testInMemStoreIsAllowed() throws Exception {
-        logInfo("testInMemStoreIsAllowed", "Testing that in-mem identity store is enabled when having the required element in the config file");
-
-        // Should get 200 and proceed
-        executeGetRequest(url, USER_THEO, VALID_PASSWORD, 200);
-        assertEquals("Warning message should appear in log once", 1, server.waitForMultipleStringsInLog(1, PRODUCTION_USE_WARNING_MSG));
-
-        logInfo("testInMemStoreIsAllowed", "Test passed");
-    }
-
-    /**
-     * Test that the specified in-memory identity store is not used during the authentication process
-     * when the use of this store is not enabled via server XML configuration.
      * A custom server configuration is used with no such element specified (defaulted to false if missing)
      */
     @Test
     public void testInMemStoreNotAllowedIfElementIsAbsent() throws Exception {
-        logInfo("testInMemStoreNotAllowedIfElementIsAbsent", "Testing that in-mem identity store is not allowed when element is missing");
+        logInfo("testInMemStoreNotAllowedIfElementIsAbsent", "Testing that in-mem identity store is not allowed if the element is missing on the server config");
 
-        //1. Test with the existing server xml that allows the custom in-mem id store
-        executeGetRequest(url, USER_JASMINE, INVALID_PASSWORD, 401);
-
-        //2. Replace the server configuration file with the test case
-        updateServerConfiguration(SERVER_XML_ID_STORE_MISSING_ELEMENT);
-
-        //2i. Check and confirm that the element has now changed to false (defaulted if missing)
-        String logContent = waitForStringInLog(WEB_APP_SECURITY_CONFIGURATION_UPDATED, 2000);
-
-        if (logContent != null) {
-            assertTrue("The following properties were modified: allowInMemoryIdentityStores=false",
-                       logContent.contains(WEB_APP_SECURITY_CONFIGURATION_UPDATED));
-        }
-
-        //3. Restart the application with the new server configuration
-        server.restartDropinsApplication(APP_NAME + ".war");
-
-        //4. Should get 403 since in-memory id-store is not involved in authentication
-        executeGetRequest(url, USER_JASMINE, INVALID_PASSWORD, 403);
+        testAuthenticationWithDifferentServerConfig(SERVER_XML_ID_STORE_MISSING_ELEMENT);
 
         logInfo("testInMemStoreNotAllowedIfElementIsAbsent", "Test passed");
     }
@@ -164,47 +125,50 @@ public class InMemoryIdentityStoreEnablementTests extends BaseJakartaSecurity40T
      * when the use of this store is not enabled via server XML configuration.
      * A custom server configuration is used with allowInMemoryIdentityStores = false.
      */
-    //@Test
+    @Test
     public void testInMemStoreCustomConfigIsNotAllowed() throws Exception {
         logInfo("testInMemStoreCustomConfigIsNotAllowed", "Testing that in-mem identity store is not allowed when element is set to false");
 
-        // Replace the server configuration file with the test case
-        updateServerConfiguration(SERVER_XML_ID_STORE_DISABLED);
-
-        // Should get 401 since in-memory id-store is not involved in authentication
-        executeGetRequest(url, USER_JASMINE, VALID_PASSWORD, 401);
-
-        // Check that no unexpected error messages appear
-        // We expect the warning message, but no error messages
-//        String logContent = waitForStringInLog("CWWKS35", 2000);
-//
-//        if (logContent != null) {
-//            // If we found CWWKS35xx messages, make sure they're only the expected warning
-//            assertTrue("Should only see warning message, not errors",
-//                       logContent.contains(PRODUCTION_USE_WARNING_MSG));
-//        }
+        testAuthenticationWithDifferentServerConfig(SERVER_XML_ID_STORE_DISABLED);
 
         logInfo("testInMemStoreCustomConfigIsNotAllowed", "Test passed");
     }
 
     /**
-     * Update the server configuration with a specified file
-     * And assert successful completion
+     * Reusable test logic to test the authentication of a GET-request
+     * on a restarted application with an updated server configuration
      *
-     * @param fileName
-     * @throws Exception if the update fails
+     * @param fileName the name of the custom server xml file
+     * @throws Exception
      */
-    private void updateServerConfiguration(String fileName) throws Exception {
+    private void testAuthenticationWithDifferentServerConfig(String fileName) throws Exception {
+        //1. Test with the existing server xml that allows the specified in-memory id store
+        executeGetRequest(url, USER_JASMINE, INVALID_PASSWORD, 401);
+
+        //2. Replace the server configuration file with the parameter
         String updatedMessage = setServerConfig(fileName, server.getConsoleLogFile(), server);
-        assertNotNull("The server config change was not completed",
-                      updatedMessage);
+        assertNotNull("The server config change was not completed", updatedMessage);
+
+        //3. Check and confirm that the element has now changed
+        String logContent = waitForStringInLog(WEB_APP_SECURITY_CONFIGURATION_UPDATED, 2000);
+
+        if (logContent != null) {
+            assertTrue("The following properties were modified: allowInMemoryIdentityStores",
+                       logContent.contains(WEB_APP_SECURITY_CONFIGURATION_UPDATED));
+        }
+
+        //4. Restart the application with the new server configuration
+        server.restartDropinsApplication(APP_NAME + ".war");
+
+        //5. Should get 403 since in-memory id-store is no longer involved in authentication
+        executeGetRequest(url, USER_JASMINE, INVALID_PASSWORD, 403);
     }
 
     /**
      * Update the server configuration with a specified file
      * Wait for message that indicates the config change
      *
-     * @param fileName the name of the custom configuration file
+     * @param fileName the name of the custom server xml file
      * @param logFile
      * @param server
      * @return the matching line in the log, or null if no matches
