@@ -81,6 +81,9 @@ import io.openliberty.netty.internal.tcp.TCPConfigurationImpl;
 import io.openliberty.netty.internal.tcp.TCPUtils;
 import io.openliberty.netty.internal.udp.UDPUtils;
 
+import io.openliberty.netty.internal.tcp.LibertyNioServerSocketChannel;
+import io.openliberty.netty.internal.tcp.LibertyNioSocketChannel;
+
 /**
  * Liberty NettyFramework implementation bundle
  */
@@ -115,7 +118,7 @@ public class NettyFrameworkImpl implements ServerQuiesceListener, NettyFramework
 
     private ChannelFrameworkConfig channelConfig;
 
-    private boolean useNativeIO = true;
+    private boolean useNativeIO = false;
 
     @Activate
     protected void activate(ComponentContext context, Map<String, Object> config) {
@@ -235,12 +238,17 @@ public class NettyFrameworkImpl implements ServerQuiesceListener, NettyFramework
      * Used for server sockets - based on platform.
      */
     public Class getServerSocketChannelClass() {
+
         if(useNativeIO && Epoll.isAvailable()){
+            System.out.println(">>> commClass set to epoll");
             return EpollServerSocketChannel.class;
         } else if (useNativeIO && KQueue.isAvailable()){
+            System.out.println(">>> commClass set to kqueue");
             return KQueueServerSocketChannel.class;
         } else {
-            return NioServerSocketChannel.class;
+            //return NioServerSocketChannel.class;
+            System.out.println(">>> commClass set to nio");
+            return LibertyNioServerSocketChannel.class;
         }
     }
 
@@ -253,7 +261,8 @@ public class NettyFrameworkImpl implements ServerQuiesceListener, NettyFramework
         } else if (useNativeIO && KQueue.isAvailable()){
             return KQueueSocketChannel.class;
         } else {
-            return NioSocketChannel.class;
+            //return NioSocketChannel.class;
+            return LibertyNioSocketChannel.class;
         }
     }
 

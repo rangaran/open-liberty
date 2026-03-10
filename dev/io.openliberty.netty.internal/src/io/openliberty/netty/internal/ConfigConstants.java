@@ -18,6 +18,7 @@ public interface ConfigConstants {
     public final String EXTERNAL_HOST_KEY_NAME = "ExternalHost";
     public final String PORT_KEY_NAME = "Port";
     public final String INBOUND_KEY_NAME = "IsInbound";
+    public final String SOCKET_HANDLE_KEY_NAME = "SocketHandle";
 
     public final AttributeKey<String> NAME_KEY = AttributeKey.valueOf(EXTERNAL_NAME);
     public final AttributeKey<String> HOST_KEY = AttributeKey.valueOf(HOST_KEY_NAME);
