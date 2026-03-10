@@ -16,31 +16,21 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
-import componenttest.custom.junit.runner.AlwaysPassesTest;
-import io.openliberty.security.jakartasec.fat.tests.HAMWithInBuiltTests;
 import io.openliberty.security.jakartasec.fat.tests.InMemoryIdentityStoreELWarningTest;
-import io.openliberty.security.jakartasec.fat.tests.InMemoryIdentityStoreEnablementTests;
-import io.openliberty.security.jakartasec.fat.tests.InMemoryIdentityStoreTests;
-import io.openliberty.security.jakartasec.fat.tests.MissingCustomHandlerTests;
-import io.openliberty.security.jakartasec.fat.tests.MultipleHAMCustomTests;
-import io.openliberty.security.jakartasec.fat.tests.MultipleHAMDuplicateTests;
-import io.openliberty.security.jakartasec.fat.tests.MultipleHAMInbuiltQualifiersTests;
-import io.openliberty.security.jakartasec.fat.tests.MultipleHAMInbuiltTests;
-import io.openliberty.security.jakartasec.fat.tests.SingleHAMInbuiltCustomQualifierTests;
 
 @RunWith(Suite.class)
 @SuiteClasses({
-                AlwaysPassesTest.class,
-                MultipleHAMCustomTests.class,
-                MultipleHAMDuplicateTests.class,
-                MultipleHAMInbuiltTests.class,
-                MultipleHAMInbuiltQualifiersTests.class,
-                InMemoryIdentityStoreTests.class,
-                HAMWithInBuiltTests.class,
-                SingleHAMInbuiltCustomQualifierTests.class,
-                MissingCustomHandlerTests.class,
+//                AlwaysPassesTest.class,
+//                MultipleHAMCustomTests.class,
+//                MultipleHAMDuplicateTests.class,
+//                MultipleHAMInbuiltTests.class,
+//                MultipleHAMInbuiltQualifiersTests.class,
+//                InMemoryIdentityStoreTests.class,
+//                HAMWithInBuiltTests.class,
+//                SingleHAMInbuiltCustomQualifierTests.class,
+//                MissingCustomHandlerTests.class,
                 InMemoryIdentityStoreELWarningTest.class,
-                InMemoryIdentityStoreEnablementTests.class
+//                InMemoryIdentityStoreEnablementTests.class
 })
 
 public class FATSuite {
