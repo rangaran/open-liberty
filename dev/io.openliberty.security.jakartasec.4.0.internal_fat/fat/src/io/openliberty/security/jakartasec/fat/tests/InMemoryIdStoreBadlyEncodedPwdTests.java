@@ -34,6 +34,8 @@ import componenttest.custom.junit.runner.FATRunner;
 import componenttest.custom.junit.runner.Mode;
 import componenttest.custom.junit.runner.Mode.TestMode;
 import componenttest.topology.impl.LibertyServer;
+import inmemory.identity.store.InMemoryIdentityStoreApplication;
+import inmemory.identity.store.InMemoryIdentityStoreProtectedResource;
 
 /**
  * Tests for InMemoryIdentityStoreDefinition with various password encoding schemes.
@@ -74,7 +76,7 @@ public class InMemoryIdStoreBadlyEncodedPwdTests extends BaseJakartaSecurity40Te
 
         // Create the web application
         WebArchive app = ShrinkWrap.create(WebArchive.class,
-                                           APP_NAME + ".war").addPackage("inmemory.identity.store").addAsWebInfResource(new File("test-applications/inmemory/WEB-INF/web.xml"));
+                                           APP_NAME + ".war").addClass(InMemoryIdentityStoreApplication.class).addClass(InMemoryIdentityStoreProtectedResource.class).addAsWebInfResource(new File("test-applications/inmemory/WEB-INF/web.xml"));
 
         ShrinkHelper.exportDropinAppToServer(server, app, DeployOptions.SERVER_ONLY);
 
