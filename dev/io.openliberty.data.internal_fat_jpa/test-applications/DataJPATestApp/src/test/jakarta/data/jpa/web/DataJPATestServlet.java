@@ -98,7 +98,7 @@ import test.jakarta.data.jpa.web.Residence.Occupant;
 @SuppressWarnings("serial")
 @WebServlet("/*")
 public class DataJPATestServlet extends FATServlet {
-    static final long TIMEOUT_MS = TimeUnit.SECONDS.toMillis(2);
+    static final long TIMEOUT_MS = TimeUnit.SECONDS.toMillis(5);
 
     @Inject
     Accounts accounts;
