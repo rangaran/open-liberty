@@ -610,6 +610,7 @@ public class Data_1_1 implements DataVersionCompatibility {
                     break;
             }
         } else if (expression instanceof NumericCast<?, ?> cast) {
+            String typeName = cast.type().getSimpleName();
             q.append("CAST (");
             jpqlParamCount = generateExpression(q,
                                                 entityVar_,
@@ -617,9 +618,7 @@ public class Data_1_1 implements DataVersionCompatibility {
                                                 jpqlParamCount,
                                                 jpqlParamNames,
                                                 xprParams);
-            q.append(" AS ") //
-                            .append(cast.type().getSimpleName().toUpperCase()) //
-                            .append(')');
+            q.append(" AS ").append(typeName).append(')');
         } else if (expression instanceof NumericOperatorExpression<?, ?> op) {
             q.append('(');
             jpqlParamCount = generateExpression(q,
