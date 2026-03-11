@@ -118,7 +118,8 @@ public class NettyFrameworkImpl implements ServerQuiesceListener, NettyFramework
 
     private ChannelFrameworkConfig channelConfig;
 
-    private boolean useNativeIO = false;
+    private boolean useNativeIO = true;
+    private String osName;
 
     @Activate
     protected void activate(ComponentContext context, Map<String, Object> config) {
@@ -134,6 +135,8 @@ public class NettyFrameworkImpl implements ServerQuiesceListener, NettyFramework
         int maxThreads = Integer.getInteger(NettyConstants.SCALER_MAX_THREADS_PROPERTY, (Integer) config.get(NettyConstants.SCALER_MAX_THREADS_PROPERTY));
         long metricsWindow = Long.getLong(NettyConstants.SCALER_METRICS_WINDOW_PROPERTY, (Long) config.get(NettyConstants.SCALER_METRICS_WINDOW_PROPERTY));
         useNativeIO = (Boolean)config.get(NettyConstants.USE_NATIVE_TRANSPORT);
+
+        osName = System.getProperty("os.name");
 
         String systemProperty_useNativeIO = System.getProperty("io.openliberty.netty.internal.useNativeIO", "true");
         if(systemProperty_useNativeIO.equalsIgnoreCase("false")) {
@@ -238,16 +241,11 @@ public class NettyFrameworkImpl implements ServerQuiesceListener, NettyFramework
      * Used for server sockets - based on platform.
      */
     public Class getServerSocketChannelClass() {
-
         if(useNativeIO && Epoll.isAvailable()){
-            System.out.println(">>> commClass set to epoll");
             return EpollServerSocketChannel.class;
         } else if (useNativeIO && KQueue.isAvailable()){
-            System.out.println(">>> commClass set to kqueue");
             return KQueueServerSocketChannel.class;
         } else {
-            //return NioServerSocketChannel.class;
-            System.out.println(">>> commClass set to nio");
             return LibertyNioServerSocketChannel.class;
         }
     }
@@ -261,7 +259,6 @@ public class NettyFrameworkImpl implements ServerQuiesceListener, NettyFramework
         } else if (useNativeIO && KQueue.isAvailable()){
             return KQueueSocketChannel.class;
         } else {
-            //return NioSocketChannel.class;
             return LibertyNioSocketChannel.class;
         }
     }

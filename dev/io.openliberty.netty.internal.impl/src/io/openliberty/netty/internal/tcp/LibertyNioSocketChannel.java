@@ -1,18 +1,34 @@
+/*******************************************************************************
+ * Copyright (c) 2026 IBM Corporation and others.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License 2.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-2.0/
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ *******************************************************************************/
 package io.openliberty.netty.internal.tcp;
 
+import java.net.Socket;
 import java.nio.channels.SocketChannel;
 import java.util.Optional;
 import java.util.OptionalLong;
 
+import com.ibm.websphere.ras.Tr;
+import com.ibm.websphere.ras.TraceComponent;
+
 import io.netty.channel.Channel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.util.AttributeKey;
-import io.openliberty.netty.internal.ConfigConstants;
-import io.openliberty.netty.internal.tcp.SocketHandle;
 
 public class LibertyNioSocketChannel extends NioSocketChannel{
 
-    public final AttributeKey<SocketHandle> HANDLE_KEY = AttributeKey.valueOf("HandleKey");
+    
+
+    private static final TraceComponent tc = Tr.register(LibertyNioSocketChannel.class, TCPMessageConstants.NETTY_TRACE_NAME,
+                                                         TCPMessageConstants.TCP_BUNDLE);
+
+    private final AttributeKey<Socket> SOCKET_HANDLE = AttributeKey.valueOf("SocketHandleKey");
 
     public LibertyNioSocketChannel(){
         super();
@@ -30,16 +46,10 @@ public class LibertyNioSocketChannel extends NioSocketChannel{
     }
 
     private void installHandle(){
-        System.out.println("Installing socket handle");
         SocketChannel ch = javaChannel();
-        SocketHandle handle = new SocketHandle(this, localAddress(), remoteAddress(),
-                                                Optional.of(ch.socket()),
-                                                Optional.of(ch),
-                                                OptionalLong.empty(),
-                                                "nio");
-
-        System.out.println("Recorded socket is: " + handle.getJavaSocket());
-
-        attr(HANDLE_KEY).set(handle);
+        if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+            Tr.debug(tc, "Installing socket handle to NIO channel:  " + ch);
+        }
+        attr(SOCKET_HANDLE).set(ch.socket());
     }    
 }

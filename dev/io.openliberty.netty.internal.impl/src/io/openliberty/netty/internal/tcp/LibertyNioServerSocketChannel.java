@@ -1,10 +1,26 @@
+/*******************************************************************************
+ * Copyright (c) 2026 IBM Corporation and others.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License 2.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-2.0/
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ *******************************************************************************/
 package io.openliberty.netty.internal.tcp;
+
 import java.nio.channels.SocketChannel;
 import java.util.List;
+
+import com.ibm.websphere.ras.Tr;
+import com.ibm.websphere.ras.TraceComponent;
 
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 
 public class LibertyNioServerSocketChannel extends NioServerSocketChannel{
+
+    private static final TraceComponent tc = Tr.register(LibertyNioServerSocketChannel.class, TCPMessageConstants.NETTY_TRACE_NAME,
+                                                         TCPMessageConstants.TCP_BUNDLE);
 
     @Override
     protected int doReadMessages(List<Object> buf) throws Exception {
@@ -15,12 +31,16 @@ public class LibertyNioServerSocketChannel extends NioServerSocketChannel{
                 return 1;
             }
         } catch (Throwable t){
-            //logger.warn("Failed to create a new channel from an accepted socket.", t);
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                Tr.debug(tc, "Failed to create a new channel from an accepted socket. " + t);
+            }
 
             try {
                 ch.close();
             } catch (Throwable t2){
-                //logger.warn("Failed to close a socket.", t2);
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                    Tr.debug(tc, "Failed to close a socket. " + t2);
+                }
             }
         }
 
