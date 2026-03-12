@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025 IBM Corporation and others.
+ * Copyright (c) 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -18,10 +18,10 @@ import jakarta.data.metamodel.TextAttribute;
 import test.jakarta.data.v1_1.web.Fraction.Digits;
 
 /**
- * Static metamodel for the Fraction.Digits embeddable.
+ * Static metamodel for the Fraction.Decimal.Digits embeddable.
  */
 @StaticMetamodel(Digits.class)
-public interface _Fraction_Digits {
+public interface _Digits {
 
     String NONREPEATING = "nonrepeating";
     String REPEATING = "repeating";

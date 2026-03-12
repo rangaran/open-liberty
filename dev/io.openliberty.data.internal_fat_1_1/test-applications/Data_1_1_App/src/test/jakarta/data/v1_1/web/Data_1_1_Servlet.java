@@ -229,7 +229,7 @@ public class Data_1_1_Servlet extends FATServlet {
         if (!isHibernatePersistence())
             return;
 
-        Restriction<Fraction> roundsUpTo2223 = _Fraction.ceiling
+        Restriction<Fraction> roundsUpTo2223 = _Fraction.decimal_ceiling
                         .times(BigDecimal.valueOf(10000L))
                         .asBigInteger()
                         .equalTo(BigInteger.valueOf(2223));
@@ -253,7 +253,7 @@ public class Data_1_1_Servlet extends FATServlet {
         if (!isHibernatePersistence())
             return;
 
-        Restriction<Fraction> roundsDownTo5555 = _Fraction.truncated
+        Restriction<Fraction> roundsDownTo5555 = _Fraction.decimal_truncated
                         .times(BigDecimal.valueOf(10000L))
                         .asLong()
                         .equalTo(5555L);
@@ -276,7 +276,7 @@ public class Data_1_1_Servlet extends FATServlet {
         if (!isHibernatePersistence())
             return;
 
-        Restriction<Fraction> value_x_4_is_1pt5 = _Fraction.value
+        Restriction<Fraction> value_x_4_is_1pt5 = _Fraction.decimal_value
                         .times(4.0)
                         .asBigDecimal()
                         .equalTo(BigDecimal.valueOf(15, 1));
@@ -637,7 +637,7 @@ public class Data_1_1_Servlet extends FATServlet {
      */
     @Test
     public void testIsAnnoEqualityAndInequality() {
-        Order<Fraction> order = Order.by(Sort.desc(_Fraction.VALUE));
+        Order<Fraction> order = Order.by(Sort.desc(_Fraction.DECIMAL_VALUE));
 
         assertEquals(List.of("Four Fifths",
                              "Two Fifths",
@@ -1059,6 +1059,35 @@ public class Data_1_1_Servlet extends FATServlet {
                                             _Fraction.name.notLike("--- *", '-', '*', '!'),
                                             Order.by(_Fraction.numerator.desc())) //
                                      .map(f -> f.name)
+                                     .collect(Collectors.toList()));
+    }
+
+    /**
+     * Supply a Restriction to a repository method where the Restriction
+     * requires navigating through 2 levels of embeddables to compute the
+     * expressions that are used in its constraint.
+     */
+    @Test
+    public void testNavigableAttribute() {
+        Restriction<Fraction> twiceAsManyNonrepeatingVsRepeatingDigits = //
+                        _Fraction.decimal
+                                        .navigate(_Decimal.digits)
+                                        .navigate(_Digits.nonrepeating)
+                                        .length()
+                                        .equalTo(_Fraction.decimal
+                                                        .navigate(_Decimal.digits)
+                                                        .navigate(_Digits.repeating)
+                                                        .length()
+                                                        .times(2));
+
+        assertEquals(List.of("4166...",
+                             "5833...",
+                             "9166..."),
+                     fractions.withNameLike("%ths",
+                                            twiceAsManyNonrepeatingVsRepeatingDigits,
+                                            Order.by(_Fraction.decimal_value.desc())) //
+                                     .map(f -> f.decimal.digits().toString())
+                                     .sorted()
                                      .collect(Collectors.toList()));
     }
 
