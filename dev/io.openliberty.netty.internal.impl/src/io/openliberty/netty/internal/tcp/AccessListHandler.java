@@ -19,6 +19,8 @@ import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.openliberty.accesslists.AddressAndHostNameAccessLists;
+import io.openliberty.netty.internal.exception.NettyException;
+import io.openliberty.netty.internal.impl.NettyConstants;
 
 /**
  * Channel handler for {@link AddressAndHostNameAccessLists}: if the remote address for the current context is
@@ -47,6 +49,17 @@ public class AccessListHandler extends ChannelInboundHandlerAdapter {
             }
         } else {
             super.channelActive(ctx);
+        }
+    }
+
+    @Override
+    public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
+        // If handler is removed while channel is active, we should throw an exception
+        if(ctx.channel().isActive()) {
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                Tr.debug(tc, "Unallowed removal of handler: " + NettyConstants.ACCESSLIST_HANDLER_NAME + " from channel: " + ctx.channel());
+            }
+            ctx.fireExceptionCaught(new NettyException("Removed from channel pipeline handler: " + NettyConstants.ACCESSLIST_HANDLER_NAME));
         }
     }
 

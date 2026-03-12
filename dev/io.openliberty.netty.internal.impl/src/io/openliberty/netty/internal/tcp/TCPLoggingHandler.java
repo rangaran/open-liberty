@@ -22,6 +22,8 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.util.AttributeKey;
+import io.openliberty.netty.internal.exception.NettyException;
+import io.openliberty.netty.internal.impl.NettyConstants;
 
 /**
  * Channel handler which logs TCP connection events to ensure that logging between Netty and Channelfw are
@@ -131,6 +133,13 @@ class TCPLoggingHandler extends LoggingHandler {
     }
 
     @Override
+    public void close(ChannelHandlerContext ctx, ChannelPromise promise) throws Exception {
+        System.out.println("Closing channel! " + ctx.channel());
+        new Exception("close called!").printStackTrace();
+        ctx.close();
+    }
+
+    @Override
     public void flush(ChannelHandlerContext ctx) throws Exception {
         if (TraceComponent.isAnyTracingEnabled() && tc.isEventEnabled()) {
             Tr.event(ctx.channel(), tc, "flush requested for local: " + ctx.channel().localAddress() + " remote: " + ctx.channel().remoteAddress());
@@ -144,6 +153,17 @@ class TCPLoggingHandler extends LoggingHandler {
             Tr.event(ctx.channel(), tc, "userEvent triggered for local: " + ctx.channel().localAddress() + " remote: " + ctx.channel().remoteAddress() + " event: " + evt);
         }
         super.userEventTriggered(ctx, evt);
+    }
+
+    @Override
+    public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
+        // If handler is removed while channel is active, we should throw an exception
+        if(ctx.channel().isActive()) {
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                Tr.debug(tc, "Unallowed removal of handler: " + NettyConstants.TCP_LOGGING_HANDLER_NAME + " from channel: " + ctx.channel());
+            }
+            ctx.fireExceptionCaught(new NettyException("Removed from channel pipeline handler: " + NettyConstants.TCP_LOGGING_HANDLER_NAME));
+        }
     }
 
     @Override
