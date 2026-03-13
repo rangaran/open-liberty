@@ -34,6 +34,7 @@ import componenttest.annotation.TestServlets;
 import componenttest.custom.junit.runner.FATRunner;
 import componenttest.custom.junit.runner.Mode;
 import componenttest.rules.repeater.FeatureReplacementAction;
+import componenttest.rules.repeater.RepeatActions.SEVersion;
 import componenttest.rules.repeater.RepeatTests;
 import componenttest.topology.impl.LibertyServer;
 
@@ -59,7 +60,7 @@ public class StatefulTimeoutTest extends AbstractTest {
                                                     .conditionalFullFATOnly(FeatureReplacementAction.GREATER_THAN_OR_EQUAL_JAVA_11)
                                                     .forServers("com.ibm.ws.ejbcontainer.session.passivation.fat.sfTimeout"))
                                     .andWith(FeatureReplacementAction.EE10_FEATURES()
-                                                    .conditionalFullFATOnly(FeatureReplacementAction.GREATER_THAN_OR_EQUAL_JAVA_17)
+                                                    .withMaxJavaLevel(SEVersion.JAVA11) // Running the EE10 and EE11 repeats causes the bucket to run over 3 hours.
                                                     .forServers("com.ibm.ws.ejbcontainer.session.passivation.fat.sfTimeout"))
                                     .andWith(FeatureReplacementAction.EE11_FEATURES()
                                                     .forServers("com.ibm.ws.ejbcontainer.session.passivation.fat.sfTimeout"));
