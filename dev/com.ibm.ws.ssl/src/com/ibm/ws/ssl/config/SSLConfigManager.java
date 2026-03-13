@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2007, 2024 IBM Corporation and others.
+ * Copyright (c) 2007, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -566,12 +566,16 @@ public class SSLConfigManager {
         }
 
         prop = (String) map.get("securityLevel");
-        if (null != prop && !prop.isEmpty() && !ProductInfo.getBetaEdition()) {
-            logSecurityLevelInfo();
+        if (null != prop && !prop.isEmpty()) {
+            sslprops.setProperty(Constants.SSLPROP_SECURITY_LEVEL, prop);
 
-            // Check for LOW or MEDIUM cipher specifications and issue warning once
-            if(prop.equalsIgnoreCase(Constants.SECURITY_LEVEL_MEDIUM) || prop.equalsIgnoreCase(Constants.SECURITY_LEVEL_LOW)){
-                weakCipherLogging();
+            if(ProductInfo.getBetaEdition()){
+                logSecurityLevelInfo();
+
+                // Check for LOW or MEDIUM cipher specifications and issue warning once
+                if(prop.equalsIgnoreCase(Constants.SECURITY_LEVEL_MEDIUM) || prop.equalsIgnoreCase(Constants.SECURITY_LEVEL_LOW)){
+                    weakCipherLogging();
+                }
             }
         }
 
