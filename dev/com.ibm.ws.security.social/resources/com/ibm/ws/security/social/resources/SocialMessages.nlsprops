@@ -142,8 +142,8 @@ OIDC_CLIENT_DISCOVERY_SSL_ERROR.useraction=Correct the oidcLogin configuration t
 
 #0=social login client ID, 1="none"
 SOCIAL_LOGIN_NONE_ALG=CWWKS5392W: The signatureAlgorithm of the social login client [{0}] is set to [{1}].
-SOCIAL_LOGIN_NONE_ALG.explanation=Since the signatureAlgorithm is set to "none", a non-signed token is expected, which is not a common use case.
-SOCIAL_LOGIN_NONE_ALG.useraction=If inbound tokens are not expected to be signed, then no action is required. Otherwise, select a supported signatureAlgorithm such as RS256 or HS256.
+SOCIAL_LOGIN_NONE_ALG.explanation=Since the signatureAlgorithm is set to "none", an unsigned token is expected, which is not a common use case.
+SOCIAL_LOGIN_NONE_ALG.useraction=If you do not expect inbound tokens to be signed, you do not need to act. Otherwise, select a supported signatureAlgorithm such as RS256 or HS256.
 
 SOCIAL_LOGIN_CONFIG_PROCESSED=CWWKS5400I: The social login configuration [{0}] was successfully processed.
 SOCIAL_LOGIN_CONFIG_PROCESSED.explanation=The indicated social login configuration has been successfully processed.
@@ -666,9 +666,3 @@ CLIENT_SECRET_MISSING_BUT_REQUIRED_BY_TOKEN_AUTH_METHOD.useraction=Configure a c
 OIDC_CLIENT_BAD_REQUEST_NO_COOKIE=CWWKS2352E: A request to [{0}] is not valid. A required cookie with a name that begins with WASReqURLOidc is missing. The hostname that is used to access the client might not match the name that is registered at the provider.
 OIDC_CLIENT_BAD_REQUEST_NO_COOKIE.explanation=The client received a request that did not include a required cookie.
 OIDC_CLIENT_BAD_REQUEST_NO_COOKIE.useraction=Verify the OpenID Connect provider and client configurations. The missing cookie might be caused by accessing the client with a hostname that differs from the hostname of the redirect that is registered with the provider. If the sameSiteCookie attribute in the webAppSecurity element in the server configuration is set to Strict, try setting the value to Lax or None.
-
-# Do not translate "signatureAlgorithm" or "allowedSignatureAlgorithms"
-# 0=Social login config ID, 1=Configured signatureAlgorithm value, 2=Configured allowedSignatureAlgorithms value
-SOCIAL_LOGIN_SIGNATURE_ALGORITHM_NOT_IN_ALLOWED_LIST=CWWKS2353E: The [{0}] social login configuration specifies a signature algorithm [{1}] that is not in the list of allowed signature algorithms [{2}].
-SOCIAL_LOGIN_SIGNATURE_ALGORITHM_NOT_IN_ALLOWED_LIST.explanation=The signature algorithm that is configured for the social login client is not included in the list of allowed signature algorithms. The signature algorithm and the allowed signature algorithms values must be compatible.
-SOCIAL_LOGIN_SIGNATURE_ALGORITHM_NOT_IN_ALLOWED_LIST.useraction=Do one of the following: 1) Update the allowedSignatureAlgorithms list to include the signatureAlgorithm value. 2) Update the signatureAlgorithm value to one of the listed allowedSignatureAlgorithm values. 3) Set signatureAlgorithm to FROM_HEADER. 4) Remove the allowedSignatureAlgorithms attribute.

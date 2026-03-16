@@ -314,10 +314,9 @@ MALFORMED_URL_IN_ORIGIN_REQUEST_URL_COOKIE.useraction=Verify the OpenID Connect 
 
 # 0=Truststore reference, 1=Exception message
 OIDC_CLIENT_ERROR_GETTING_CERT_ENTRIES=CWWKS1555E: Cannot load trusted certificate entries from the [{0}] truststore. {1}
-OIDC_CLIENT_ERROR_GETTING_CERT_ENTRIES.explanation=An error occurred while attempting to retrieve the list of trusted certificate entries from the specified truststore. The truststore might not be present in the configuration, or there might be an issue accessing the truststore.
-OIDC_CLIENT_ERROR_GETTING_CERT_ENTRIES.useraction=Verify that the truststore is configured correctly in your server configuration and that it is accessible. Check the error message for additional details about the failure.
+OIDC_CLIENT_ERROR_GETTING_CERT_ENTRIES.explanation=An error occurred while the system was attempting to retrieve the list of trusted certificate entries from the specified truststore. The truststore might be missing from the configuration, or an issue might be preventing access to the truststore.
+OIDC_CLIENT_ERROR_GETTING_CERT_ENTRIES.useraction=Verify that the truststore is configured correctly in your server configuration and that it is accessible. Check the error message for more information about the failure.
 
 #CWWKS1557 used in client bundle, do not use here.
 
 # STOP HERE, OIDC SERVER HAS RESERVED 1600 - 1649
-

@@ -1,5 +1,5 @@
 ###############################################################################
-# Copyright (c) 2017, 2026 IBM Corporation and others.
+# Copyright (c) 2017, 2020 IBM Corporation and others.
 # All rights reserved. This program and the accompanying materials
 # are made available under the terms of the Eclipse Public License 2.0
 # which accompanies this distribution, and is available at
@@ -162,9 +162,3 @@ JWT_PREVIOUSLY_LOGGED_OUT.useraction=Resubmit the request with a different JWT.
 MP_CONFIG_VALUE_NOT_SUPPORTED=CWWKS5528W: The [{0}] {1} MicroProfile Config value is not supported. The only supported values are {2}. The {3} value is used by default.
 MP_CONFIG_VALUE_NOT_SUPPORTED.explanation=The MicroProfile Config property that is specified in the message has a predefined set of values that are supported. Other values are ignored, and the default value is used instead.
 MP_CONFIG_VALUE_NOT_SUPPORTED.useraction=Specify one of the supported values for the property that is indicated in the message.
-
-# Do not translate "JSON Web Token", "JWT", "signatureAlgorithm", "allowedSignatureAlgorithms", "FROM_HEADER"
-# 0=Configuration ID, 1=Configured signatureAlgorithm value, 2=List of allowedSignatureAlgorithms values
-MPJWT_SIGNATURE_ALGORITHM_NOT_IN_ALLOWED_LIST=CWWKS5529EE: The [{0}] MicroProfile configuration specifies the [{1}] signature algorithm, but that algorithm is not in the list of allowed signature algorithms [{2}].
-MPJWT_SIGNATURE_ALGORITHM_NOT_IN_ALLOWED_LIST.explanation=The configured signature algorithm must be one of the allowed signature algorithms. When the allowedSignatureAlgorithms attribute is configured, the signatureAlgorithm must be set to one of the values in that list or to FROM_HEADER.
-MPJWT_SIGNATURE_ALGORITHM_NOT_IN_ALLOWED_LIST.useraction=Do one of the following: 1) Update the allowedSignatureAlgorithms list to include the signatureAlgorithm value. 2) Update the signatureAlgorithm value to one of the listed allowedSignatureAlgorithm values. 3) Set signatureAlgorithm to FROM_HEADER. 4) Remove the allowedSignatureAlgorithms attribute.

@@ -406,12 +406,7 @@ JWE_ALGORITHM_MISMATCH.useraction=Obtain a new token with a Content Encryption K
 
 # 0=Truststore reference, 1=Exception message
 JWT_ERROR_GETTING_CERT_ENTRIES=CWWKS6070E: Cannot load trusted certificate entries from the [{0}] truststore. {1}
-JWT_ERROR_GETTING_CERT_ENTRIES.explanation=An error occurred while attempting to retrieve the list of trusted certificate entries from the specified truststore. The truststore might not be present in the configuration, or there might be an issue accessing the truststore.
-JWT_ERROR_GETTING_CERT_ENTRIES.useraction=Verify that the truststore is configured correctly in your server configuration and that it is accessible. Check the error message for additional details about the failure.
+JWT_ERROR_GETTING_CERT_ENTRIES.explanation=An error occurred while the system was attempting to retrieve the list of trusted certificate entries from the specified truststore. The truststore might be missing from the configuration, or an issue might be preventing access to the truststore.
+JWT_ERROR_GETTING_CERT_ENTRIES.useraction=Verify that the truststore is configured correctly in your server configuration and that it is accessible. Check the error message for more information about the failure.
 
-# Do not translate "JSON Web Token", "JWT", "signatureAlgorithm", "allowedSignatureAlgorithms", "FROM_HEADER"
-# 0=JWT consumer config ID, 1=Configured signatureAlgorithm value, 2=List of allowedSignatureAlgorithms values
-JWT_SIGNATURE_ALGORITHM_NOT_IN_ALLOWED_LIST=CWWKS6071E: The [{0}] JWT consumer configuration specifies the [{1}] signature algorithm, but that algorithm is not in the list of allowed signature algorithms [{2}].
-JWT_SIGNATURE_ALGORITHM_NOT_IN_ALLOWED_LIST.explanation=The configured signature algorithm must be one of the allowed signature algorithms. When the allowedSignatureAlgorithms attribute is configured, the signatureAlgorithm must be set to one of the values in that list or to FROM_HEADER.
-JWT_SIGNATURE_ALGORITHM_NOT_IN_ALLOWED_LIST.useraction=Do one of the following: 1) Update the allowedSignatureAlgorithms list to include the signatureAlgorithm value. 2) Update the signatureAlgorithm value to one of the listed allowedSignatureAlgorithm values. 3) Set signatureAlgorithm to FROM_HEADER. 4) Remove the allowedSignatureAlgorithms attribute.
 
