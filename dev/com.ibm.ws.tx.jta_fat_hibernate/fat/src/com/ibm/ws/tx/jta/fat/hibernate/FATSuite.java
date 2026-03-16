@@ -39,7 +39,7 @@ public class FATSuite {
                                                                                                                          * JSE11
                                                                                                                          */
                     .andWith(FeatureReplacementAction.EE11_FEATURES()) /* test EE11 with jdbc-4.2 */
-                    .andWith(FeatureReplacementAction.EE11_FEATURES().removeFeature("jdbc-4.2").addFeature("jdbc-4.2")) /*
+                    .andWith(FeatureReplacementAction.EE11_FEATURES().removeFeature("jdbc-4.2").addFeature("jdbc-4.3")) /*
                                                                                                                          * test EE11+jdbc4.3.
                                                                                                                          * Jdbc4.3 reqs.
                                                                                                                          * JSE11
