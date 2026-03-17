@@ -252,11 +252,6 @@ public class OidcLoginConfigImpl extends Oauth2LoginConfigImpl implements Conver
     }
 
     void performMiscellaneousConfigurationChecks() {
-        if (!Constants.ALGORITHM_FROM_HEADER.equals(signatureAlgorithm)) {
-            if (tc.isDebugEnabled()) {
-                Tr.debug(tc, "The 'allowedSignatureAlgorithms' list " + Arrays.toString(allowedSignatureAlgorithms) + " will be ignored because a specific signature algorithm has been explicitly set. " + "Verification will proceed using only: " + signatureAlgorithm);
-            }
-        }
         if (!PrivateKeyJwtAuthMethod.AUTH_METHOD.equals(tokenEndpointAuthMethod) && (clientSecret == null || clientSecret.isEmpty())) {
             Tr.error(tc, "CLIENT_SECRET_MISSING_BUT_REQUIRED_BY_TOKEN_AUTH_METHOD", uniqueId, tokenEndpointAuthMethod);
         }

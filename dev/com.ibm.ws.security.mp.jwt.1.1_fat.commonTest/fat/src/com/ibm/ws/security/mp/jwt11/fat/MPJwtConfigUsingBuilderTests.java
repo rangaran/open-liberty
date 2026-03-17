@@ -1466,7 +1466,6 @@ public class MPJwtConfigUsingBuilderTests extends MPJwt11MPConfigTests {
      * @throws Exception
      */
     @ExpectedFFDC({ "org.jose4j.jwt.consumer.InvalidJwtSignatureException" })
-    @Mode(TestMode.LITE)
     @Test
     public void MPJwtConfigUsingBuilderTests_FromHeader_AllowOnlyRS256_tokenWithMatchAndMisMatchSigAlgs() throws Exception {
         resourceServer.reconfigureServerUsingExpandedConfiguration(_testName, "rs_server_sigAlg_FROM_HEADER_allow_RS256.xml");
@@ -1506,7 +1505,6 @@ public class MPJwtConfigUsingBuilderTests extends MPJwt11MPConfigTests {
      * @throws Exception
      */
     @ExpectedFFDC({ "org.jose4j.jwt.consumer.InvalidJwtSignatureException" })
-    @Mode(TestMode.LITE)
     @Test
     public void MPJwtConfigUsingBuilderTests_FromHeader_AllowOnlyES256_tokenWithMatchAndMisMatchSigAlgs() throws Exception {
         resourceServer.reconfigureServerUsingExpandedConfiguration(_testName, "rs_server_sigAlg_FROM_HEADER_allow_ES256.xml");
@@ -1545,7 +1543,6 @@ public class MPJwtConfigUsingBuilderTests extends MPJwt11MPConfigTests {
      *
      * @throws Exception
      */
-    @Mode(TestMode.LITE)
     @Test
     public void MPJwtConfigUsingBuilderTests_FromHeader_AllowAllHSAlgs_tokenWithMatchAndMisMatchSigAlgs() throws Exception {
         resourceServer.reconfigureServerUsingExpandedConfiguration(_testName, "rs_server_sigAlg_FROM_HEADER_allow_HSAlgs.xml");
@@ -1559,7 +1556,6 @@ public class MPJwtConfigUsingBuilderTests extends MPJwt11MPConfigTests {
      * @throws Exception
      */
     @ExpectedFFDC({ "org.jose4j.jwt.consumer.InvalidJwtSignatureException" })
-    @Mode(TestMode.LITE)
     @Test
     public void MPJwtConfigUsingBuilderTests_FromHeader_AllowAllRSAlgs_tokenWithMatchAndMisMatchSigAlgs() throws Exception {
         resourceServer.reconfigureServerUsingExpandedConfiguration(_testName, "rs_server_sigAlg_FROM_HEADER_allow_RSAlgs.xml");
@@ -1573,7 +1569,6 @@ public class MPJwtConfigUsingBuilderTests extends MPJwt11MPConfigTests {
      * @throws Exception
      */
     @ExpectedFFDC({ "org.jose4j.jwt.consumer.InvalidJwtSignatureException" })
-    @Mode(TestMode.LITE)
     @Test
     public void MPJwtConfigUsingBuilderTests_FromHeader_AllowAllESAlgs_tokenWithMatchAndMisMatchSigAlgs() throws Exception {
         resourceServer.reconfigureServerUsingExpandedConfiguration(_testName, "rs_server_sigAlg_FROM_HEADER_allow_ESAlgs.xml");
@@ -1600,7 +1595,6 @@ public class MPJwtConfigUsingBuilderTests extends MPJwt11MPConfigTests {
      * @throws Exception
      */
     @ExpectedFFDC({ "org.jose4j.jwt.consumer.InvalidJwtSignatureException" })
-    @Mode(TestMode.LITE)
     @Test
     public void MPJwtConfigUsingBuilderTests_FromHeader_tokenWithMatchAndMisMatchSigAlgs() throws Exception {
         resourceServer.reconfigureServerUsingExpandedConfiguration(_testName, "rs_server_sigAlg_FROM_HEADER.xml");
@@ -1616,7 +1610,6 @@ public class MPJwtConfigUsingBuilderTests extends MPJwt11MPConfigTests {
      * 
      * @throws Exception
      */
-    @Mode(TestMode.LITE)
     @Test
     public void JwtConsumerApiConfigTests_SignTokenRSAlgs_FromHeader_AllowSignRSAlgs_useTrustedAlias() throws Exception {
         resourceServer.reconfigureServerUsingExpandedConfiguration(_testName, "rs_server_diff_sigAlg_FROM_HEADER_allow_RSAlgs.xml");
@@ -1637,7 +1630,6 @@ public class MPJwtConfigUsingBuilderTests extends MPJwt11MPConfigTests {
      * @throws Exception
      */
     @ExpectedFFDC({ "org.jose4j.jwt.consumer.InvalidJwtSignatureException" })
-    @Mode(TestMode.LITE)
     @Test
     public void JwtConsumerApiConfigTests_SignTokenRSAlgs_FromHeader_AllowSignRSAlgs_useTrustAlias_keyMismatch() throws Exception {
         resourceServer.reconfigureServerUsingExpandedConfiguration(_testName, "rs_server_diff_sigAlg_FROM_HEADER_allow_RSAlgs.xml");
@@ -1667,7 +1659,6 @@ public class MPJwtConfigUsingBuilderTests extends MPJwt11MPConfigTests {
      * 
      * @throws Exception
      */
-    @Mode(TestMode.LITE)
     @Test
     public void JwtConsumerApiConfigTests_SignTokenESAlgs_FromHeader_AllowSignESAlgs_useTrustAlias_keyMismatch() throws Exception {
         resourceServer.reconfigureServerUsingExpandedConfiguration(_testName, "rs_server_diff_sigAlg_FROM_HEADER_allow_ESAlgs.xml");

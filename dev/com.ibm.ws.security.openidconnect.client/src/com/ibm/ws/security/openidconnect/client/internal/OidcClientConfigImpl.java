@@ -470,11 +470,6 @@ public class OidcClientConfigImpl implements OidcClientConfig {
             Tr.warning(tc, "OIDC_CLIENT_NONE_ALG", new Object[] { id, signatureAlgorithm });
         }
         allowedSignatureAlgorithms = trimIt((String[]) props.get(CFG_KEY_ALLOWED_SIGNATURE_ALGORITHMS ));
-        if (!ClientConstants.ALGORITHM_FROM_HEADER.equals(signatureAlgorithm)) {
-            if (tc.isDebugEnabled()) {
-                Tr.debug(tc, "The 'allowedSignatureAlgorithms' list " + Arrays.toString(allowedSignatureAlgorithms) + " will be ignored because a specific signature algorithm has been explicitly set. " + "Verification will proceed using only: " + signatureAlgorithm);
-            }
-        }
         clockSkew = (Long) props.get(CFG_KEY_CLOCK_SKEW);
         clockSkewInSeconds = clockSkew / 1000; // Duration types are always in milliseconds, convert to seconds.
         authenticationTimeLimitInSeconds = (Long) props.get(CFG_KEY_AUTHENTICATION_TIME_LIMIT) / 1000;

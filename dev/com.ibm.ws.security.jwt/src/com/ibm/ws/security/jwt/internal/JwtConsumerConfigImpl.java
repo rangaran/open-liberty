@@ -120,13 +120,8 @@ public class JwtConsumerConfigImpl implements JwtConsumerConfig {
         issuer = JwtUtils.trimIt((String) props.get(JwtUtils.CFG_KEY_ISSUER));
         sharedKey = JwtConfigUtil.processProtectedString(props, JwtUtils.CFG_KEY_SHARED_KEY);
         audiences = JwtUtils.trimIt((String[]) props.get(JwtUtils.CFG_KEY_AUDIENCES));
-        sigAlg = JwtConfigUtil.getSignatureAlgorithm(getId(), props, JwtUtils.CFG_KEY_SIGNATURE_ALGORITHM);
+        sigAlg = JwtUtils.trimIt((String) props.get(JwtUtils.CFG_KEY_SIGNATURE_ALGORITHM));
         allowedSignatureAlgorithms = JwtUtils.trimIt((String[]) props.get(JwtUtils.CFG_KEY_ALLOWED_SIGNATURE_ALGORITHMS)).toArray(new String[0]);
-        if (!Constants.SIGNATURE_FROM_HEADER.equals(sigAlg)) {
-            if (tc.isDebugEnabled()) {
-                Tr.debug(tc, "The 'allowedSignatureAlgorithms' list " + Arrays.toString(allowedSignatureAlgorithms) + " will be ignored because a specific signature algorithm has been explicitly set. " + "Verification will proceed using only: " + sigAlg);
-            }
-        }
         trustStoreRef = JwtUtils.trimIt((String) props.get(JwtUtils.CFG_KEY_TRUSTSTORE_REF));
         trustedAlias = JwtUtils.trimIt((String) props.get(JwtUtils.CFG_KEY_TRUSTED_ALIAS));
         clockSkewMilliSeconds = (Long) props.get(JwtUtils.CFG_KEY_CLOCK_SKEW);

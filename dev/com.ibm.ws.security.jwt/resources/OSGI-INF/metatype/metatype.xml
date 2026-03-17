@@ -71,7 +71,7 @@
         <AD id="issuer" name="%issuerIdentifier" description="%issuerIdentifier.desc" required="false" type="String" />
         <AD id="sharedKey" name="%sharedKey" description="%sharedKey.desc" required="false" type="String" ibm:type="password" />
         <AD id="audiences" name="%audiences" description="%audiences.desc" required="false" type="String" cardinality="2147483647" />
-        <AD id="signatureAlgorithm" required="false" type="String" name="%signatureAlgorithm" description="%signatureAlgorithm.desc" >
+        <AD id="signatureAlgorithm" required="false" type="String" name="%signatureAlgorithm" description="%signatureAlgorithm.desc" default="RS256">
             <Option label="%tokenSignAlgorithm.RS256" value="RS256" />
             <Option label="%tokenSignAlgorithm.RS384" value="RS384" />
             <Option label="%tokenSignAlgorithm.RS512" value="RS512" />

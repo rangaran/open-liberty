@@ -2462,7 +2462,6 @@ public class JwtConsumerApiConfigTests extends CommonSecurityFat {
      * 
      * @throws Exception
      */
-    @Mode(TestMode.LITE)
     @Test
     public void JwtConsumerApiConfigTests_SignTokenHS384_FromHeader_AllowSignHS384() throws Exception {
 
@@ -2480,7 +2479,6 @@ public class JwtConsumerApiConfigTests extends CommonSecurityFat {
      * 
      * @throws Exception
      */
-    @Mode(TestMode.LITE)
     @Test
     public void JwtConsumerApiConfigTests_SignTokenHS512_FromHeader_AllowSignHS512() throws Exception {
 
@@ -2913,8 +2911,9 @@ public class JwtConsumerApiConfigTests extends CommonSecurityFat {
      * 
      * @throws Exception
      */
+    @Mode(TestMode.LITE)
     @Test
-    public void JwtConsumerApiConfigTests_SignTokenMixedAlgs_FromHeader_AllowSignHS256RS384ES512() throws Exception {
+    public void JwtConsumerApiConfigTests_SignTokenWithAllowedAlgs_FromHeader_AllowSignHS256RS384ES512() throws Exception {
 
         List<String> allowedAlgs = new ArrayList<>();
         allowedAlgs.add(JwtConsumerConstants.SIGALG_HS256);
@@ -2937,8 +2936,9 @@ public class JwtConsumerApiConfigTests extends CommonSecurityFat {
      * 
      * @throws Exception
      */
+    @Mode(TestMode.LITE)
     @Test
-    public void JwtConsumerApiConfigTests_SignTokenNotWithMixedAlgs_FromHeader_AllowSignHS256RS384ES512() throws Exception {
+    public void JwtConsumerApiConfigTests_SignTokenWithDisallowedAlgs_FromHeader_AllowSignHS256RS384ES512() throws Exception {
 
         List<String> allowedAlgs = new ArrayList<>();
         allowedAlgs.add(JwtConsumerConstants.SIGALG_HS256);

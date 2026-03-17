@@ -554,8 +554,8 @@ public class OidcClientSignatureAlgTests extends CommonTest {
      *
      * @throws Exception
      */
-    @Test
     @Mode(TestMode.LITE)
+    @Test
     public void OidcClientSignatureAlgTests_SignTokenES256_RPVerifyES256_keyMismatch() throws Exception {
 
         genericSigAlgTest("short_" + Constants.SIGALG_ES256, Constants.SIGALG_ES256);
@@ -595,7 +595,6 @@ public class OidcClientSignatureAlgTests extends CommonTest {
      * 
      * @throws Exception
      */
-    @Mode(TestMode.LITE)
     @Test
     public void OidcClientSignatureAlgTests_SignTokenHS256_RPVerifyFromHeader_AllowSignHS256() throws Exception {
         List<String> allowedAlgs = new ArrayList<>();
@@ -609,7 +608,6 @@ public class OidcClientSignatureAlgTests extends CommonTest {
      * 
      * @throws Exception
      */
-    @Mode(TestMode.LITE)
     @Test
     public void OidcClientSignatureAlgTests_SignTokenHS384_RPVerifyFromHeader_AllowSignHS384() throws Exception {
         List<String> allowedAlgs = new ArrayList<>();
@@ -623,7 +621,6 @@ public class OidcClientSignatureAlgTests extends CommonTest {
      * 
      * @throws Exception
      */
-    @Mode(TestMode.LITE)
     @Test
     public void OidcClientSignatureAlgTests_SignTokenHS512_RPVerifyFromHeader_AllowSignHS512() throws Exception {
         List<String> allowedAlgs = new ArrayList<>();

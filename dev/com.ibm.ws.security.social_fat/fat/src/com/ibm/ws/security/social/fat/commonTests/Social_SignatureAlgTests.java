@@ -579,7 +579,6 @@ public class Social_SignatureAlgTests extends SocialCommonTest {
      * 
      * @throws Exception
      */
-    @Mode(TestMode.LITE)
     @Test
     public void Social_SignatureAlgTests_SignTokenHS256_SocialVerifyFromHeader_AllowSignHS256() throws Exception {
         List<String> allowedAlgs = new ArrayList<>();
@@ -593,7 +592,6 @@ public class Social_SignatureAlgTests extends SocialCommonTest {
      * 
      * @throws Exception
      */
-    @Mode(TestMode.LITE)
     @Test
     public void Social_SignatureAlgTests_SignTokenHS384_SocialVerifyFromHeader_AllowSignHS384() throws Exception {
         List<String> allowedAlgs = new ArrayList<>();
@@ -607,7 +605,6 @@ public class Social_SignatureAlgTests extends SocialCommonTest {
      * 
      * @throws Exception
      */
-    @Mode(TestMode.LITE)
     @Test
     public void Social_SignatureAlgTests_SignTokenHS512_SocialVerifyFromHeader_AllowSignHS512() throws Exception {
         List<String> allowedAlgs = new ArrayList<>();
