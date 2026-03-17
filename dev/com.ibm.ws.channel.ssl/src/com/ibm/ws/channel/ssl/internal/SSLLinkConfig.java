@@ -20,6 +20,7 @@ import com.ibm.websphere.ras.Tr;
 import com.ibm.websphere.ras.TraceComponent;
 import com.ibm.websphere.ssl.Constants;
 import com.ibm.websphere.ssl.Constants;
+import com.ibm.ws.kernel.productinfo.ProductInfo;
 
 /**
  * Configuration used on the individual SSL connections. This may or may not
@@ -93,8 +94,23 @@ public class SSLLinkConfig {
             if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
                 Tr.debug(tc, "enabledCipherSuites is a String: " + ciphersObject);
             }
-            // Process the string through adjustSupportedCiphers to handle modifiers (+/-) or custom lists
-            ciphers = Constants.adjustSupportedCiphers(sslEngine.getSupportedCipherSuites(), (String) ciphersObject);
+            if(ProductInfo.getBetaEdition()){
+                // Process the string through adjustSupportedCiphers to handle modifiers (+/-) or custom lists
+                ciphers = Constants.adjustSupportedCiphers(sslEngine.getSupportedCipherSuites(), (String) ciphersObject);
+            }
+            else{
+                // Did not find the enabled ciphers. Need to determine them here.
+                String securityLevel = this.myConfig.getProperty(Constants.SSLPROP_SECURITY_LEVEL);
+                if (null == securityLevel) {
+                    if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                        Tr.debug(tc, "Defaulting to HIGH security level");
+                    }
+                    securityLevel = Constants.SECURITY_LEVEL_HIGH;
+                }
+                // Found the security level.
+                ciphers = Constants.adjustSupportedCiphersToSecurityLevel(
+                                                                        sslEngine.getSupportedCipherSuites(), securityLevel);
+            }
         } else if (ciphersObject instanceof String[]) {
             if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
                 Tr.debug(tc, "enabledCipherSuites is a String array");
@@ -102,7 +118,23 @@ public class SSLLinkConfig {
             // String array might contain modifiers, convert to space-separated string and process
             String[] cipherArray = (String[]) ciphersObject;
             String cipherString = String.join(" ", cipherArray);
+
+            if(ProductInfo.getBetaEdition()){
             ciphers = Constants.adjustSupportedCiphers(sslEngine.getSupportedCipherSuites(), cipherString);
+            }
+            else{
+                // Did not find the enabled ciphers. Need to determine them here.
+                String securityLevel = this.myConfig.getProperty(Constants.SSLPROP_SECURITY_LEVEL);
+                if (null == securityLevel) {
+                    if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                        Tr.debug(tc, "Defaulting to HIGH security level");
+                    }
+                    securityLevel = Constants.SECURITY_LEVEL_HIGH;
+                }
+                // Found the security level.
+                ciphers = Constants.adjustSupportedCiphersToSecurityLevel(
+                                                                        sslEngine.getSupportedCipherSuites(), securityLevel);
+            }
         } else {
             if (TraceComponent.isAnyTracingEnabled() && tc.isEventEnabled()) {
                 Tr.event(tc, "Invalid object for enabledCipherSuites: " + ciphersObject);
