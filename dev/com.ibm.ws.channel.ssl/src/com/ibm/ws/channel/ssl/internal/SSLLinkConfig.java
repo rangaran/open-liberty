@@ -92,7 +92,7 @@ public class SSLLinkConfig {
 
         if ((ciphersObject == null) || (ciphersObject instanceof String)) {
             if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-                Tr.debug(tc, "enabledCipherSuites is a String: " + ciphersObject);
+                Tr.debug(tc, "enabledCipherSuites is null or a String: " + ciphersObject);
             }
             if(ProductInfo.getBetaEdition()){
                 // Process the string through adjustSupportedCiphers to handle modifiers (+/-) or custom lists

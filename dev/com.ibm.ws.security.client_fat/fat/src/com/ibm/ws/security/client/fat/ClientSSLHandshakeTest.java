@@ -492,7 +492,7 @@ public class ClientSSLHandshakeTest extends CommonTest {
     private List<String> extractCipherListFromTrace() throws Exception {
 
         // Use findStringsInCopiedTraceLogs to search for the trace pattern in ssl_trace.log
-        List<String> traceLines = testClient.findStringsInCopiedTraceLogs("adjustSupportedCiphers.*");
+        List<String> traceLines = testClient.findStringsInCopiedSSLTraceLogs("adjustSupportedCiphers.*");
         
         Log.info(c, "extractCipherListFromTrace", "Found " + traceLines.size() + " trace lines in ssl_trace.log");
         

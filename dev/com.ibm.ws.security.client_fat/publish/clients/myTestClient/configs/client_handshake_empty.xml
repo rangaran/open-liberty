@@ -39,9 +39,6 @@
 
 	<sslDefault sslRef="supportedClientAuthenticationSSLConfig" />
 
-	<!-- Use '-TLS_*' wildcard modifier to remove all TLS ciphers from the JDK defaults.
-	     The server only supports TLS ciphers, so no common cipher remains.
-	     The handshake should fail. -->
 	<ssl id="supportedClientAuthenticationSSLConfig"
 		clientAuthenticationSupported="true" keyStoreRef="defaultKeyStore"
 		sslProtocol="TLSv1.2"

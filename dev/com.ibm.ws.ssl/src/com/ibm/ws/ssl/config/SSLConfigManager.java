@@ -418,7 +418,7 @@ public class SSLConfigManager {
             sslprops.setProperty(Constants.SSLPROP_CLIENT_AUTHENTICATION_SUPPORTED, clientAuthenticationSupported);
 
         String securityLevel = getSystemProperty(Constants.SSLPROP_SECURITY_LEVEL);
-        if (securityLevel != null && !securityLevel.equals("")) {
+        if (securityLevel != null && !securityLevel.equals("") && !ProductInfo.getBetaEdition()) {
             logSecurityLevelInfo();
         }
 
@@ -595,17 +595,19 @@ public class SSLConfigManager {
             alias = prop;
         }
 
-        prop = (String) map.get("enabledCiphers");
-        if (null != prop && !prop.isEmpty()) {
-            // Validate that enabledCiphers doesn't mix static entries with filter entries (+/-)
-            if (hasMixedCipherConfiguration(prop)) {
-                Tr.error(tc, "ssl.enabledCiphers.mixed.mode.error", prop, alias);
-                // Leave the value unset so JDK defaults are used
-            } else if (hasWildcardInAddEntry(prop)) {
-                Tr.error(tc, "ssl.enabledCiphers.wildcard.in.plus.error", prop, alias);
-                // Leave the value unset so JDK defaults are used
-            } else {
-                sslprops.setProperty(Constants.SSLPROP_ENABLED_CIPHERS, prop);
+        if(ProductInfo.getBetaEdition()){
+            prop = (String) map.get("enabledCiphers");
+            if (null != prop && !prop.isEmpty()) {
+                // Validate that enabledCiphers doesn't mix static entries with filter entries (+/-)
+                if (hasMixedCipherConfiguration(prop)) {
+                    Tr.error(tc, "ssl.enabledCiphers.mixed.mode.error", prop, alias);
+                    // Leave the value unset so JDK defaults are used
+                } else if (hasWildcardInAddEntry(prop)) {
+                    Tr.error(tc, "ssl.enabledCiphers.wildcard.in.plus.error", prop, alias);
+                    // Leave the value unset so JDK defaults are used
+                } else {
+                    sslprops.setProperty(Constants.SSLPROP_ENABLED_CIPHERS, prop);
+                }
             }
         }
 

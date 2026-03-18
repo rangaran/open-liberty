@@ -1,23 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-    Copyright (c) 2026 IBM Corporation and others.
-    All rights reserved. This program and the accompanying materials
-    are made available under the terms of the Eclipse Public License 2.0
-    which accompanies this distribution, and is available at
-    http://www.eclipse.org/legal/epl-2.0/
-    
-    SPDX-License-Identifier: EPL-2.0
-   
-    Contributors:
-        IBM Corporation - initial API and implementation
- -->
-<!--
-    Client configuration for testHandshakeWithPlusCipherModifierPass (non-IBM JDK).
-    Uses '+' modifier to add a specific ECDHE cipher that the server supports.
-    The '+TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA' modifier adds this cipher to the
-    JDK's default cipher list, ensuring a common cipher with the server.
-    Expected result: SSL handshake succeeds.
- -->
 <client description="SSL handshake test client - plus modifier pass (non-IBM JDK)">
 	<featureManager>
 		<feature>javaeeClient-7.0</feature>
@@ -40,8 +21,6 @@
 
 	<sslDefault sslRef="supportedClientAuthenticationSSLConfig" />
 
-	<!-- Use '+' modifier to add TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA to the JDK defaults.
-	     This cipher is supported by the server, so the handshake should succeed. -->
 	<ssl id="supportedClientAuthenticationSSLConfig"
 		clientAuthenticationSupported="true" keyStoreRef="defaultKeyStore"
 		sslProtocol="TLSv1.2"

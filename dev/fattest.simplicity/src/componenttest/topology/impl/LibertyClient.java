@@ -2761,7 +2761,7 @@ public class LibertyClient {
         RemoteFile remoteLogFile = machine.getFile(logFile);
         return findStringsInLogs(regexp, remoteLogFile);
     }
-    public List<String> findStringsInCopiedTraceLogs(String regexp) throws Exception {
+    public List<String> findStringsInCopiedSSLTraceLogs(String regexp) throws Exception {
         String logFile = pathToAutoFVTOutputClientsFolder + "/" + clientToUse + "-" + logStamp + "/logs/ssl_trace.log";
         RemoteFile remoteLogFile = machine.getFile(logFile);
         return findStringsInLogs(regexp, remoteLogFile);
