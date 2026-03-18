@@ -10,7 +10,6 @@
 package com.ibm.ws.security.authorization.jacc.common;
 
 import java.security.Permission;
-import java.util.Set;
 
 import javax.security.auth.Subject;
 
@@ -19,7 +18,9 @@ import javax.security.auth.Subject;
  */
 public interface PolicyProxy {
 
-    public void refresh(Set<String> contextIds);
+    default public void refresh() {
+        // Do nothing for EE 11+.  The refresh logic is handled in the JakartaPolicyConfigProxy instead.
+    }
 
     default public void setPolicy() {
         // Do nothing for EE 11+
