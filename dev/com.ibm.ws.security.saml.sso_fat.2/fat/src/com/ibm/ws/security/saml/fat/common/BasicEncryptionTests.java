@@ -235,9 +235,9 @@ public class BasicEncryptionTests extends SAMLCommonTest {
         testSAMLServer.reconfigServer(buildSPServerName("server_enc_noKeyAlias_singleCertKeyStore_defaultKeyAliasCert_sha1Fips140-3Enabled.xml"), _testName, SAMLConstants.NO_EXTRA_MSGS, SAMLConstants.JUNIT_REPORTING);
         SAMLTestSettings updatedTestSettings = getTestSettings(testSettings, SP_ENCRYPTION_SHA_1_SIGNATURE);
         updatedTestSettings.setSamlTokenValidationData(updatedTestSettings.getSamlTokenValidationData().getNameId(), updatedTestSettings.getSamlTokenValidationData().getIssuer(), updatedTestSettings.getSamlTokenValidationData().getInResponseTo(), SAMLConstants.BAD_TOKEN_EXCHANGE, updatedTestSettings.getSamlTokenValidationData().getEncryptionKeyUser(), updatedTestSettings.getSamlTokenValidationData().getRecipient(), SAMLConstants.AES128);
-
+        
         String failureMessage = null;
-        if (!fips140_3SemeruEnabled) {
+        if (!fips140_3Enabled) {
             failureMessage = SAMLMessageConstants.CWWKS5007E_INTERNAL_SERVER_ERROR + ".+the signature method provided is weaker than the required.*";
         } else {
             // failureMessage = ".+The requested algorithm http://www.w3.org/2000/09/xmldsig#rsa-sha1 does not exist.*";

@@ -77,11 +77,11 @@ public class SAMLCommonTest extends CommonTest {
     public static class skipIfFips140_3Enabled extends MySkipRule {
         @Override
         public Boolean callSpecificCheck() {
-            Log.info(thisClass, "skipIfFips140_3Enabled", "Should we skip the test: " + fips140_3SemeruEnabled);
-            if (fips140_3SemeruEnabled) {
+            Log.info(thisClass, "skipIfFips140_3Enabled", "Should we skip the test: " + fips140_3Enabled);
+            if (fips140_3Enabled) {
                 testSkipped();
             }
-            return fips140_3SemeruEnabled;
+            return fips140_3Enabled;
         }
     }
 
@@ -124,7 +124,7 @@ public class SAMLCommonTest extends CommonTest {
     protected static List<CommonLocalLDAPServerSuite> ldapRefList = new ArrayList<CommonLocalLDAPServerSuite>();
     protected static boolean cipherMayExceed128 = false;
     public static boolean usingExternalLDAPServer = false;
-    public static boolean fips140_3SemeruEnabled = false;
+    public static boolean fips140_3Enabled = false;
     //issue 17687
     public static String callbackHandlerWss4j = SAMLConstants.EXAMPLE_CALLBACK_WSS4J;
     public static String featureWss4j = SAMLConstants.EXAMPLE_CALLBACK_FEATURE_WSS4J;
@@ -321,7 +321,7 @@ public class SAMLCommonTest extends CommonTest {
                 usingExternalLDAPServer = shibbolethHelpers.updateToUseExternalLDaPIfInMemoryIsBad(aTestServer);
                 shibbolethHelpers.setShibbolethPropertiesForTestMachine(aTestServer);
                 aTestServer.getServer().setServerLevelFips(false);
-                fips140_3SemeruEnabled = aTestServer.getServer().isSemeruFIPS140_3EnabledAndSupported();
+                fips140_3Enabled = aTestServer.getServer().isFIPS140_3EnabledAndSupported();
 
 
 //                CommonLocalLDAPServerSuite one = new CommonLocalLDAPServerSuite();
@@ -344,7 +344,7 @@ public class SAMLCommonTest extends CommonTest {
             } else {
                 //SAML SP Server
                 aTestServer.getServer().setServerLevelFips(true);
-                fips140_3SemeruEnabled = aTestServer.getServer().isSemeruFIPS140_3EnabledAndSupported();
+                fips140_3Enabled = aTestServer.getServer().isFIPS140_3EnabledAndSupported();
             }
 
             transformApps(aTestServer);
