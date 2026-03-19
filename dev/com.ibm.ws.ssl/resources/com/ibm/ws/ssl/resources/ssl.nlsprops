@@ -704,8 +704,8 @@ ssl.securitylevel.ignored.CWPKI0838I=CWPKI0838I: The securityLevel attribute is 
 ssl.securitylevel.ignored.CWPKI0838I.explanation=The specified value for securityLevel will be ignored because this attribute is no longer used. The effective JDK cipher suites will be used and can be overridden by the enabledCiphers attribute.
 ssl.securitylevel.ignored.CWPKI0838I.useraction=Remove ssl configuration attribute securityLevel from the server configuration.
 # -------------------------------------------------------------------------------------------------
-# {0} The securityLevel attribute is set to LOW or MEDIUM
-ssl.weak.cipher.spec.CWPKI0839W=CWPKI0839W: The securityLevel attribute contains LOW or MEDIUM cipher specifications which may enable weak ciphers with reduced encryption strength.
+# The securityLevel attribute is set to LOW or MEDIUM
+ssl.weak.cipher.spec.CWPKI0839W=CWPKI0839W: The weak cipher spec will be ignored and the effective JDK cipher suites will be used instead. Users can enable whichever ciphers they need by exposing them through java.security.
 ssl.weak.cipher.spec.CWPKI0839W.explanation=Using LOW or MEDIUM securityLevel may allow cipher suites with weaker encryption algorithms or shorter key lengths to be negotiated, potentially reducing the security of SSL/TLS connections.
 ssl.weak.cipher.spec.CWPKI0839W.useraction=Review the enabledCiphers configuration and consider using stronger cipher specifications or explicitly listing strong cipher suites. Avoid using LOW or MEDIUM unless required for compatibility with legacy systems.
 # -------------------------------------------------------------------------------------------------

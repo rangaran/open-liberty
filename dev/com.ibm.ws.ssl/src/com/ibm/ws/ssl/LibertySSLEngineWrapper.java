@@ -149,8 +149,7 @@ public class LibertySSLEngineWrapper extends SSLEngine {
     private String[] getEnabledCipherSuitesFromConfig(Properties props) {
         String enabledCiphers = props.getProperty(Constants.SSLPROP_ENABLED_CIPHERS);
         if (enabledCiphers != null && !enabledCiphers.isEmpty()) {
-            String[] enabledc = enabledCiphers.split("\\s+");
-            return enabledc;
+            return enabledCiphers.split("\\s+");
         } else {
             if (tc.isDebugEnabled())
                 Tr.debug(tc, "com.ibm.ssl.enabledCipherSuites has not been configured.");

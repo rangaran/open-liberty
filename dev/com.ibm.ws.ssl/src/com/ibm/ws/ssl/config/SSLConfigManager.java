@@ -418,9 +418,8 @@ public class SSLConfigManager {
             sslprops.setProperty(Constants.SSLPROP_CLIENT_AUTHENTICATION_SUPPORTED, clientAuthenticationSupported);
 
         String securityLevel = getSystemProperty(Constants.SSLPROP_SECURITY_LEVEL);
-        if (securityLevel != null && !securityLevel.equals("") && !ProductInfo.getBetaEdition()) {
-            logSecurityLevelInfo();
-        }
+        if (securityLevel != null && !securityLevel.equals(""))
+            sslprops.setProperty(Constants.SSLPROP_SECURITY_LEVEL, securityLevel);
 
         String clientKeyAlias = getSystemProperty(Constants.SSLPROP_KEY_STORE_CLIENT_ALIAS);
         if (clientKeyAlias != null && !clientKeyAlias.equals(""))
@@ -575,7 +574,7 @@ public class SSLConfigManager {
                 // Check for LOW or MEDIUM cipher specifications and issue warning once
                 if(prop.equalsIgnoreCase(Constants.SECURITY_LEVEL_MEDIUM) || prop.equalsIgnoreCase(Constants.SECURITY_LEVEL_LOW)){
                     weakCipherLogging();
-                }
+                    }
             }
         }
 
@@ -602,7 +601,7 @@ public class SSLConfigManager {
                 if (hasMixedCipherConfiguration(prop)) {
                     Tr.error(tc, "ssl.enabledCiphers.mixed.mode.error", prop, alias);
                     // Leave the value unset so JDK defaults are used
-                } else if (hasWildcardInAddEntry(prop)) {
+                } else if (hasInvalidWildcard(prop)) {
                     Tr.error(tc, "ssl.enabledCiphers.wildcard.in.plus.error", prop, alias);
                     // Leave the value unset so JDK defaults are used
                 } else {
@@ -1191,7 +1190,7 @@ public class SSLConfigManager {
      * @param enabledCiphers The cipher configuration string
      * @return true if the configuration has a wildcard in a non-"-" entry, false otherwise
      ***/
-    private boolean hasWildcardInAddEntry(String enabledCiphers) {
+    private boolean hasInvalidWildcard(String enabledCiphers) {
         if (enabledCiphers == null || enabledCiphers.isEmpty()) {
             return false;
         }

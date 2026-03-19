@@ -406,18 +406,23 @@ public class ClientSSLHandshakeTest extends CommonTest {
         try {
             Log.info(c, name.getMethodName(), "Restarting server with securityLevel=LOW ...");
             testServer.setMarkToEndOfLog();
+            if (testServer.isStarted())
+                testServer.stopServer();
             testServer.setServerConfigurationFile("server_security_level_low.xml");
-            testServer.waitForConfigUpdateInLogUsingMark(null);
 
+            testServer.startServer();
+
+            // Wait for the securityLevel messages (appears during config processing)
+            assertNotNull("Server should log CWPKI0838I info message for securityLevel attribute.",
+                        testServer.waitForStringInLogUsingMark("CWPKI0838I"));
+            assertNotNull("Server should log CWPKI0839W warning for weak cipher specification.",
+                        testServer.waitForStringInLogUsingMark("CWPKI0839W"));
+            
             // Run the client with a valid configuration
             Log.info(c, name.getMethodName(), "Starting the client with valid configuration ...");
             ProgramOutput programOutput = commonClientSetUpWithCalcArgs("myTestClient", "client_handshake_plus_pass.xml", "CWWKF0040E", "CWWKI0003E");
             String output = programOutput.getStdout();
 
-            assertNotNull("Server should log CWPKI0838I info message for securityLevel attribute.",
-                        testServer.waitForStringInLog("CWPKI0838I"));
-            assertNotNull("Server should log CWPKI0839W warning for weak cipher specification.",
-                        testServer.waitForStringInLog("CWPKI0839W"));
             assertTrue("Client should report it has started successfully (CWWKF0035I).",
                     output.contains("5"));
 

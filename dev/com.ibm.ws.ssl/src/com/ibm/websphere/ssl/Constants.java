@@ -19,7 +19,7 @@ import java.util.Properties;
 
 import com.ibm.websphere.ras.Tr;
 import com.ibm.websphere.ras.TraceComponent;
-
+import com.ibm.ws.kernel.productinfo.ProductInfo;
 /**
  * <p>
  * This contains most of the constants used for the SSL component.
@@ -483,83 +483,89 @@ public class Constants {
      *
      * Also removes any occurrences of TLS_EMPTY_RENEGOTIATION_INFO_SCSV.
      */
+    @Deprecated
     public static String[] adjustSupportedCiphers(String[] supportedCiphers, String enabledCiphers) {
-        if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled()) {
-            Tr.entry(tc, "adjustSupportedCiphers", new Object[] { convertCipherListToString(supportedCiphers), enabledCiphers });
-        }
-
-        // Remove any occurrences of TLS_EMPTY_RENEGOTIATION_INFO_SCSV - it's not an effective cipher suite
-        // Optimization: first scan for occurrences. If none are present, leave the original array
-        // to avoid allocations. If present, allocate exactly one new array and copy.
-        if (supportedCiphers != null && supportedCiphers.length > 0) {
-            final String SCSV = "TLS_EMPTY_RENEGOTIATION_INFO_SCSV";
-            int removeCount = 0;
-            for (String c : supportedCiphers) {
-                if (SCSV.equals(c)) {
-                    removeCount++;
-                }
+        if (ProductInfo.getBetaEdition()){
+            if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled()) {
+                Tr.entry(tc, "adjustSupportedCiphers", new Object[] { convertCipherListToString(supportedCiphers), enabledCiphers });
             }
 
-            if (removeCount > 0) {
-                String[] filtered = new String[supportedCiphers.length - removeCount];
-                int idx = 0;
+            // Remove any occurrences of TLS_EMPTY_RENEGOTIATION_INFO_SCSV - it's not an effective cipher suite
+            // Optimization: first scan for occurrences. If none are present, leave the original array
+            // to avoid allocations. If present, allocate exactly one new array and copy.
+            if (supportedCiphers != null && supportedCiphers.length > 0) {
+                final String SCSV = "TLS_EMPTY_RENEGOTIATION_INFO_SCSV";
+                int removeCount = 0;
                 for (String c : supportedCiphers) {
-                    if (!SCSV.equals(c)) {
-                        filtered[idx++] = c;
+                    if (SCSV.equals(c)) {
+                        removeCount++;
                     }
                 }
-                supportedCiphers = filtered;
-            }
-        }
 
-        String[] adjustedCiphers;
-        if (enabledCiphers != null && !enabledCiphers.isEmpty()) {
-            String[] mods = enabledCiphers.split("[,\\s]+" );
-
-            // Categorize modifiers into three types
-            List<String> addCiphers = new ArrayList<>();
-            List<String> removePatterns = new ArrayList<>();
-            List<String> customCiphers = new ArrayList<>();
-
-            for (String mod : mods) {
-                if (mod.isEmpty()) {
-                    continue;
+                if (removeCount > 0) {
+                    String[] filtered = new String[supportedCiphers.length - removeCount];
+                    int idx = 0;
+                    for (String c : supportedCiphers) {
+                        if (!SCSV.equals(c)) {
+                            filtered[idx++] = c;
+                        }
+                    }
+                    supportedCiphers = filtered;
                 }
-                if (mod.startsWith("+")) {
-                    addCiphers.add(mod.substring(1));
-                } else if (mod.startsWith("-")) {
-                    removePatterns.add(mod.substring(1));
+            }
+
+            String[] adjustedCiphers;
+            if (enabledCiphers != null && !enabledCiphers.isEmpty()) {
+                String[] mods = enabledCiphers.split("[,\\s]+" );
+
+                // Categorize modifiers into three types
+                List<String> addCiphers = new ArrayList<>();
+                List<String> removePatterns = new ArrayList<>();
+                List<String> customCiphers = new ArrayList<>();
+
+                for (String mod : mods) {
+                    if (mod.isEmpty()) {
+                        continue;
+                    }
+                    if (mod.startsWith("+")) {
+                        addCiphers.add(mod.substring(1));
+                    } else if (mod.startsWith("-")) {
+                        removePatterns.add(mod.substring(1));
+                    } else {
+                        customCiphers.add(mod);
+                    }
+                }
+
+                boolean hasCustom = !customCiphers.isEmpty();
+
+                if (hasCustom) {
+                    // CUSTOM MODE: Use only the specified ciphers (ignore JDK defaults)
+                    adjustedCiphers = customCiphers.toArray(new String[customCiphers.size()]);
                 } else {
-                    customCiphers.add(mod);
+                    // MODIFIER MODE: Start with JDK defaults, apply +/- changes
+                    List<String> newCipherList = new ArrayList<>(Arrays.asList(supportedCiphers));
+
+                    // Remove ciphers matching patterns
+                    for (String pattern : removePatterns) {
+                        newCipherList.removeIf(cipher -> matchesPattern(cipher, pattern));
+                    }
+
+                    // Add requested ciphers (they will be validated by SSLEngine later)
+                    newCipherList.addAll(addCiphers);
+                    adjustedCiphers = newCipherList.toArray(new String[newCipherList.size()]);
                 }
-            }
-
-            boolean hasCustom = !customCiphers.isEmpty();
-
-            if (hasCustom) {
-                // CUSTOM MODE: Use only the specified ciphers (ignore JDK defaults)
-                adjustedCiphers = customCiphers.toArray(new String[customCiphers.size()]);
             } else {
-                // MODIFIER MODE: Start with JDK defaults, apply +/- changes
-                List<String> newCipherList = new ArrayList<>(Arrays.asList(supportedCiphers));
-
-                // Remove ciphers matching patterns
-                for (String pattern : removePatterns) {
-                    newCipherList.removeIf(cipher -> matchesPattern(cipher, pattern));
-                }
-
-                // Add requested ciphers (they will be validated by SSLEngine later)
-                newCipherList.addAll(addCiphers);
-                adjustedCiphers = newCipherList.toArray(new String[newCipherList.size()]);
+                adjustedCiphers = supportedCiphers == null ? null : supportedCiphers.clone();
             }
-        } else {
-            adjustedCiphers = supportedCiphers == null ? null : supportedCiphers.clone();
-        }
 
-        if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled()) {
-            Tr.exit(tc, "adjustSupportedCiphers -> " + convertCipherListToString(adjustedCiphers));
+            if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled()) {
+                Tr.exit(tc, "adjustSupportedCiphers -> " + convertCipherListToString(adjustedCiphers));
+            }
+            return adjustedCiphers;
         }
-        return adjustedCiphers;
+        else{
+            throw new UnsupportedOperationException("This method is not supported in the non-beta edition of the product.");
+        }
     }
 
     /**

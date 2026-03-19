@@ -28,8 +28,7 @@
 	<ssl id="supportedClientAuthenticationSSLConfig"
 		clientAuthenticationSupported="true" keyStoreRef="defaultKeyStore"
 		sslProtocol="TLSv1.2"
-		securityLevel="LOW"
-		enabledCiphers="TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA TLS_ECDH_RSA_WITH_AES_128_CBC_SHA" />
+		securityLevel="LOW" />
 
 	<basicRegistry id="basic" realm="BasicRealm">
 		<user name="user0" password="user0pwd" />
