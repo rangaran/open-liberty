@@ -47,7 +47,7 @@ import jakarta.data.restrict.Restriction;
 /**
  * Repository for the Fraction entity
  */
-@Repository(dataStore = "java:app/env/data/dbref")
+@Repository(dataStore = "MyDataStore")
 public interface Fractions {
 
     Long count(Restriction<Fraction> filter);
