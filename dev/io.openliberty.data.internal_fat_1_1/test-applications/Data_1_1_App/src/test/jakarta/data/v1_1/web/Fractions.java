@@ -70,6 +70,13 @@ public interface Fractions {
                  @By("denominator") AtMost<Integer> maxDenominator,
                  Restriction<Fraction> filter);
 
+    boolean exists(Restriction<Fraction> filter);
+
+    Boolean existsByDenominatorGreaterThanAndDenominatorLessThan//
+    (int exclusiveMin,
+     int exclusiveMax,
+     Restriction<Fraction> filter);
+
     @Find
     @OrderBy(_Fraction.NUMERATOR)
     @OrderBy(_Fraction.DENOMINATOR)

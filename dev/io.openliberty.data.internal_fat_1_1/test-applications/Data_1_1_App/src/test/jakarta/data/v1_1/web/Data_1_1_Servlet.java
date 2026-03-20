@@ -1345,6 +1345,48 @@ public class Data_1_1_Servlet extends FATServlet {
     }
 
     /**
+     * Use a repository method that imposes restrictions on a Query By Method Name
+     * exists method that has no constraints indicated by the method name.
+     */
+    @Test
+    public void testRestrictedExists() {
+
+        assertEquals(true,
+                     fractions.exists(_Fraction.numerator
+                                     .times(_Fraction.denominator)
+                                     .equalTo(133))); // 7/19 is present in data
+
+        assertEquals(false,
+                     fractions.exists(_Fraction.numerator
+                                     .times(_Fraction.denominator)
+                                     .equalTo(134))); // 2/67 and 1/134 not present
+    }
+
+    /**
+     * Use a repository method that imposes restrictions on a Query By Method Name
+     * exists method that has additional constraints from its method name.
+     */
+    @Test
+    public void testRestrictedExistsBy() {
+
+        Restriction<Fraction> filter = //
+                        Restrict.all(_Fraction.reduced.isTrue(),
+                                     _Fraction.numerator.between(2, 4));
+
+        assertEquals(Boolean.FALSE, // none of (2/6, 3/6, 4/6) are reduced
+                     fractions.existsByDenominatorGreaterThanAndDenominatorLessThan //
+                     (5,
+                      7,
+                      filter));
+
+        assertEquals(Boolean.TRUE, // at least one of (2/8, 3/8, 4/8) is reduced
+                     fractions.existsByDenominatorGreaterThanAndDenominatorLessThan //
+                     (7,
+                      9,
+                      filter));
+    }
+
+    /**
      * Use a repository method that performs a Query consisting of a SELECT
      * clause that uses the NEW keyword to specify the constructor for a
      * Java record.
