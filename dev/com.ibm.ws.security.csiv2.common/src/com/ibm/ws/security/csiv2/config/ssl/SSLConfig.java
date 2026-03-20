@@ -56,7 +56,16 @@ public class SSLConfig {
      * Checks the JVM system property that indicates beta edition, which is set by the server.
      */
     private static boolean isBetaEdition() {
-        return Boolean.getBoolean("com.ibm.ws.beta.edition");
+        try {
+            return AccessController.doPrivileged(new PrivilegedExceptionAction<Boolean>() {
+                @Override
+                public Boolean run() {
+                    return Boolean.getBoolean("com.ibm.ws.beta.edition");
+                }
+            });
+        } catch (Exception e) {
+            return false;
+        }
     }
     private static final TraceComponent tc = Tr.register(SSLConfig.class);
 

@@ -362,7 +362,7 @@ public class ClientSSLHandshakeTest extends CommonTest {
                     Matcher matcher = pattern.matcher(line);
                     if (matcher.find()) {
                         String cipherString = matcher.group(1).trim();
-                        effectiveCiphers = Arrays.asList(cipherString.split("\\s+"));
+                        effectiveCiphers = Arrays.asList(cipherString.split("[,\\s]+"));
                         break;  // Use the first Exit line found
                     }
                 }
@@ -517,7 +517,7 @@ public class ClientSSLHandshakeTest extends CommonTest {
                 if (matcher.find()) {
                     String cipherString = matcher.group(1).trim();
                     Log.info(c, "extractCipherListFromTrace", "Found cipher string: " + cipherString);
-                    lastCipherList = Arrays.asList(cipherString.split("\\s+"));
+                    lastCipherList = Arrays.asList(cipherString.split("[,\\s]+"));
                 }
             }
         }

@@ -433,7 +433,7 @@ public class SSLConfigManager {
         if (enabledCiphers != null && 0 < enabledCiphers.length()) {
             //Removing extra white space
             StringBuffer buf = new StringBuffer();
-            String[] ciphers = enabledCiphers.split("\\s+");
+            String[] ciphers = enabledCiphers.split("[,\\s]+");
             for (int i = 0; i < ciphers.length; i++) {
                 buf.append(ciphers[i]);
                 buf.append(" ");
@@ -594,10 +594,10 @@ public class SSLConfigManager {
             alias = prop;
         }
 
-        if(ProductInfo.getBetaEdition()){
-            prop = (String) map.get("enabledCiphers");
-            if (null != prop && !prop.isEmpty()) {
-                // Validate that enabledCiphers doesn't mix static entries with filter entries (+/-)
+        prop = (String) map.get("enabledCiphers");
+        if (null != prop && !prop.isEmpty()) {
+            if (ProductInfo.getBetaEdition()) {
+                // Beta: Validate that enabledCiphers doesn't mix static entries with filter entries (+/-)
                 if (hasMixedCipherConfiguration(prop)) {
                     Tr.error(tc, "ssl.enabledCiphers.mixed.mode.error", prop, alias);
                     // Leave the value unset so JDK defaults are used
@@ -607,6 +607,9 @@ public class SSLConfigManager {
                 } else {
                     sslprops.setProperty(Constants.SSLPROP_ENABLED_CIPHERS, prop);
                 }
+            } else {
+                // Non-beta: Accept the cipher list as-is (no +/- modifiers supported)
+                sslprops.setProperty(Constants.SSLPROP_ENABLED_CIPHERS, prop);
             }
         }
 
@@ -1157,7 +1160,7 @@ public class SSLConfigManager {
             return false;
         }
         
-        String[] entries = enabledCiphers.split("\\s+");
+        String[] entries = enabledCiphers.split("[,\\s]+");
         boolean hasStaticEntries = false;
         boolean hasFilterEntries = false;
         
@@ -1194,8 +1197,8 @@ public class SSLConfigManager {
         if (enabledCiphers == null || enabledCiphers.isEmpty()) {
             return false;
         }
+String[] entries = enabledCiphers.split("[,\\s]+");
 
-        String[] entries = enabledCiphers.split("\\s+");
 
         for (String entry : entries) {
             if (entry.isEmpty()) {
@@ -1219,7 +1222,7 @@ public class SSLConfigManager {
      ***/
     public synchronized String[] parseEnabledCiphers(String enabledCiphers) {
         if (enabledCiphers != null)
-            return enabledCiphers.split("\\s");
+            return enabledCiphers.split("[,\\s]+");
 
         return null;
     }
@@ -1562,7 +1565,7 @@ public class SSLConfigManager {
             }
             else{
                 if (cipherString != null) {
-                    ciphers = cipherString.split("\\s+");
+                    ciphers = cipherString.split("[,\\s]+");
                 } else {
                     String securityLevel = props.getProperty(Constants.SSLPROP_SECURITY_LEVEL);
                     if (tc.isDebugEnabled())
@@ -1604,7 +1607,7 @@ public class SSLConfigManager {
             }
             else{
                 if (cipherString != null) {
-                    ciphers = cipherString.split("\\s+");
+                    ciphers = cipherString.split("[,\\s]+");
                 } else {
                     String securityLevel = props.getProperty(Constants.SSLPROP_SECURITY_LEVEL);
                     if (tc.isDebugEnabled())

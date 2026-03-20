@@ -104,9 +104,9 @@ public class SSLLinkConfig {
         } else {
             if (cipherString != null) {
                 // Non-beta: user provided value
-                ciphers = cipherString.split("\\s+");
+                ciphers = cipherString.split("[,\\s]+");
             } else {
-                // Fallback to security level
+                // No custom ciphers - fallback to security level
                 String securityLevel = this.myConfig.getProperty(Constants.SSLPROP_SECURITY_LEVEL);
                 if (securityLevel == null) {
                     Tr.debug(tc, "Defaulting to HIGH security level");
