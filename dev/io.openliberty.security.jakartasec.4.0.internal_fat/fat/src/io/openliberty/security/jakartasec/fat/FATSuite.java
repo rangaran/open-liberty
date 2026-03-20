@@ -24,6 +24,7 @@ import io.openliberty.security.jakartasec.fat.tests.InMemoryIdStoreAesEncodedPwd
 import io.openliberty.security.jakartasec.fat.tests.InMemoryIdStoreBadlyEncodedPwdTests;
 import io.openliberty.security.jakartasec.fat.tests.InMemoryIdentityStoreELWarningTest;
 import io.openliberty.security.jakartasec.fat.tests.InMemoryIdentityStoreEnablementTests;
+import io.openliberty.security.jakartasec.fat.tests.InMemoryIdentityStorePropertyNotFoundTest;
 import io.openliberty.security.jakartasec.fat.tests.InMemoryIdentityStoreTests;
 import io.openliberty.security.jakartasec.fat.tests.MissingCustomHandlerTests;
 import io.openliberty.security.jakartasec.fat.tests.MultipleHAMCustomTests;
@@ -44,6 +45,7 @@ import io.openliberty.security.jakartasec.fat.tests.SingleHAMInbuiltCustomQualif
                 MissingCustomHandlerTests.class,
                 InMemoryIdentityStoreTests.class,
                 InMemoryIdentityStoreELWarningTest.class,
+                InMemoryIdentityStorePropertyNotFoundTest.class,
                 InMemoryIdentityStoreEnablementTests.class,
                 AppRolesTests.class,
                 AppBndRolesTests.class,
