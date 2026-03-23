@@ -9,3 +9,4 @@ Subsystem-Name: Spring Boot Support 4.0
   com.ibm.websphere.appserver.eeCompatible-11.0
 kind=beta
 edition=core
+WLP-InstantOn-Enabled: true
