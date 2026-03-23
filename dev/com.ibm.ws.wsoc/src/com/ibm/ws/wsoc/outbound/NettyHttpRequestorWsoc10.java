@@ -72,7 +72,6 @@ import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslHandler;
 import io.openliberty.http.options.HttpOption;
-import io.openliberty.http.options.TcpOption;
 import io.openliberty.netty.internal.BootstrapExtended;
 import io.openliberty.netty.internal.ChannelInitializerWrapper;
 import io.openliberty.netty.internal.exception.NettyException;
