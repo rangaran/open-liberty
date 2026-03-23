@@ -494,10 +494,10 @@ public class Constants {
             // Optimization: first scan for occurrences. If none are present, leave the original array
             // to avoid allocations. If present, allocate exactly one new array and copy.
             if (supportedCiphers != null && supportedCiphers.length > 0) {
-                final String SCSV = "TLS_EMPTY_RENEGOTIATION_INFO_SCSV";
+                final String Scsv = "TLS_EMPTY_RENEGOTIATION_INFO_SCSV";
                 int removeCount = 0;
                 for (String c : supportedCiphers) {
-                    if (SCSV.equals(c)) {
+                    if (Scsv.equals(c)) {
                         removeCount++;
                     }
                 }
@@ -506,7 +506,7 @@ public class Constants {
                     String[] filtered = new String[supportedCiphers.length - removeCount];
                     int idx = 0;
                     for (String c : supportedCiphers) {
-                        if (!SCSV.equals(c)) {
+                        if (!Scsv.equals(c)) {
                             filtered[idx++] = c;
                         }
                     }

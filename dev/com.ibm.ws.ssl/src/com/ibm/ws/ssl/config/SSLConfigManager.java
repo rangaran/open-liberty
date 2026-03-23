@@ -433,6 +433,7 @@ public class SSLConfigManager {
         if (enabledCiphers != null && 0 < enabledCiphers.length()) {
             //Removing extra white space
             StringBuffer buf = new StringBuffer();
+            //Allowing for commas and spaces to follow the format as seen in csiv2 code
             String[] ciphers = enabledCiphers.split("[,\\s]+");
             for (int i = 0; i < ciphers.length; i++) {
                 buf.append(ciphers[i]);

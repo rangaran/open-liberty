@@ -52,6 +52,7 @@ import componenttest.custom.junit.runner.Mode.TestMode;
 @Mode(TestMode.FULL)
 public class ClientSSLHandshakeTest extends CommonTest {
     private static final Class<?> c = ClientSSLHandshakeTest.class;
+    private static String errorString = "Unable to initialize the BasicCalculatorClient";
 
     /**
      * Starts the server before each test.
@@ -60,8 +61,8 @@ public class ClientSSLHandshakeTest extends CommonTest {
      * trusts the server's certificate.
      */
     @Before
-    public void theBefore() throws Exception {
-        String thisMethod = "before";
+    public void Before() throws Exception {
+        String thisMethod = "Before";
         Log.info(c, thisMethod, "Starting server for test: " + name.getMethodName());
 
         try {
@@ -107,15 +108,15 @@ public class ClientSSLHandshakeTest extends CommonTest {
      * Stops the server after each test.
      */
     @After
-    public void theAfter() {
-        String thisMethod = "after";
+    public void After() {
+        String thisMethod = "After";
         Log.info(c, thisMethod, "Stopping server after test: " + name.getMethodName());
         
         try {
             if (testServer != null) {
                 if (testServer.isStarted()) {
                     Log.info(c, thisMethod, "Server is running, stopping it");
-                    testServer.stopServer("CWWKZ0124E: Application testmarker does not contain any modules.");
+                    testServer.stopServer("CWWKZ0124E");
                 } else {
                     Log.info(c, thisMethod, "Server is not running, no need to stop");
                 }
@@ -173,7 +174,7 @@ public class ClientSSLHandshakeTest extends CommonTest {
             ProgramOutput programOutput = commonClientSetUpWithCalcArgs("myTestClient", "client_handshake_minus_fail.xml", "CWWKF0040E", "CWPKI0823E");
             String output = programOutput.getStdout();
 
-            assertTrue("Client should report it failed with handshake exception.", output.contains("Unable to initialize the BasicCalculatorClient"));
+            assertTrue("Client should report it failed with handshake exception.", output.contains(errorString));
         } catch (Exception e) {
             Log.error(c, name.getMethodName(), e, "Unexpected exception was thrown.");
             fail("Exception was thrown: " + e);
@@ -199,7 +200,7 @@ public class ClientSSLHandshakeTest extends CommonTest {
             String output = programOutput.getStdout();
 
             assertTrue("Client should report it failed with handshake exception.",
-                    output.contains("Unable to initialize the BasicCalculatorClient"));
+                    output.contains(errorString));
         } catch (Exception e) {
             Log.error(c, name.getMethodName(), e, "Unexpected exception was thrown.");
             fail("Exception was thrown: " + e);
@@ -342,7 +343,7 @@ public class ClientSSLHandshakeTest extends CommonTest {
                         testServer.waitForStringInLogUsingMark("CWPKI0838I"));
             // Run the client with a valid configuration
             Log.info(c, name.getMethodName(), "Starting the client with valid configuration ...");
-            ProgramOutput programOutput = commonClientSetUpWithCalcArgs("myTestClient", "client_handshake_plus_pass.xml", "CWWKF0040E", "CWWKI0003E");
+            ProgramOutput programOutput = commonClientSetUpWithCalcArgs("myTestClient", "client_handshake_plus_pass.xml", "CWWKF0040E");
             String output = programOutput.getStdout();
             assertTrue("Client should report it has started successfully (CWWKF0035I).",
                     output.contains("5"));
@@ -497,7 +498,7 @@ public class ClientSSLHandshakeTest extends CommonTest {
     private List<String> extractCipherListFromTrace() throws Exception {
 
         // Use findStringsInCopiedTraceLogs to search for the trace pattern in ssl_trace.log
-        List<String> traceLines = testClient.findStringsInCopiedSSLTraceLogs("adjustSupportedCiphers.*");
+        List<String> traceLines = testClient.findStringsInCopiedTraceLogs("adjustSupportedCiphers.*","logs/ssl_trace.log");
         
         Log.info(c, "extractCipherListFromTrace", "Found " + traceLines.size() + " trace lines in ssl_trace.log");
         
