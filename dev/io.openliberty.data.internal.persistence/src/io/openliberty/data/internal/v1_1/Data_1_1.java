@@ -33,9 +33,9 @@ import com.ibm.websphere.ras.Tr;
 import com.ibm.websphere.ras.TraceComponent;
 import com.ibm.websphere.ras.annotation.Trivial;
 
-import io.openliberty.data.internal.AttributeConstraint;
-import io.openliberty.data.internal.QueryType;
-import io.openliberty.data.internal.version.DataVersionCompatibility;
+import io.openliberty.data.internal.persistence.AttributeConstraint;
+import io.openliberty.data.internal.persistence.DataVersionCompatibility;
+import io.openliberty.data.internal.persistence.QueryType;
 import io.openliberty.data.repository.Count;
 import io.openliberty.data.repository.Exists;
 import io.openliberty.data.repository.IgnoreCase;
@@ -398,68 +398,53 @@ public class Data_1_1 implements DataVersionCompatibility {
         List<Expression<?, ?>> exps = null;
         AttributeConstraint c = null;
 
-        switch (constraint) {
-            case AtLeast l:
-                c = AttributeConstraint.GreaterThanEqual;
-                exp1 = l.bound();
-                break;
-            case AtMost m:
-                c = AttributeConstraint.LessThanEqual;
-                exp1 = m.bound();
-                break;
-            case Between b:
-                c = AttributeConstraint.Between;
-                exp1 = b.lowerBound();
-                exp2 = b.upperBound();
-                break;
-            case GreaterThan g:
-                c = AttributeConstraint.GreaterThan;
-                exp1 = g.bound();
-                break;
-            case EqualTo e:
-                c = AttributeConstraint.Equal;
-                exp1 = e.expression();
-                break;
-            case In i:
-                c = AttributeConstraint.In;
-                exps = i.expressions();
-                break;
-            case LessThan l:
-                c = AttributeConstraint.LessThan;
-                exp1 = l.bound();
-                break;
-            case Like l:
-                c = AttributeConstraint.LikeEscaped;
-                exp1 = l.pattern();
-                exp2 = Literal.of(l.escape());
-                break;
-            case NotBetween nb:
-                c = AttributeConstraint.NotBetween;
-                exp1 = nb.lowerBound();
-                exp2 = nb.upperBound();
-                break;
-            case NotEqualTo n:
-                c = AttributeConstraint.Not;
-                exp1 = n.expression();
-                break;
-            case NotIn ni:
-                c = AttributeConstraint.NotIn;
-                exps = ni.expressions();
-                break;
-            case NotLike nl:
-                c = AttributeConstraint.NotLikeEscaped;
-                exp1 = nl.pattern();
-                exp2 = Literal.of(nl.escape());
-                break;
-            case NotNull nn:
-                c = AttributeConstraint.NotNull;
-                break;
-            case Null n:
-                c = AttributeConstraint.Null;
-                break;
-            default:
-                throw new IllegalArgumentException("Constraint: " +
-                                                   constraint.getClass().getName());
+        if (constraint instanceof AtLeast l) {
+            c = AttributeConstraint.GreaterThanEqual;
+            exp1 = l.bound();
+        } else if (constraint instanceof AtMost m) {
+            c = AttributeConstraint.LessThanEqual;
+            exp1 = m.bound();
+        } else if (constraint instanceof Between b) {
+            c = AttributeConstraint.Between;
+            exp1 = b.lowerBound();
+            exp2 = b.upperBound();
+        } else if (constraint instanceof GreaterThan g) {
+            c = AttributeConstraint.GreaterThan;
+            exp1 = g.bound();
+        } else if (constraint instanceof EqualTo e) {
+            c = AttributeConstraint.Equal;
+            exp1 = e.expression();
+        } else if (constraint instanceof In i) {
+            c = AttributeConstraint.In;
+            exps = i.expressions();
+        } else if (constraint instanceof LessThan l) {
+            c = AttributeConstraint.LessThan;
+            exp1 = l.bound();
+        } else if (constraint instanceof Like l) {
+            c = AttributeConstraint.LikeEscaped;
+            exp1 = l.pattern();
+            exp2 = Literal.of(l.escape());
+        } else if (constraint instanceof NotBetween nb) {
+            c = AttributeConstraint.NotBetween;
+            exp1 = nb.lowerBound();
+            exp2 = nb.upperBound();
+        } else if (constraint instanceof NotEqualTo ne) {
+            c = AttributeConstraint.Not;
+            exp1 = ne.expression();
+        } else if (constraint instanceof NotIn ni) {
+            c = AttributeConstraint.NotIn;
+            exps = ni.expressions();
+        } else if (constraint instanceof NotLike nl) {
+            c = AttributeConstraint.NotLikeEscaped;
+            exp1 = nl.pattern();
+            exp2 = Literal.of(nl.escape());
+        } else if (constraint instanceof NotNull) {
+            c = AttributeConstraint.NotNull;
+        } else if (constraint instanceof Null) {
+            c = AttributeConstraint.Null;
+        } else {
+            throw new IllegalArgumentException("Constraint: " +
+                                               constraint.getClass().getName());
         }
 
         q.append(c.operator());
@@ -566,7 +551,7 @@ public class Data_1_1 implements DataVersionCompatibility {
             // append attributes from most distant (top of stack) to least distant:
             q.append(entityVar_);
             while (!attrStack.isEmpty())
-                q.append(attrStack.removeLast().name()).append('.');
+                q.append(attrStack.remove(attrStack.size() - 1).name()).append('.');
             q.append(path.attribute().name());
         } else if (expression instanceof FunctionExpression<?, ?> fn) {
             String name = fn.name();
@@ -593,7 +578,7 @@ public class Data_1_1 implements DataVersionCompatibility {
             // first argument:
             jpqlParamCount = generateExpression(q,
                                                 entityVar_,
-                                                args.getFirst(),
+                                                args.get(0),
                                                 jpqlParamCount,
                                                 jpqlParamNames,
                                                 xprParams);
@@ -664,13 +649,15 @@ public class Data_1_1 implements DataVersionCompatibility {
                                                 xprParams);
             q.append(')');
         } else if (expression instanceof TemporalExpression<?, ?> temporal) {
-            q.append(switch (temporal) {
-                case CurrentDate cdate -> "LOCAL DATE";
-                case CurrentDateTime c -> "LOCAL DATETIME";
-                case CurrentTime ctime -> "LOCAL TIME";
-                default -> throw new IllegalArgumentException("Expression: " +
-                                                              expression.getClass().getName());
-            });
+            if (temporal instanceof CurrentDate)
+                q.append("LOCAL DATE");
+            else if (temporal instanceof CurrentDateTime)
+                q.append("LOCAL DATETIME");
+            else if (temporal instanceof CurrentTime)
+                q.append("LOCAL TIME");
+            else
+                throw new IllegalArgumentException("Expression: " +
+                                                   expression.getClass().getName());
         } else {
             throw new IllegalArgumentException("Expression: " +
                                                expression.getClass().getName());
@@ -853,27 +840,42 @@ public class Data_1_1 implements DataVersionCompatibility {
      * @return true if the constraint applies to any non-literal expressions.
      */
     @Trivial
-    private boolean hasNonLiteralExpression(Constraint constraint) {
-        return switch (constraint) {
-            case AtLeast c -> !(c.bound() instanceof Literal);
-            case AtMost c -> !(c.bound() instanceof Literal);
-            case Between c -> !(c.lowerBound() instanceof Literal) ||
-                              !(c.upperBound() instanceof Literal);
-            case EqualTo c -> !(c.expression() instanceof Literal);
-            case GreaterThan c -> !(c.bound() instanceof Literal);
-            case In c -> c.expressions().stream().anyMatch(e -> !(e instanceof Literal));
-            case LessThan c -> !(c.bound() instanceof Literal);
-            case Like c -> !(c.pattern() instanceof Literal);
-            case NotBetween c -> !(c.lowerBound() instanceof Literal) ||
-                                 !(c.upperBound() instanceof Literal);
-            case NotEqualTo c -> !(c.expression() instanceof Literal);
-            case NotIn c -> c.expressions().stream().anyMatch(e -> !(e instanceof Literal));
-            case NotLike c -> !(c.pattern() instanceof Literal);
-            case NotNull c -> false;
-            case Null c -> false;
-            default -> throw new UnsupportedOperationException("Constraint: " +
-                                                               constraint.getClass().getName());
-        };
+    private boolean hasNonLiteralExpression(Constraint<?> constraint) {
+        boolean allLiteral = false;
+        if (constraint instanceof AtLeast c)
+            allLiteral = c instanceof Literal;
+        else if (constraint instanceof AtMost c)
+            allLiteral = c.bound() instanceof Literal;
+        else if (constraint instanceof Between c)
+            allLiteral = c.lowerBound() instanceof Literal &&
+                         c.upperBound() instanceof Literal;
+        else if (constraint instanceof EqualTo c)
+            allLiteral = c.expression() instanceof Literal;
+        else if (constraint instanceof GreaterThan c)
+            allLiteral = c.bound() instanceof Literal;
+        else if (constraint instanceof In c)
+            allLiteral = c.expressions().stream().allMatch(e -> e instanceof Literal);
+        else if (constraint instanceof LessThan c)
+            allLiteral = c.bound() instanceof Literal;
+        else if (constraint instanceof Like c)
+            allLiteral = c.pattern() instanceof Literal;
+        else if (constraint instanceof NotBetween c)
+            allLiteral = c.lowerBound() instanceof Literal &&
+                         c.upperBound() instanceof Literal;
+        else if (constraint instanceof NotEqualTo c)
+            allLiteral = c.expression() instanceof Literal;
+        else if (constraint instanceof NotIn c)
+            allLiteral = c.expressions().stream().allMatch(e -> e instanceof Literal);
+        else if (constraint instanceof NotLike c)
+            allLiteral = c.pattern() instanceof Literal;
+        else if (constraint instanceof NotNull)
+            allLiteral = true;
+        else if (constraint instanceof Null)
+            allLiteral = true;
+        else
+            throw new UnsupportedOperationException("Constraint: " +
+                                                    constraint.getClass().getName());
+        return !allLiteral;
     }
 
     @Override

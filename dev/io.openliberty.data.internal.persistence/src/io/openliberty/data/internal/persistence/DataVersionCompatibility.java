@@ -10,16 +10,15 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-package io.openliberty.data.internal.version;
+package io.openliberty.data.internal.persistence;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.Set;
 
-import io.openliberty.data.internal.AttributeConstraint;
-import io.openliberty.data.internal.QueryType;
 import jakarta.data.repository.Find;
 
 /**
@@ -43,6 +42,40 @@ public interface DataVersionCompatibility {
      * annotations on the method parameter conflict with each other.
      */
     final int PARAM_ANNOS_CONFLICT = -2;
+
+    /**
+     * Construct an instance that handles capability for the given Jakarta Data
+     * specification version, by converting to _ the . character that separates
+     * the major and minor versions in specVersion, and afterword invoking the
+     * no argument constructor:
+     * io.openliberty.data.internal.v{major_minor}.Data_{major_minor}
+     *
+     * @param specVersion value of getPackage().getSpecificationVersion()
+     *                        for a Jakarta Data class.
+     * @return the instance.
+     */
+    static DataVersionCompatibility of(String specVersion) {
+        if (specVersion == null)
+            specVersion = "1.0";
+        String major_minor = specVersion.replace('.', '_');
+        String implClassName = "io.openliberty.data.internal.v" + major_minor + //
+                               ".Data_" + major_minor;
+        try {
+            @SuppressWarnings("unchecked")
+            Class<DataVersionCompatibility> implClass = //
+                            (Class<DataVersionCompatibility>) //
+                            DataVersionCompatibility.class.getClassLoader() //
+                                            .loadClass(implClassName);
+            return implClass.getConstructor().newInstance();
+        } catch (ClassNotFoundException | //
+                        IllegalAccessException | //
+                        InstantiationException | //
+                        NoSuchMethodException x) {
+            throw new RuntimeException(x); // internal error
+        } catch (InvocationTargetException x) {
+            throw new RuntimeException(x.getCause()); // internal error
+        }
+    }
 
     /**
      * Append a constraint such as o.myAttribute < ?1 to the JPQL query.

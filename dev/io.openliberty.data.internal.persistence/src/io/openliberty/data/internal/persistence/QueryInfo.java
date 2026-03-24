@@ -12,19 +12,19 @@
  *******************************************************************************/
 package io.openliberty.data.internal.persistence;
 
-import static io.openliberty.data.internal.AttributeConstraint.IgnoreCase;
-import static io.openliberty.data.internal.AttributeConstraint.Not;
-import static io.openliberty.data.internal.QueryType.COUNT;
-import static io.openliberty.data.internal.QueryType.EXISTS;
-import static io.openliberty.data.internal.QueryType.FIND;
-import static io.openliberty.data.internal.QueryType.FIND_AND_DELETE;
-import static io.openliberty.data.internal.QueryType.INSERT;
-import static io.openliberty.data.internal.QueryType.LC_DELETE;
-import static io.openliberty.data.internal.QueryType.LC_UPDATE;
-import static io.openliberty.data.internal.QueryType.LC_UPDATE_MERGE;
-import static io.openliberty.data.internal.QueryType.QM_DELETE;
-import static io.openliberty.data.internal.QueryType.QM_UPDATE;
-import static io.openliberty.data.internal.QueryType.SAVE;
+import static io.openliberty.data.internal.persistence.AttributeConstraint.IgnoreCase;
+import static io.openliberty.data.internal.persistence.AttributeConstraint.Not;
+import static io.openliberty.data.internal.persistence.QueryType.COUNT;
+import static io.openliberty.data.internal.persistence.QueryType.EXISTS;
+import static io.openliberty.data.internal.persistence.QueryType.FIND;
+import static io.openliberty.data.internal.persistence.QueryType.FIND_AND_DELETE;
+import static io.openliberty.data.internal.persistence.QueryType.INSERT;
+import static io.openliberty.data.internal.persistence.QueryType.LC_DELETE;
+import static io.openliberty.data.internal.persistence.QueryType.LC_UPDATE;
+import static io.openliberty.data.internal.persistence.QueryType.LC_UPDATE_MERGE;
+import static io.openliberty.data.internal.persistence.QueryType.QM_DELETE;
+import static io.openliberty.data.internal.persistence.QueryType.QM_UPDATE;
+import static io.openliberty.data.internal.persistence.QueryType.SAVE;
 import static io.openliberty.data.internal.persistence.Util.SORT_PARAM_TYPES;
 import static io.openliberty.data.internal.persistence.cdi.DataExtension.exc;
 import static jakarta.data.repository.By.ID;
@@ -71,10 +71,7 @@ import com.ibm.websphere.ras.TraceComponent;
 import com.ibm.websphere.ras.annotation.Trivial;
 import com.ibm.ws.ffdc.annotation.FFDCIgnore;
 
-import io.openliberty.data.internal.AttributeConstraint;
-import io.openliberty.data.internal.QueryType;
 import io.openliberty.data.internal.persistence.cdi.RepositoryProducer;
-import io.openliberty.data.internal.version.DataVersionCompatibility;
 import jakarta.data.Limit;
 import jakarta.data.Order;
 import jakarta.data.Sort;

@@ -12,7 +12,7 @@
  *******************************************************************************/
 package io.openliberty.data.internal.persistence;
 
-import static io.openliberty.data.internal.QueryType.RESOURCE_ACCESS;
+import static io.openliberty.data.internal.persistence.QueryType.RESOURCE_ACCESS;
 import static io.openliberty.data.internal.persistence.cdi.DataExtension.exc;
 
 import java.lang.reflect.InvocationHandler;
@@ -41,7 +41,6 @@ import com.ibm.ws.LocalTransaction.LocalTransactionCoordinator;
 import com.ibm.ws.ffdc.FFDCFilter;
 import com.ibm.ws.ffdc.annotation.FFDCIgnore;
 
-import io.openliberty.data.internal.QueryType;
 import io.openliberty.data.internal.persistence.cdi.DataExtension;
 import jakarta.data.exceptions.DataConnectionException;
 import jakarta.data.exceptions.DataException;

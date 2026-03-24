@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022,2025 IBM Corporation and others.
+ * Copyright (c) 2022,2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -41,11 +41,11 @@ import com.ibm.ws.threadContext.ComponentMetaDataAccessorImpl;
 
 import io.openliberty.checkpoint.spi.CheckpointPhase;
 import io.openliberty.data.internal.persistence.DataProvider;
+import io.openliberty.data.internal.persistence.DataVersionCompatibility;
 import io.openliberty.data.internal.persistence.EntityManagerBuilder;
 import io.openliberty.data.internal.persistence.QueryInfo;
 import io.openliberty.data.internal.persistence.RepositoryImpl;
 import io.openliberty.data.internal.persistence.Util;
-import io.openliberty.data.internal.version.DataVersionCompatibility;
 import jakarta.data.exceptions.DataException;
 import jakarta.data.repository.Repository;
 import jakarta.enterprise.context.ApplicationScoped;

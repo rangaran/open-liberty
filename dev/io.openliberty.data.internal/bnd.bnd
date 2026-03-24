@@ -24,10 +24,6 @@ Bundle-Description: Coordinates differences between versions of Jakarta Data; ve
 
 WS-TraceGroup: data
 
-Export-Package: \
-  io.openliberty.data.internal,\
-  io.openliberty.data.internal.version.*
-
 Private-Package: \
   io.openliberty.data.internal.resources.*
 

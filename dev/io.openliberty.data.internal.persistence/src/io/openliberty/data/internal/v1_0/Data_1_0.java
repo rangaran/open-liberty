@@ -22,14 +22,11 @@ import java.util.Set;
 
 import javax.sql.DataSource;
 
-import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.ConfigurationPolicy;
-
 import com.ibm.websphere.ras.annotation.Trivial;
 
-import io.openliberty.data.internal.AttributeConstraint;
-import io.openliberty.data.internal.QueryType;
-import io.openliberty.data.internal.version.DataVersionCompatibility;
+import io.openliberty.data.internal.persistence.AttributeConstraint;
+import io.openliberty.data.internal.persistence.DataVersionCompatibility;
+import io.openliberty.data.internal.persistence.QueryType;
 import jakarta.data.Limit;
 import jakarta.data.Order;
 import jakarta.data.Sort;
@@ -46,9 +43,6 @@ import jakarta.persistence.EntityManager;
 /**
  * Capability that is specific to the version of Jakarta Data.
  */
-@Component(configurationPid = "io.openliberty.data.internal.version.1.0",
-           configurationPolicy = ConfigurationPolicy.IGNORE,
-           service = DataVersionCompatibility.class)
 public class Data_1_0 implements DataVersionCompatibility {
 
     /**

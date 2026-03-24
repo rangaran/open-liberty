@@ -9,8 +9,8 @@
  *******************************************************************************/
 package io.openliberty.data.internal.persistence;
 
-import static io.openliberty.data.internal.QueryType.FIND;
-import static io.openliberty.data.internal.QueryType.FIND_AND_DELETE;
+import static io.openliberty.data.internal.persistence.QueryType.FIND;
+import static io.openliberty.data.internal.persistence.QueryType.FIND_AND_DELETE;
 import static io.openliberty.data.internal.persistence.cdi.DataExtension.exc;
 
 import java.lang.annotation.Annotation;
@@ -24,8 +24,6 @@ import java.util.stream.Stream;
 
 import com.ibm.websphere.ras.annotation.Sensitive;
 
-import io.openliberty.data.internal.QueryType;
-import io.openliberty.data.internal.version.DataVersionCompatibility;
 import jakarta.data.Limit;
 import jakarta.data.exceptions.EmptyResultException;
 import jakarta.data.exceptions.MappingException;

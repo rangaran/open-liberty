@@ -47,9 +47,9 @@ import com.ibm.websphere.ras.annotation.Trivial;
 import com.ibm.ws.threadContext.ComponentMetaDataAccessorImpl;
 import com.ibm.wsspi.kernel.service.utils.FrameworkState;
 
-import io.openliberty.data.internal.QueryType;
 import io.openliberty.data.internal.persistence.DataProvider;
 import io.openliberty.data.internal.persistence.QueryInfo;
+import io.openliberty.data.internal.persistence.QueryType;
 import io.openliberty.data.internal.persistence.Util;
 import jakarta.data.exceptions.DataException;
 import jakarta.data.exceptions.EmptyResultException;

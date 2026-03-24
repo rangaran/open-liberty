@@ -10,7 +10,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-package io.openliberty.data.internal;
+package io.openliberty.data.internal.persistence;
 
 import java.lang.annotation.Annotation;
 

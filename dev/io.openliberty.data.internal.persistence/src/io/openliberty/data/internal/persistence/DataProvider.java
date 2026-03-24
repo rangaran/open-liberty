@@ -85,7 +85,6 @@ import io.openliberty.data.internal.persistence.cdi.FutureEMBuilder;
 import io.openliberty.data.internal.persistence.cdi.RepositoryProducer;
 import io.openliberty.data.internal.persistence.metadata.DataComponentMetaData;
 import io.openliberty.data.internal.persistence.metadata.DataModuleMetaData;
-import io.openliberty.data.internal.version.DataVersionCompatibility;
 import jakarta.data.Limit;
 import jakarta.data.Order;
 import jakarta.data.Sort;
@@ -283,8 +282,6 @@ public class DataProvider implements //
                         @Reference //
                         ClassLoaderIdentifierService classloaderIdSvc,
                         @Reference //
-                        DataVersionCompatibility compat,
-                        @Reference //
                         ConfigurationAdmin configAdmin,
                         @Reference(target = "(component.name=com.ibm.ws.threading)") //
                         ExecutorService executor,
@@ -298,13 +295,15 @@ public class DataProvider implements //
                         EmbeddableWebSphereTransactionManager tranMgr) {
         this.cdiService = cdiService;
         this.classloaderIdSvc = classloaderIdSvc;
-        this.compat = compat;
         this.configAdmin = configAdmin;
         this.executor = executor;
         this.localTranCurrent = localTranCurrent;
         this.metadataIdSvc = metadataIdSvc;
         this.resourceConfigFactory = resourceConfigFactory;
         this.tranMgr = tranMgr;
+
+        compat = DataVersionCompatibility //
+                        .of(Sort.class.getPackage().getSpecificationVersion());
 
         createTables = Boolean.TRUE.equals(props.get("createTables"));
 
