@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022, 2025 IBM Corporation and others.
+ * Copyright (c) 2022, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -675,6 +675,9 @@ public class DataProvider implements //
         Set<QueryInfo> queryInfos = new LinkedHashSet<>();
         Set<EntityManagerBuilder> builders = new LinkedHashSet<>();
 
+        Package p = Sort.class.getPackage();
+        writer.println("specification: " + p.getSpecificationTitle());
+        writer.println("version: " + p.getSpecificationVersion());
         writer.println("compatibility: " + compat.getClass().getSimpleName());
         writer.println("createTables? " + createTables);
         writer.println("dropTables? " + dropTables);

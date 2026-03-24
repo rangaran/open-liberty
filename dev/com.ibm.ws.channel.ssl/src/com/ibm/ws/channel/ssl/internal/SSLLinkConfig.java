@@ -125,7 +125,7 @@ public class SSLLinkConfig {
 
         if (ciphers == null || ciphers.length == 0) {
 
-            if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled()) {
+            if (TraceComponent.isAnyTracingEnabled() && tc.isEventEnabled()) {
                 Tr.event(tc, "Unable to find any enabled ciphers");
             }
         }

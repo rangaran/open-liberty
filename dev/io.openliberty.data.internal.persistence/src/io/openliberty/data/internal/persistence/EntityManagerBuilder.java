@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022,2025 IBM Corporation and others.
+ * Copyright (c) 2022,2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -138,16 +138,13 @@ public abstract class EntityManagerBuilder {
                                      Set<Class<?>> convertibleTypes) throws Exception {
         final boolean trace = TraceComponent.isAnyTracingEnabled();
         this.convertibleTypes = convertibleTypes;
-        EntityManager em = createEntityManager();
-        try {
+        try (EntityManager em = createEntityManager()) {
             boolean isHibernate = em.getClass().getName().startsWith("org.hibernate.");
             Set<Class<?>> missingEntityTypes = new HashSet<>(entityTypes);
             Metamodel model = em.getMetamodel();
             for (EntityType<?> entityType : model.getEntities()) {
                 Map<String, String> attributeNames = new HashMap<>();
                 Map<String, List<Member>> attributeAccessors = new HashMap<>();
-                // TODO remove this workaround for #33232 once fixed
-                Map<String, Method> attributeSetters = isHibernate ? new HashMap<>() : null;
                 SortedSet<String> attributeNamesForUpdate = new TreeSet<>();
                 SortedMap<String, Class<?>> attributeTypes = new TreeMap<>();
                 SortedMap<String, Member> idClassAttributeAccessors = null;
@@ -202,11 +199,6 @@ public abstract class EntityManagerBuilder {
 
                         attributeNames.put(attributeName.toLowerCase(), attributeName);
                         attributeAccessors.put(attributeName, Collections.singletonList(accessor));
-                        if (attributeSetters != null && // workaround is only needed for Hibernate
-                            recordClass == null && // Java record entities are always new instances
-                            accessor instanceof Method) // otherwise use the Field
-                            attributeSetters.put(attributeName, getSetMethod(jpaEntityClass,
-                                                                             (Method) accessor));
                         attributeTypes.put(attributeName, attr.getJavaType());
                         if (attr.isCollection()) {
                             if (attr instanceof PluralAttribute) {
@@ -242,8 +234,9 @@ public abstract class EntityManagerBuilder {
                         boolean isEmbeddablesOnly = relationEmbeddablesOnly.poll();
 
                         ManagedType<?> relation = model.managedType(attr.getJavaType());
-                        if (relation instanceof EntityType && !entityTypeClasses.add(attr.getJavaType()))
-                            break;
+                        if (relation instanceof EntityType &&
+                            !entityTypeClasses.add(attr.getJavaType()))
+                            continue;
                         List<String> relAttributeList = relationAttributeNames.get(attr.getJavaType());
                         for (Attribute<?, ?> relAttr : relation.getAttributes()) {
                             String relationAttributeName = relAttr.getName();
@@ -366,7 +359,6 @@ public abstract class EntityManagerBuilder {
                                     attributeAccessors, //
                                     attributeNames, //
                                     attributeNamesForUpdate, //
-                                    attributeSetters, //
                                     attributeTypes, //
                                     collectionElementTypes, //
                                     relationAttributeNames, //
@@ -400,9 +392,6 @@ public abstract class EntityManagerBuilder {
                     entityInfoMap.computeIfAbsent(ec, EntityInfo::newFuture) //
                                     .completeExceptionally(x);
             }
-        } finally {
-            if (em != null)
-                em.close();
         }
     }
 
@@ -459,7 +448,7 @@ public abstract class EntityManagerBuilder {
         boolean isIdClassRecord = idType.isRecord();
         for (SingularAttribute<?, ?> attr : idClassAttributes) {
             String entityAttrName = attr.getName();
-            Member idClassMember = null;;
+            Member idClassMember = null;
             if (isIdClassRecord)
                 idClassMember = idType.getMethod(entityAttrName);
             else
@@ -583,6 +572,12 @@ public abstract class EntityManagerBuilder {
         writer.println(indent + "  repositories:");
         for (Class<?> r : repositoryInterfaces)
             writer.println(indent + "    " + r.getName());
+
+        if (convertibleTypes != null && !convertibleTypes.isEmpty()) {
+            writer.println(indent + "  convertibleTypes:");
+            for (Class<?> c : convertibleTypes)
+                writer.println(indent + "    " + c.getName());
+        }
     }
 
     /**

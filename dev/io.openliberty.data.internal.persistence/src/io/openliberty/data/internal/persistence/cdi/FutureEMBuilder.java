@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2024,2025 IBM Corporation and others.
+ * Copyright (c) 2024,2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -290,7 +290,7 @@ public class FutureEMBuilder extends CompletableFuture<EntityManagerBuilder> imp
      * @return PUnitEMBuilder (for persistence unit references) or
      *         DBStoreEMBuilder (data sources, databaseStore)
      */
-    @FFDCIgnore(Throwable.class)
+    @FFDCIgnore({ NamingException.class, Throwable.class })
     public EntityManagerBuilder createEMBuilder() {
         final boolean trace = TraceComponent.isAnyTracingEnabled();
 
@@ -356,33 +356,51 @@ public class FutureEMBuilder extends CompletableFuture<EntityManagerBuilder> imp
                                 .getMetaData(metadataIdentifier);
             }
 
+            List<String> jndiNames = namespace == null //
+                            ? List.of("java:module/persistence/" + dataStore +
+                                      "/EntityManagerFactory",
+                                      "java:app/persistence/" + dataStore +
+                                                               "/EntityManagerFactory") //
+                            : List.of(dataStore);
+
             if (trace && tc.isDebugEnabled())
-                Tr.debug(this, tc, "using metadata: " + metadata);
+                Tr.debug(this, tc,
+                         "using metadata: " + metadata,
+                         "to look up: " + jndiNames);
 
-            if (namespace != null) {
-                ComponentMetaDataAccessorImpl accessor = //
-                                ComponentMetaDataAccessorImpl //
-                                                .getComponentMetaDataAccessor();
-                if (metadata == null)
-                    accessor.beginDefaultContext();
-                else
-                    accessor.beginContext(metadata);
-                try {
-                    Object resource = InitialContext.doLookup(dataStore);
+            ComponentMetaDataAccessorImpl accessor = //
+                            ComponentMetaDataAccessorImpl.getComponentMetaDataAccessor();
+            if (metadata == null)
+                accessor.beginDefaultContext();
+            else
+                accessor.beginContext(metadata);
+            try {
+                for (String jndiName : jndiNames) {
+                    try {
+                        Object resource = InitialContext.doLookup(jndiName);
 
-                    if (trace && tc.isDebugEnabled())
-                        Tr.debug(this, tc, dataStore + " is the JNDI name for " + resource);
+                        if (trace && tc.isDebugEnabled())
+                            Tr.debug(this, tc,
+                                     jndiName + " is the JNDI name for " + resource);
 
-                    if (resource instanceof EntityManagerFactory)
-                        return new PUnitEMBuilder(provider, //
-                                        repositoryClassLoader, //
-                                        repositoryInterfaces, //
-                                        (EntityManagerFactory) resource, //
-                                        dataStore, //
-                                        entityTypes);
-                } finally {
-                    accessor.endContext();
+                        if (resource instanceof EntityManagerFactory)
+                            return new PUnitEMBuilder(provider, //
+                                            repositoryClassLoader, //
+                                            repositoryInterfaces, //
+                                            (EntityManagerFactory) resource, //
+                                            jndiName, //
+                                            entityTypes);
+                    } catch (NamingException x) {
+                        if (namespace == null) {
+                            if (trace && tc.isDebugEnabled())
+                                Tr.debug(this, tc, jndiName + " not found");
+                        } else {
+                            throw x;
+                        }
+                    }
                 }
+            } finally {
+                accessor.endContext();
             }
 
             boolean javacolon = namespace != null; // any java: namespace
@@ -776,8 +794,14 @@ public class FutureEMBuilder extends CompletableFuture<EntityManagerBuilder> imp
 
         // We know the repository classloaders are different but with no natural ording.  Therefore,
         // the only other comparison we can make would be based off of the repository interfaces
-        String r0 = this.repositoryInterfaces.stream().map(c -> c.getCanonicalName()).sorted().collect(Collectors.joining());
-        String r1 = o.repositoryInterfaces.stream().map(c -> c.getCanonicalName()).sorted().collect(Collectors.joining());
+        String r0 = this.repositoryInterfaces.stream() //
+                        .map(Class::getName) //
+                        .sorted() //
+                        .collect(Collectors.joining());
+        String r1 = o.repositoryInterfaces.stream() //
+                        .map(Class::getName) //
+                        .sorted() //
+                        .collect(Collectors.joining());
 
         return r0.compareTo(r1);
     }
