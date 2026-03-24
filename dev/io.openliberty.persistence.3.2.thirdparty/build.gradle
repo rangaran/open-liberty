@@ -55,7 +55,8 @@ task validateNLS {
         fileset(dir: existingResourceDir) {
           include(name: '**/*Resource.nlsprops')
           exclude(name: '**/TraceLocalizationResource.nlsprops')
-          exclude(name: '**/*Resource_*.nlsprops')    
+          exclude(name: '**/*Resource_*.nlsprops')  
+          exclude(name: '**/ExceptionLocalizationResource.nlsprops') // Remove with EL 5.0.1  
         }
       }
       delete fileTree(existingResourceDir){ 
@@ -66,6 +67,7 @@ task validateNLS {
           include(name: '**/*Resource.nlsprops')
           exclude(name: '**/TraceLocalizationResource.nlsprops')
           exclude(name: '**/*Resource_*.nlsprops')
+          exclude(name: '**/ExceptionLocalizationResource.nlsprops') // Remove with EL 5.0.1 
         }
       }
     }
@@ -77,6 +79,7 @@ task validateNLS {
           include(name: '**/*Resource.nlsprops')
           exclude(name: '**/TraceLocalizationResource.nlsprops')
           exclude(name: '**/*Resource_*.nlsprops')
+          exclude(name: '**/ExceptionLocalizationResource.nlsprops') // Remove with EL 5.0.1 
         }
       }
       delete fileTree(newResourcesDir){ 
@@ -87,6 +90,7 @@ task validateNLS {
           include(name: '**/*Resource.nlsprops')
           exclude(name: '**/TraceLocalizationResource.nlsprops')
           exclude(name: '**/*Resource_*.nlsprops')
+          exclude(name: '**/ExceptionLocalizationResource.nlsprops') // Remove with EL 5.0.1 
         }
       }
     }
