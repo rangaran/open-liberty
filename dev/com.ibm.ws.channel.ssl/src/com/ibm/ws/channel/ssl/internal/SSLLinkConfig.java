@@ -82,7 +82,10 @@ public class SSLLinkConfig {
      * @return String[]
      */
    public String[] getEnabledCipherSuites(SSLEngine sslEngine) {
-        Tr.entry(tc, "getEnabledCipherSuites");
+
+        if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled()) {
+            Tr.entry(tc, "getEnabledCipherSuites");
+        }
 
         Object ciphersObject = this.myConfig.get(Constants.SSLPROP_ENABLED_CIPHERS);
         String cipherString = null;
@@ -121,10 +124,16 @@ public class SSLLinkConfig {
         }
 
         if (ciphers == null || ciphers.length == 0) {
-            Tr.event(tc, "Unable to find any enabled ciphers");
+
+            if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled()) {
+                Tr.event(tc, "Unable to find any enabled ciphers");
+            }
         }
 
-        Tr.exit(tc, "getEnabledCipherSuites");
+        if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled()) {
+            Tr.exit(tc, "getEnabledCipherSuites");
+        }
+        
         return ciphers;
     }
     /**

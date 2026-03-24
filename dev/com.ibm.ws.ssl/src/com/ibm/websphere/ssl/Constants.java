@@ -490,29 +490,7 @@ public class Constants {
                 Tr.entry(tc, "adjustSupportedCiphers", new Object[] { convertCipherListToString(supportedCiphers), enabledCiphers });
             }
 
-            // Remove any occurrences of TLS_EMPTY_RENEGOTIATION_INFO_SCSV - it's not an effective cipher suite
-            // Optimization: first scan for occurrences. If none are present, leave the original array
-            // to avoid allocations. If present, allocate exactly one new array and copy.
-            if (supportedCiphers != null && supportedCiphers.length > 0) {
-                final String Scsv = "TLS_EMPTY_RENEGOTIATION_INFO_SCSV";
-                int removeCount = 0;
-                for (String c : supportedCiphers) {
-                    if (Scsv.equals(c)) {
-                        removeCount++;
-                    }
-                }
-
-                if (removeCount > 0) {
-                    String[] filtered = new String[supportedCiphers.length - removeCount];
-                    int idx = 0;
-                    for (String c : supportedCiphers) {
-                        if (!Scsv.equals(c)) {
-                            filtered[idx++] = c;
-                        }
-                    }
-                    supportedCiphers = filtered;
-                }
-            }
+            supportedCiphers = removeTlsEmptyRenegotiationInfoScsv(supportedCiphers);
 
             String[] adjustedCiphers;
             if (enabledCiphers != null && !enabledCiphers.isEmpty()) {
@@ -596,6 +574,38 @@ public class Constants {
             Tr.exit(tc, "resolveDisableHostnameVerification:  " + result);
         }
         return result;
+    }
+    
+    /**
+     * Remove any occurrences of TLS_EMPTY_RENEGOTIATION_INFO_SCSV - it's not an effective cipher suite.
+     * Optimization: first scan for occurrences. If none are present, leave the original array
+     * to avoid allocations. If present, allocate exactly one new array and copy.
+     *
+     * @param supportedCiphers the array of cipher suites to filter
+     * @return the filtered array with TLS_EMPTY_RENEGOTIATION_INFO_SCSV removed, or the original array if none found
+     */
+    private static String[] removeTlsEmptyRenegotiationInfoScsv(String[] supportedCiphers) {
+        if (supportedCiphers != null && supportedCiphers.length > 0) {
+            final String scsv = "TLS_EMPTY_RENEGOTIATION_INFO_SCSV";
+            int removeCount = 0;
+            for (String c : supportedCiphers) {
+                if (scsv.equals(c)) {
+                    removeCount++;
+                }
+            }
+
+            if (removeCount > 0) {
+                String[] filtered = new String[supportedCiphers.length - removeCount];
+                int idx = 0;
+                for (String c : supportedCiphers) {
+                    if (!scsv.equals(c)) {
+                        filtered[idx++] = c;
+                    }
+                }
+                return filtered;
+            }
+        }
+        return supportedCiphers;
     }
 
     /**

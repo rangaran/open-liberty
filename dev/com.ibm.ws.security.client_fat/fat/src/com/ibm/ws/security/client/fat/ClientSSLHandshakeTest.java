@@ -52,7 +52,7 @@ import componenttest.custom.junit.runner.Mode.TestMode;
 @Mode(TestMode.FULL)
 public class ClientSSLHandshakeTest extends CommonTest {
     private static final Class<?> c = ClientSSLHandshakeTest.class;
-    private static String errorString = "Unable to initialize the BasicCalculatorClient";
+    private static String ERRORSTRING = "Unable to initialize the BasicCalculatorClient";
 
     /**
      * Starts the server before each test.
@@ -61,8 +61,8 @@ public class ClientSSLHandshakeTest extends CommonTest {
      * trusts the server's certificate.
      */
     @Before
-    public void Before() throws Exception {
-        String thisMethod = "Before";
+    public void before() throws Exception {
+        String thisMethod = "before";
         Log.info(c, thisMethod, "Starting server for test: " + name.getMethodName());
 
         try {
@@ -108,8 +108,8 @@ public class ClientSSLHandshakeTest extends CommonTest {
      * Stops the server after each test.
      */
     @After
-    public void After() {
-        String thisMethod = "After";
+    public void after() {
+        String thisMethod = "after";
         Log.info(c, thisMethod, "Stopping server after test: " + name.getMethodName());
         
         try {
@@ -174,7 +174,7 @@ public class ClientSSLHandshakeTest extends CommonTest {
             ProgramOutput programOutput = commonClientSetUpWithCalcArgs("myTestClient", "client_handshake_minus_fail.xml", "CWWKF0040E", "CWPKI0823E");
             String output = programOutput.getStdout();
 
-            assertTrue("Client should report it failed with handshake exception.", output.contains(errorString));
+            assertTrue("Client should report it failed with handshake exception.", output.contains(ERRORSTRING));
         } catch (Exception e) {
             Log.error(c, name.getMethodName(), e, "Unexpected exception was thrown.");
             fail("Exception was thrown: " + e);
@@ -200,7 +200,7 @@ public class ClientSSLHandshakeTest extends CommonTest {
             String output = programOutput.getStdout();
 
             assertTrue("Client should report it failed with handshake exception.",
-                    output.contains(errorString));
+                    output.contains(ERRORSTRING));
         } catch (Exception e) {
             Log.error(c, name.getMethodName(), e, "Unexpected exception was thrown.");
             fail("Exception was thrown: " + e);
