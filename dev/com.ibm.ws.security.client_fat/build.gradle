@@ -1198,16 +1198,4 @@ autoFVT.doLast {
       from new File(project.buildDir, 'test-application/BasicCalculator.ear')
       into new File(autoFvtDir, 'publish/servers/SSLHandshakeTest/apps')
    }
-
-   /*
-    * Copy applications to the SSLHandshakeTestNonIBM server.
-    */
-   copy {
-      from new File(project(':com.ibm.ws.security.fat.common').buildDir, 'test-application/testmarker.war')
-      into new File(autoFvtDir, 'publish/servers/SSLHandshakeTestNonIBM/dropins')
-   }
-   copy {
-      from new File(project.buildDir, 'test-application/BasicCalculator.ear')
-      into new File(autoFvtDir, 'publish/servers/SSLHandshakeTestNonIBM/apps')
-   }
 }

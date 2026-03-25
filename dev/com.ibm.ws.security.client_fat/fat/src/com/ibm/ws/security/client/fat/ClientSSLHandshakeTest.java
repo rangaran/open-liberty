@@ -70,8 +70,8 @@ public class ClientSSLHandshakeTest extends CommonTest {
             if (testServer != null && testServer.isStarted()) {
                 Log.info(c, thisMethod, "Server already started, stopping and waiting for shutdown");
                 testServer.stopServer();
-                // Wait a bit for ports to be released
-                Thread.sleep(2000);
+                // Wait for server shutdown message to ensure ports are released
+                testServer.waitForStringInLog("CWWKE0036I", 30000);
             }
             
             // Start server with default configuration
@@ -95,7 +95,8 @@ public class ClientSSLHandshakeTest extends CommonTest {
             try {
                 if (testServer != null && testServer.isStarted()) {
                     testServer.stopServer();
-                    Thread.sleep(2000);
+                    // Wait for server shutdown message to ensure ports are released
+                    testServer.waitForStringInLog("CWWKE0036I", 30000);
                 }
             } catch (Exception cleanupEx) {
                 Log.error(c, thisMethod, cleanupEx, "Cleanup after failed setup also failed");
@@ -347,7 +348,7 @@ public class ClientSSLHandshakeTest extends CommonTest {
     /**
      * Test description:
      * - Restart the server with securityLevel set to HIGH in the SSL configuration.
-     * - The securityLevel attribute is deprecated and ignored.
+     * - The securityLevel attribute is ignored.
      * - Use a valid client configuration to connect.
      * - Verify that the trace logs include all JDK effective ciphers (since securityLevel is ignored).
      *
@@ -401,7 +402,7 @@ public class ClientSSLHandshakeTest extends CommonTest {
             assertFalse("Effective cipher list should not be empty", effectiveCiphers.isEmpty());
             
             // Verify that the cipher list contains typical JDK default ciphers
-            // Since securityLevel is deprecated and ignored, we should see the full JDK list
+            // Since securityLevel is ignored, we should see the full JDK list
             Log.info(c, name.getMethodName(), "Server trace verification: Found " + effectiveCiphers.size() +
                     " ciphers in the effective list (the JDK effective list, securityLevel ignored)");
             
@@ -413,7 +414,7 @@ public class ClientSSLHandshakeTest extends CommonTest {
             
             // Verify we have a reasonable number of ciphers (the JDK effective list typically have 30+ ciphers)
             assertTrue("Expected JDK default cipher list to have at least 20 ciphers, but found: " + effectiveCiphers.size(),
-                    effectiveCiphers.size() > 4);
+                    effectiveCiphers.size() > 20);
 
         } catch (Exception e) {
             Log.error(c, name.getMethodName(), e, "Unexpected exception was thrown.");
@@ -423,7 +424,7 @@ public class ClientSSLHandshakeTest extends CommonTest {
     /**
      * Test description:
      * - Restart the server with securityLevel set to LOW in the SSL configuration.
-     * - The securityLevel attribute is deprecated and ignored.
+     * - The securityLevel attribute is ignored.
      * - LOW is considered a weak cipher specification.
      * - Use a valid client configuration to connect.
      *
@@ -447,6 +448,58 @@ public class ClientSSLHandshakeTest extends CommonTest {
                         testServer.waitForStringInLogUsingMark("CWPKI0838I"));
             assertNotNull("Server should log CWPKI0839W warning for weak cipher specification.",
                         testServer.waitForStringInLogUsingMark("CWPKI0839W"));
+            
+            // Run the client with a valid configuration
+            Log.info(c, name.getMethodName(), "Starting the client with valid configuration ...");
+            ProgramOutput programOutput = commonClientSetUpWithCalcArgs("myTestClient", "client_handshake_plus_pass.xml", "CWWKF0040E", "CWWKI0003E");
+            String output = programOutput.getStdout();
+
+            assertTrue("Client should report it has started successfully (CWWKF0035I).",
+                    output.contains("5"));
+
+        } catch (Exception e) {
+            Log.error(c, name.getMethodName(), e, "Unexpected exception was thrown.");
+            fail("Exception was thrown: " + e);
+        }
+    }
+
+    /**
+     * Test description:
+     * - Restart the server with two SSL configurations, both having securityLevel set to LOW.
+     * - The securityLevel attribute is ignored.
+     * - LOW is considered a weak cipher specification.
+     * - Use a valid client configuration to connect.
+     *
+     * Expected results:
+     * - Info message CWPKI0838I should be logged twice (once for each SSL config).
+     * - Warning message CWPKI0839W should be logged twice (once for each SSL config).
+     * - The SSL handshake should succeed using the JDK effective list.
+     */
+    @Test
+    public void testTwoSSLConfigsWithSecurityLevelLow() {
+        try {
+            Log.info(c, name.getMethodName(), "Restarting server with two SSL configs both having securityLevel=LOW ...");
+            testServer.setMarkToEndOfLog();
+            if (testServer.isStarted())
+                testServer.stopServer();
+            testServer.setServerConfigurationFile("server_two_ssl_configs.xml");
+
+            testServer.startServer();
+
+            // Wait for the securityLevel messages (appears during config processing)
+            // Should appear twice - once for each SSL config
+            List<String> infoMessages = testServer.findStringsInLogsUsingMark("CWPKI0838I", testServer.getDefaultLogFile());
+            assertNotNull("Server should log CWPKI0838I info messages for securityLevel attribute.", infoMessages);
+            assertTrue("Server should log CWPKI0838I twice (once for each SSL config), but found: " + infoMessages.size(),
+                    infoMessages.size() >= 2);
+            
+            List<String> warningMessages = testServer.findStringsInLogsUsingMark("CWPKI0839W", testServer.getDefaultLogFile());
+            assertNotNull("Server should log CWPKI0839W warning messages for weak cipher specification.", warningMessages);
+            assertTrue("Server should log CWPKI0839W twice (once for each SSL config), but found: " + warningMessages.size(),
+                    warningMessages.size() >= 2);
+            
+            Log.info(c, name.getMethodName(), "Found " + infoMessages.size() + " CWPKI0838I messages and " +
+                    warningMessages.size() + " CWPKI0839W messages as expected for two SSL configs.");
             
             // Run the client with a valid configuration
             Log.info(c, name.getMethodName(), "Starting the client with valid configuration ...");

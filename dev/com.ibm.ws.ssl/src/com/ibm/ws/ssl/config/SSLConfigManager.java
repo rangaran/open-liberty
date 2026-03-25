@@ -29,6 +29,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
@@ -117,8 +119,8 @@ public class SSLConfigManager {
     // Collective controller and member serverIdentity
     private static final String SERVER_IDENTITY = "serverIdentity";
 
-    private static boolean isSecurityLevelWarningLogged = false;
-    private static boolean isWeakCipherWarningLogged = false;
+    private static final Set<String> securityLevelWarningLoggedConfigs = new HashSet<>();
+    private static final Set<String> weakCipherWarningLoggedConfigs = new HashSet<>();
 
     /**
      * Private constructor, use getInstance().
@@ -453,12 +455,14 @@ public class SSLConfigManager {
     }
 
     /**
-     * Log CWPKI0838I once to inform users it is no longer used.
+     * Log CWPKI0838I once per SSL config to inform users it is no longer used.
+     *
+     * @param configId The SSL configuration ID
      */
-    private static void logSecurityLevelInfo() {
-        if (!isSecurityLevelWarningLogged) {
+    private static void logSecurityLevelInfo(String configId) {
+        if (configId != null && !securityLevelWarningLoggedConfigs.contains(configId)) {
             Tr.info(tc, "ssl.securitylevel.ignored.CWPKI0838I");
-            isSecurityLevelWarningLogged = true;
+            securityLevelWarningLoggedConfigs.add(configId);
         }
     }
 
@@ -570,11 +574,13 @@ public class SSLConfigManager {
             sslprops.setProperty(Constants.SSLPROP_SECURITY_LEVEL, prop);
 
             if(ProductInfo.getBetaEdition()){
-                logSecurityLevelInfo();
+                // Get the SSL config ID for per-config logging
+                String configId = (String) map.get("id");
+                logSecurityLevelInfo(configId);
 
-                // Check for LOW or MEDIUM cipher specifications and issue warning once
+                // Check for LOW or MEDIUM cipher specifications and issue warning once per config
                 if(prop.equalsIgnoreCase(Constants.SECURITY_LEVEL_MEDIUM) || prop.equalsIgnoreCase(Constants.SECURITY_LEVEL_LOW)){
-                    weakCipherLogging();
+                    weakCipherLogging(configId);
                     }
             }
         }
@@ -1183,6 +1189,25 @@ public class SSLConfigManager {
     }
 
     /***
+     * Common helper method to validate cipher entries based on a predicate.
+     *
+     * @param enabledCiphers The cipher configuration string
+     * @param isInvalid Predicate to determine if an entry is invalid
+     * @return a comma-separated string of invalid entries, or null if none found
+     ***/
+    private String getInvalidCiphers(String enabledCiphers, Predicate<String> isInvalid) {
+        if (enabledCiphers == null || enabledCiphers.isEmpty()) {
+            return null;
+        }
+        String[] entries = enabledCiphers.split("[,\\s]+");
+        String result = Arrays.stream(entries)
+            .filter(entry -> !entry.isEmpty())
+            .filter(isInvalid)
+            .collect(Collectors.joining(", "));
+        return result.isEmpty() ? null : result;
+    }
+
+    /***
      * Validates that enabledCiphers configuration doesn't contain wildcards in
      * + (add) entries. Wildcards are only allowed in - (remove) entries.
      *
@@ -1190,26 +1215,8 @@ public class SSLConfigManager {
      * @return a comma-separated string of all + entries with invalid wildcards, or null if none found
      ***/
     private String getInvalidPlusWildcardCiphers(String enabledCiphers) {
-        if (enabledCiphers == null || enabledCiphers.isEmpty()) {
-            return null;
-        }
-        String[] entries = enabledCiphers.split("[,\\s]+");
-        StringBuilder invalidCiphers = new StringBuilder();
-
-        for (String entry : entries) {
-            if (entry.isEmpty()) {
-                continue;
-            }
-            // Check if this is a + (add) entry and contains a wildcard
-            if (entry.startsWith("+") && entry.contains("*")) {
-                if (invalidCiphers.length() > 0) {
-                    invalidCiphers.append(", ");
-                }
-                invalidCiphers.append(entry);
-            }
-        }
-        
-        return invalidCiphers.length() > 0 ? invalidCiphers.toString() : null;
+        return getInvalidCiphers(enabledCiphers,
+            entry -> entry.startsWith("+") && entry.contains("*"));
     }
 
     /***
@@ -1221,26 +1228,8 @@ public class SSLConfigManager {
      * @return a comma-separated string of all static entries with invalid wildcards, or null if none found
      ***/
     private String getInvalidStaticWildcardCiphers(String enabledCiphers) {
-        if (enabledCiphers == null || enabledCiphers.isEmpty()) {
-            return null;
-        }
-        String[] entries = enabledCiphers.split("[,\\s]+");
-        StringBuilder invalidCiphers = new StringBuilder();
-
-        for (String entry : entries) {
-            if (entry.isEmpty()) {
-                continue;
-            }
-            // Check if this is a static entry (no +/- prefix) and contains a wildcard
-            if (!entry.startsWith("+") && !entry.startsWith("-") && entry.contains("*")) {
-                if (invalidCiphers.length() > 0) {
-                    invalidCiphers.append(", ");
-                }
-                invalidCiphers.append(entry);
-            }
-        }
-        
-        return invalidCiphers.length() > 0 ? invalidCiphers.toString() : null;
+        return getInvalidCiphers(enabledCiphers,
+            entry -> !entry.startsWith("+") && !entry.startsWith("-") && entry.contains("*"));
     }
 
     /***
@@ -1270,14 +1259,16 @@ public class SSLConfigManager {
 
     /**
      * Check if securityLevel contains LOW or MEDIUM
-     * and issue a warning once if found.
+     * and issue a warning once per SSL config if found.
+     *
+     * @param configId The SSL configuration ID
      */
-    private void weakCipherLogging() {
-        if (!isWeakCipherWarningLogged) {
+    private void weakCipherLogging(String configId) {
+        if (configId != null && !weakCipherWarningLoggedConfigs.contains(configId)) {
             Tr.warning(tc, "ssl.weak.cipher.spec.CWPKI0839W");
-                isWeakCipherWarningLogged = true;
-            }
+            weakCipherWarningLoggedConfigs.add(configId);
         }
+    }
     
 
 

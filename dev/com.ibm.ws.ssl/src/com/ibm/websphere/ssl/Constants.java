@@ -477,6 +477,83 @@ public class Constants {
 
 
     /**
+     * Internal class to hold categorized cipher modifiers.
+     */
+    private static class CipherModifiers {
+        final List<String> addCiphers;
+        final List<String> removeCiphers;
+        final List<String> customCiphers;
+        
+        CipherModifiers(List<String> add, List<String> remove, List<String> custom) {
+            this.addCiphers = add;
+            this.removeCiphers = remove;
+            this.customCiphers = custom;
+        }
+    }
+
+    /**
+     * Parse cipher modifier string into categorized lists.
+     * Modifiers starting with '+' are additions, '-' are removals, and others are custom ciphers.
+     *
+     * @param enabledCiphers the cipher modifier string
+     * @return CipherModifiers object containing categorized cipher lists
+     */
+    private static CipherModifiers parseCipherModifiers(String enabledCiphers) {
+        String[] mods = enabledCiphers.split("[,\\s]+");
+        List<String> addCiphers = new ArrayList<>();
+        List<String> removeCiphers = new ArrayList<>();
+        List<String> customCiphers = new ArrayList<>();
+        
+        for (String mod : mods) {
+            if (mod.isEmpty()) {
+                continue;
+            }
+            if (mod.startsWith("+")) {
+                addCiphers.add(mod.substring(1));
+            } else if (mod.startsWith("-")) {
+                removeCiphers.add(mod.substring(1));
+            } else {
+                customCiphers.add(mod);
+            }
+        }
+        
+        return new CipherModifiers(addCiphers, removeCiphers, customCiphers);
+    }
+
+    /**
+     * Apply custom mode: use only the specified ciphers (ignore JDK defaults).
+     *
+     * @param customCiphers the list of custom ciphers to use
+     * @return array of custom ciphers
+     */
+    private static String[] applyCustomMode(List<String> customCiphers) {
+        return customCiphers.toArray(new String[0]);
+    }
+
+    /**
+     * Apply filter mode: start with JDK defaults, apply +/- changes.
+     *
+     * @param supportedCiphers the JDK default cipher list
+     * @param removeCiphers patterns of ciphers to remove
+     * @param addCiphers ciphers to add
+     * @return adjusted cipher array
+     */
+    private static String[] applyFilterMode(String[] supportedCiphers, 
+                                            List<String> removeCiphers, 
+                                            List<String> addCiphers) {
+        List<String> newCipherList = new ArrayList<>(Arrays.asList(supportedCiphers));
+        
+        // Remove ciphers matching patterns
+        for (String pattern : removeCiphers) {
+            newCipherList.removeIf(cipher -> matchesPattern(cipher, pattern));
+        }
+        
+        // Add requested ciphers (they will be validated by SSLEngine later)
+        newCipherList.addAll(addCiphers);
+        return newCipherList.toArray(new String[0]);
+    }
+
+    /**
      * Adjust supported ciphers according to an enabled cipher string, which can be in one of two formats:
      * - Custom mode: a list of ciphers with no +/- prefix replaces defaults
      * - Filter mode: +cipher to add, -pattern* to remove
@@ -487,64 +564,36 @@ public class Constants {
      */
     @Deprecated
     public static String[] adjustSupportedCiphers(String[] supportedCiphers, String enabledCiphers) {
-        if (ProductInfo.getBetaEdition()){
-            if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled()) {
-                Tr.entry(tc, "adjustSupportedCiphers", new Object[] { convertCipherListToString(supportedCiphers), enabledCiphers });
-            }
-
-            supportedCiphers = removeTlsEmptyRenegotiationInfoScsv(supportedCiphers);
-
-            String[] adjustedCiphers;
-            if (enabledCiphers != null && !enabledCiphers.isEmpty()) {
-                String[] mods = enabledCiphers.split("[,\\s]+" );
-
-                // Categorize modifiers into three types
-                List<String> addCiphers = new ArrayList<>();
-                List<String> removeCiphers = new ArrayList<>();
-                List<String> customCiphers = new ArrayList<>();
-
-                for (String mod : mods) {
-                    if (mod.isEmpty()) {
-                        continue;
-                    }
-                    if (mod.startsWith("+")) {
-                        addCiphers.add(mod.substring(1));
-                    } else if (mod.startsWith("-")) {
-                        removeCiphers.add(mod.substring(1));
-                    } else {
-                        customCiphers.add(mod);
-                    }
-                }
-
-                if (!customCiphers.isEmpty()) {
-                    // CUSTOM MODE: Use only the specified ciphers (ignore JDK defaults)
-                    adjustedCiphers = customCiphers.toArray(new String[customCiphers.size()]);
-                } else {
-                    // MODIFIER MODE: Start with JDK defaults, apply +/- changes
-                    List<String> newCipherList = new ArrayList<>(Arrays.asList(supportedCiphers));
-
-                    // Remove ciphers matching patterns
-                    for (String pattern : removeCiphers) {
-                        newCipherList.removeIf(cipher -> matchesPattern(cipher, pattern));
-                    }
-
-                    // Add requested ciphers (they will be validated by SSLEngine later)
-                    newCipherList.addAll(addCiphers);
-                    adjustedCiphers = newCipherList.toArray(new String[newCipherList.size()]);
-                }
-            } else {
-                // NO MODIFIER: Use JDK effective list
-                adjustedCiphers = supportedCiphers == null ? null : supportedCiphers.clone();
-            }
-
-            if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled()) {
-                Tr.exit(tc, "adjustSupportedCiphers -> " + convertCipherListToString(adjustedCiphers));
-            }
-            return adjustedCiphers;
-        }
-        else{
+        if (!ProductInfo.getBetaEdition()) {
             throw new UnsupportedOperationException("This method is not supported in the non-beta edition of the product.");
         }
+        
+        if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled()) {
+            Tr.entry(tc, "adjustSupportedCiphers", new Object[] { convertCipherListToString(supportedCiphers), enabledCiphers });
+        }
+
+        supportedCiphers = removeTlsEmptyRenegotiationInfoScsv(supportedCiphers);
+
+        String[] adjustedCiphers;
+        if (enabledCiphers == null || enabledCiphers.isEmpty()) {
+            // NO MODIFIER: Use JDK effective list
+            adjustedCiphers = supportedCiphers == null ? null : supportedCiphers.clone();
+        } else {
+            CipherModifiers modifiers = parseCipherModifiers(enabledCiphers);
+            
+            if (!modifiers.customCiphers.isEmpty()) {
+                // CUSTOM MODE: Use only the specified ciphers (ignore JDK defaults)
+                adjustedCiphers = applyCustomMode(modifiers.customCiphers);
+            } else {
+                // FILTER MODE: Start with JDK defaults, apply +/- changes
+                adjustedCiphers = applyFilterMode(supportedCiphers, modifiers.removeCiphers, modifiers.addCiphers);
+            }
+        }
+
+        if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled()) {
+            Tr.exit(tc, "adjustSupportedCiphers -> " + convertCipherListToString(adjustedCiphers));
+        }
+        return adjustedCiphers;
     }
 
     /**

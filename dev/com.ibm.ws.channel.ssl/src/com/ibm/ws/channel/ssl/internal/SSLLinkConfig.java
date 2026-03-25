@@ -13,12 +13,12 @@
 package com.ibm.ws.channel.ssl.internal;
 
 import java.util.Properties;
+import java.util.regex.Pattern;
 
 import javax.net.ssl.SSLEngine;
 
 import com.ibm.websphere.ras.Tr;
 import com.ibm.websphere.ras.TraceComponent;
-import com.ibm.websphere.ssl.Constants;
 import com.ibm.websphere.ssl.Constants;
 import com.ibm.ws.kernel.productinfo.ProductInfo;
 
@@ -33,6 +33,9 @@ public class SSLLinkConfig {
     private static final TraceComponent tc = Tr.register(SSLLinkConfig.class,
                                                          SSLChannelConstants.SSL_TRACE_NAME,
                                                          SSLChannelConstants.SSL_BUNDLE);
+
+    /** Compiled regex pattern for splitting cipher strings */
+    private static final Pattern CIPHER_SPLIT_PATTERN = Pattern.compile("[,\\s]+");
 
     /** Configuration reference */
     private Properties myConfig = null;
@@ -81,61 +84,81 @@ public class SSLLinkConfig {
      * @param sslEngine
      * @return String[]
      */
-   public String[] getEnabledCipherSuites(SSLEngine sslEngine) {
-
+    public String[] getEnabledCipherSuites(SSLEngine sslEngine) {
         if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled()) {
             Tr.entry(tc, "getEnabledCipherSuites");
         }
 
-        Object ciphersObject = this.myConfig.get(Constants.SSLPROP_ENABLED_CIPHERS);
-        String cipherString = null;
-        String[] ciphers = null;
+        try {
+            String cipherString = normalizeCipherString(
+                this.myConfig.get(Constants.SSLPROP_ENABLED_CIPHERS)
+            );
 
-        // Normalize input to string
-       if (ciphersObject instanceof String[]) {
-            cipherString = String.join(" ", (String[]) ciphersObject);
+            String[] ciphers = resolveCiphers(sslEngine, cipherString);
+
+            if (ciphers == null || ciphers.length == 0) {
+                if (TraceComponent.isAnyTracingEnabled() && tc.isEventEnabled()) {
+                    Tr.event(tc, "Unable to find any enabled ciphers");
+                }
+                return new String[0];
+            }
+
+            return ciphers;
+        } finally {
+            if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled()) {
+                Tr.exit(tc, "getEnabledCipherSuites");
+            }
         }
-        else if (ciphersObject instanceof String) {
-            cipherString = (String) ciphersObject;
-        } 
+    }
 
+    /**
+     * Normalize cipher configuration object to a string representation.
+     *
+     * @param ciphersObject the cipher configuration (String, String[], or null)
+     * @return normalized cipher string, or null if input is null
+     */
+    private String normalizeCipherString(Object ciphersObject) {
+        if (ciphersObject instanceof String[]) {
+            return String.join(" ", (String[]) ciphersObject);
+        }
+        if (ciphersObject instanceof String) {
+            return (String) ciphersObject;
+        }
+        return null;
+    }
+
+    /**
+     * Resolve the cipher suites based on beta.
+     *
+     * @param sslEngine the SSL engine to get supported ciphers from
+     * @param cipherString the configured cipher string (may be null)
+     * @return array of resolved cipher suite names
+     */
+    private String[] resolveCiphers(SSLEngine sslEngine, String cipherString) {
         if (ProductInfo.getBetaEdition()) {
             // Beta: always go through adjustSupportedCiphers
-            ciphers = Constants.adjustSupportedCiphers(
+            return Constants.adjustSupportedCiphers(
                 sslEngine.getSupportedCipherSuites(),
                 cipherString
             );
-        } else {
-            if (cipherString != null) {
-                // Non-beta: user provided value
-                ciphers = cipherString.split("[,\\s]+");
-            } else {
-                // No custom ciphers - fallback to security level
-                String securityLevel = this.myConfig.getProperty(Constants.SSLPROP_SECURITY_LEVEL);
-                if (securityLevel == null) {
-                    Tr.debug(tc, "Defaulting to HIGH security level");
-                    securityLevel = Constants.SECURITY_LEVEL_HIGH;
-                }
-
-                ciphers = Constants.adjustSupportedCiphersToSecurityLevel(
-                    sslEngine.getSupportedCipherSuites(),
-                    securityLevel
-                );
-            }
         }
 
-        if (ciphers == null || ciphers.length == 0) {
-
-            if (TraceComponent.isAnyTracingEnabled() && tc.isEventEnabled()) {
-                Tr.event(tc, "Unable to find any enabled ciphers");
-            }
+        if (cipherString != null) {
+            // Non-beta: user provided value
+            return CIPHER_SPLIT_PATTERN.split(cipherString);
         }
 
-        if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled()) {
-            Tr.exit(tc, "getEnabledCipherSuites");
+        // No custom ciphers - fallback to security level
+        String securityLevel = this.myConfig.getProperty(Constants.SSLPROP_SECURITY_LEVEL);
+        if (securityLevel == null) {
+            Tr.debug(tc, "Defaulting to HIGH security level");
+            securityLevel = Constants.SECURITY_LEVEL_HIGH;
         }
-        
-        return ciphers;
+
+        return Constants.adjustSupportedCiphersToSecurityLevel(
+            sslEngine.getSupportedCipherSuites(),
+            securityLevel
+        );
     }
     /**
      * Get the SSL protocol for this connection and check to see it correct for setting on a SSLEngine
