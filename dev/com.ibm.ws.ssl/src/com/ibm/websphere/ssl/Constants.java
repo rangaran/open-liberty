@@ -359,7 +359,7 @@ public class Constants {
     /**
      * This method adjusts the supported ciphers to include those appropriate
      * to the security level (HIGH, MEDIUM, LOW).
-     * We will be ignoring the securityLevel parameter and defaulting to the 
+     * The securityLevel parameter will be ignored and defaulting to the 
      * effective JDK cipher list.
      *
      * @param supportedCiphers
@@ -479,9 +479,11 @@ public class Constants {
     /**
      * Adjust supported ciphers according to an enabled cipher string, which can be in one of two formats:
      * - Custom mode: a list of ciphers with no +/- prefix replaces defaults
-     * - Modifier mode: +cipher to add, -pattern* to remove
+     * - Filter mode: +cipher to add, -pattern* to remove
      *
-     * Also removes any occurrences of TLS_EMPTY_RENEGOTIATION_INFO_SCSV.
+     * @param supportedCiphers the effective cipher list from the jdk
+     * @param enabledCiphers the enabled cipher string
+     * @return the adjusted cipher list
      */
     @Deprecated
     public static String[] adjustSupportedCiphers(String[] supportedCiphers, String enabledCiphers) {
@@ -498,7 +500,7 @@ public class Constants {
 
                 // Categorize modifiers into three types
                 List<String> addCiphers = new ArrayList<>();
-                List<String> removePatterns = new ArrayList<>();
+                List<String> removeCiphers = new ArrayList<>();
                 List<String> customCiphers = new ArrayList<>();
 
                 for (String mod : mods) {
@@ -508,15 +510,13 @@ public class Constants {
                     if (mod.startsWith("+")) {
                         addCiphers.add(mod.substring(1));
                     } else if (mod.startsWith("-")) {
-                        removePatterns.add(mod.substring(1));
+                        removeCiphers.add(mod.substring(1));
                     } else {
                         customCiphers.add(mod);
                     }
                 }
 
-                boolean hasCustom = !customCiphers.isEmpty();
-
-                if (hasCustom) {
+                if (!customCiphers.isEmpty()) {
                     // CUSTOM MODE: Use only the specified ciphers (ignore JDK defaults)
                     adjustedCiphers = customCiphers.toArray(new String[customCiphers.size()]);
                 } else {
@@ -524,7 +524,7 @@ public class Constants {
                     List<String> newCipherList = new ArrayList<>(Arrays.asList(supportedCiphers));
 
                     // Remove ciphers matching patterns
-                    for (String pattern : removePatterns) {
+                    for (String pattern : removeCiphers) {
                         newCipherList.removeIf(cipher -> matchesPattern(cipher, pattern));
                     }
 
@@ -533,6 +533,7 @@ public class Constants {
                     adjustedCiphers = newCipherList.toArray(new String[newCipherList.size()]);
                 }
             } else {
+                // NO MODIFIER: Use JDK effective list
                 adjustedCiphers = supportedCiphers == null ? null : supportedCiphers.clone();
             }
 

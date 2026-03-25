@@ -92,11 +92,12 @@ public class SSLLinkConfig {
         String[] ciphers = null;
 
         // Normalize input to string
-        if (ciphersObject instanceof String) {
-            cipherString = (String) ciphersObject;
-        } else if (ciphersObject instanceof String[]) {
+       if (ciphersObject instanceof String[]) {
             cipherString = String.join(" ", (String[]) ciphersObject);
         }
+        else if (ciphersObject instanceof String) {
+            cipherString = (String) ciphersObject;
+        } 
 
         if (ProductInfo.getBetaEdition()) {
             // Beta: always go through adjustSupportedCiphers

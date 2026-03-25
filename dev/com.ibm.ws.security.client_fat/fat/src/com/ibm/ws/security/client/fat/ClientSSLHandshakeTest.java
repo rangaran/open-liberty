@@ -264,8 +264,37 @@ public class ClientSSLHandshakeTest extends CommonTest {
 
     /**
      * Test description:
-     * - Start the client with enabledCiphers that has a wildcard specified in a + entry.
-     * - The client uses: enabledCiphers="+TLS_ECDHE*"
+     * - Start the client with enabledCiphers that has a wildcard specified in a static entry.
+     * - The client uses: enabledCiphers="*TLS_RSA*"
+     * - Wildcards in static entries (without +/-) are not allowed.
+     *
+     * Expected results:
+     * - Error CWPKI0841E should be logged indicating wildcard in static entry is not allowed.
+     * - The JDK default cipher list will be used without modifications.
+     * - The SSL handshake should succeed using the JDK effective list.
+     */
+    @Test
+    public void testHandshakeWithWildcardInStaticEntry() {
+        try {
+            Log.info(c, name.getMethodName(), "Starting the client with wildcard in static entry - error expected, the JDK effective list used ...");
+            ProgramOutput programOutput = commonClientSetUpWithCalcArgs("myTestClient", "client_handshake_wildcard_in_static.xml", "CWWKF0040E", "CWPKI0841E");
+            String output = programOutput.getStdout();
+
+            assertTrue("Client should log CWPKI0841E error for wildcard in static entry.",
+                    output.contains("CWPKI0841E"));
+            assertTrue("Client should report it has started successfully using the JDK effective list (CWWKF0035I).",
+                    output.contains("5"));
+
+        } catch (Exception e) {
+            Log.error(c, name.getMethodName(), e, "Unexpected exception was thrown.");
+            fail("Exception was thrown: " + e);
+        }
+    }
+
+    /**
+     * Test description:
+     * - Start the client with enabledCiphers that has a wildcard specified in a + (add) entry.
+     * - The client uses: enabledCiphers="+TLS_RSA*"
      * - Wildcards are only allowed in - (remove) entries, not in + (add) entries.
      *
      * Expected results:

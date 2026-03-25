@@ -602,11 +602,22 @@ public class SSLConfigManager {
                 if (hasMixedCipherConfiguration(prop)) {
                     Tr.error(tc, "ssl.enabledCiphers.mixed.mode.error", prop, alias);
                     // Leave the value unset so JDK defaults are used
-                } else if (hasInvalidWildcard(prop)) {
-                    Tr.error(tc, "ssl.enabledCiphers.wildcard.in.plus.error", prop, alias);
-                    // Leave the value unset so JDK defaults are used
                 } else {
-                    sslprops.setProperty(Constants.SSLPROP_ENABLED_CIPHERS, prop);
+                    // Check for wildcards in + (add) entries
+                    String invalidPlusCiphers = getInvalidPlusWildcardCiphers(prop);
+                    if (invalidPlusCiphers != null) {
+                        Tr.error(tc, "ssl.enabledCiphers.wildcard.in.plus.error", invalidPlusCiphers, alias);
+                        // Leave the value unset so JDK defaults are used
+                    } else {
+                        // Check for wildcards in static entries (no +/- prefix)
+                        String invalidStaticCiphers = getInvalidStaticWildcardCiphers(prop);
+                        if (invalidStaticCiphers != null) {
+                            Tr.error(tc, "ssl.enabledCiphers.wildcard.in.static.error", invalidStaticCiphers, alias);
+                            // Leave the value unset so JDK defaults are used
+                        } else {
+                            sslprops.setProperty(Constants.SSLPROP_ENABLED_CIPHERS, prop);
+                        }
+                    }
                 }
             } else {
                 // Non-beta: Accept the cipher list as-is (no +/- modifiers supported)
@@ -1116,19 +1127,6 @@ public class SSLConfigManager {
         return value;
     }
 
-
-    /***
-     * This method adjusts the supported ciphers to include those appropriate to
-     * the security level (HIGH, MEDIUM, LOW).
-     *
-     * @param supportedCiphers
-     * @param securityLevel
-     * @return String[]
-     ***/
-    public synchronized String[] adjustSupportedCiphersToSecurityLevel(String[] supportedCiphers, String securityLevel) {
-        return (Constants.adjustSupportedCiphersToSecurityLevel(supportedCiphers, securityLevel));
-    }
-
     /***
      * This method returns the value from the above getGlobalProperty call, if not
      * null. Otherwise it returns the default.
@@ -1185,34 +1183,64 @@ public class SSLConfigManager {
     }
 
     /***
-     * Validates that enabledCiphers configuration doesn't contain wildcards in any
-     * non '-' entry. Wildcards are only allowed in - (remove) entries.
-     *
-     * This catches cases such as a static entry with a wildcard (e.g. "TLS_AES_*")
-     * as well as + entries that include a wildcard.
+     * Validates that enabledCiphers configuration doesn't contain wildcards in
+     * + (add) entries. Wildcards are only allowed in - (remove) entries.
      *
      * @param enabledCiphers The cipher configuration string
-     * @return true if the configuration has a wildcard in a non-"-" entry, false otherwise
+     * @return a comma-separated string of all + entries with invalid wildcards, or null if none found
      ***/
-    private boolean hasInvalidWildcard(String enabledCiphers) {
+    private String getInvalidPlusWildcardCiphers(String enabledCiphers) {
         if (enabledCiphers == null || enabledCiphers.isEmpty()) {
-            return false;
+            return null;
         }
-String[] entries = enabledCiphers.split("[,\\s]+");
-
+        String[] entries = enabledCiphers.split("[,\\s]+");
+        StringBuilder invalidCiphers = new StringBuilder();
 
         for (String entry : entries) {
             if (entry.isEmpty()) {
                 continue;
             }
-            // Check if this is NOT a - (remove) entry and contains a wildcard.
-            // This will flag static entries like "TLS_AES_*" as well as "+...*" entries.
-            if (!entry.startsWith("-") && entry.contains("*")) {
-                return true;
+            // Check if this is a + (add) entry and contains a wildcard
+            if (entry.startsWith("+") && entry.contains("*")) {
+                if (invalidCiphers.length() > 0) {
+                    invalidCiphers.append(", ");
+                }
+                invalidCiphers.append(entry);
             }
         }
         
-        return false;
+        return invalidCiphers.length() > 0 ? invalidCiphers.toString() : null;
+    }
+
+    /***
+     * Validates that enabledCiphers configuration doesn't contain wildcards in
+     * static entries (entries without +/- prefix). Wildcards are only allowed
+     * in - (remove) entries.
+     *
+     * @param enabledCiphers The cipher configuration string
+     * @return a comma-separated string of all static entries with invalid wildcards, or null if none found
+     ***/
+    private String getInvalidStaticWildcardCiphers(String enabledCiphers) {
+        if (enabledCiphers == null || enabledCiphers.isEmpty()) {
+            return null;
+        }
+        String[] entries = enabledCiphers.split("[,\\s]+");
+        StringBuilder invalidCiphers = new StringBuilder();
+
+        for (String entry : entries) {
+            if (entry.isEmpty()) {
+                continue;
+            }
+            // Check if this is a static entry (no +/- prefix) and contains a wildcard
+            if (!entry.startsWith("+") && !entry.startsWith("-") && entry.contains("*")) {
+                if (invalidCiphers.length() > 0) {
+                    invalidCiphers.append(", ");
+                }
+                invalidCiphers.append(entry);
+            }
+        }
+        
+        return invalidCiphers.length() > 0 ? invalidCiphers.toString() : null;
     }
 
     /***
@@ -1228,6 +1256,17 @@ String[] entries = enabledCiphers.split("[,\\s]+");
         return null;
     }
 
+    /***
+     * This method adjusts the supported ciphers to include those appropriate to
+     * the security level (HIGH, MEDIUM, LOW).
+     *
+     * @param supportedCiphers
+     * @param securityLevel
+     * @return String[]
+     ***/
+    public synchronized String[] adjustSupportedCiphersToSecurityLevel(String[] supportedCiphers, String securityLevel) {
+        return (Constants.adjustSupportedCiphersToSecurityLevel(supportedCiphers, securityLevel));
+    }
 
     /**
      * Check if securityLevel contains LOW or MEDIUM

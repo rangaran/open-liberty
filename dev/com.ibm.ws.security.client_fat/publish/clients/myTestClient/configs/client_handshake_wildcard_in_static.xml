@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<client description="SSL handshake test client - wildcard in plus entry (error case)">
+<client description="SSL handshake test client - wildcard in + entry (error case)">
 	<featureManager>
 		<feature>javaeeClient-7.0</feature>
         <feature>appSecurityClient-1.0</feature>
@@ -24,6 +24,6 @@
 	<ssl id="supportedClientAuthenticationSSLConfig"
 		clientAuthenticationSupported="true" keyStoreRef="defaultKeyStore"
 		sslProtocol="TLSv1.2"
-		enabledCiphers="+TLS_RSA* +TLS_DHE* +TLS_ECDHE* -TLS_RSA*" />
+		enabledCiphers="*TLS_RSA*" />
 
 </client>
