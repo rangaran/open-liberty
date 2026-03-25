@@ -12,10 +12,15 @@
  *******************************************************************************/
 package io.openliberty.data.internal.v1_0;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
 
 import com.ibm.websphere.ras.annotation.Trivial;
 
+import io.openliberty.data.internal.AttributeConstraint;
 import io.openliberty.data.internal.QueryInfo;
 import io.openliberty.data.internal.QueryType;
 import io.openliberty.data.internal.cdi.RepositoryProducer;
@@ -65,6 +70,68 @@ public class QueryInfo_1_0 extends QueryInfo {
               returnArrayType, //
               singleType, //
               singleTypeElementType);
+    }
+
+    /**
+     * Appends the equality constraint.
+     */
+    @Override
+    @Trivial
+    protected StringBuilder appendConstraint(StringBuilder q,
+                                             String o_,
+                                             String attrName,
+                                             AttributeConstraint constraint,
+                                             int prevNumJPQLParams,
+                                             boolean isCollection,
+                                             Annotation[] annos) {
+        if (attrName.charAt(attrName.length() - 1) != ')')
+            q.append(o_);
+        return q.append(attrName).append("=?").append(prevNumJPQLParams + 1);
+    }
+
+    @Override
+    protected int generateConstraint(StringBuilder q,
+                                     Object constraint,
+                                     int jpqlParamCount,
+                                     Set<String> jpqlParamNames,
+                                     Map<Object, Object> jpqlParams) {
+        throw new UnsupportedOperationException("jakarta.data.constraint.Constraint");
+    }
+
+    @Override
+    protected int generateRestrictions(StringBuilder q,
+                                       Object restriction,
+                                       int jpqlParamCount,
+                                       Set<String> jpqlParamNames,
+                                       Map<Object, Object> jpqlParams) {
+        throw new UnsupportedOperationException("jakarta.data.restrict.Restriction");
+    }
+
+    @Override
+    @Trivial
+    protected Map<Integer, Object> getDeferredConstraints(boolean alwaysDefer,
+                                                          Object[] methodParams) {
+        return Collections.emptyMap();
+    }
+
+    @Override
+    @Trivial
+    public int inspectMethodParam(int p,
+                                  Class<?> paramType,
+                                  Annotation[] paramAnnos,
+                                  String[] attrNames,
+                                  AttributeConstraint[] constraints,
+                                  char[] updateOps,
+                                  int prevNumJPQLParams) {
+        // In Data 1.0, all constraints are the equality condition
+        constraints[p] = AttributeConstraint.Equal;
+        return prevNumJPQLParams + 1;
+    }
+
+    @Override
+    @Trivial
+    public Object[] toConstraintValues(Object value) {
+        return null;
     }
 
 }

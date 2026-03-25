@@ -16,15 +16,12 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Method;
 import java.sql.Connection;
-import java.util.Collections;
-import java.util.Map;
 import java.util.Set;
 
 import javax.sql.DataSource;
 
 import com.ibm.websphere.ras.annotation.Trivial;
 
-import io.openliberty.data.internal.AttributeConstraint;
 import io.openliberty.data.internal.DataVersionCompatibility;
 import io.openliberty.data.internal.QueryInfo;
 import io.openliberty.data.internal.QueryType;
@@ -107,23 +104,6 @@ public class Data_1_0 implements DataVersionCompatibility {
                     Set.of(Limit.class, Order.class, PageRequest.class,
                            Sort.class, Sort[].class);
 
-    /**
-     * Appends the equality constraint.
-     */
-    @Override
-    @Trivial
-    public StringBuilder appendConstraint(StringBuilder q,
-                                          String o_,
-                                          String attrName,
-                                          AttributeConstraint constraint,
-                                          int prevNumJPQLParams,
-                                          boolean isCollection,
-                                          Annotation[] annos) {
-        if (attrName.charAt(attrName.length() - 1) != ')')
-            q.append(o_);
-        return q.append(attrName).append("=?").append(prevNumJPQLParams + 1);
-    }
-
     @Override
     @Trivial
     public boolean atLeast(int major, int minor) {
@@ -156,37 +136,9 @@ public class Data_1_0 implements DataVersionCompatibility {
     }
 
     @Override
-    public int generateConstraint(StringBuilder q,
-                                  String entityVar_,
-                                  Object constraint,
-                                  int jpqlParamCount,
-                                  Set<String> jpqlParamNames,
-                                  Map<Object, Object> jpqlParams) {
-        throw new UnsupportedOperationException("jakarta.data.constraint.Constraint");
-    }
-
-    @Override
-    public int generateRestrictions(StringBuilder q,
-                                    String entityVar_,
-                                    Object restriction,
-                                    int jpqlParamCount,
-                                    Set<String> jpqlParamNames,
-                                    Map<Object, Object> jpqlParams) {
-        throw new UnsupportedOperationException("jakarta.data.restrict.Restriction");
-    }
-
-    @Override
     @Trivial
     public Annotation getCountAnnotation(Method method) {
         return null;
-    }
-
-    @Override
-    @Trivial
-    public Map<Integer, Object> getDeferredConstraints(boolean alwaysDefer,
-                                                       int maxIndex,
-                                                       Object[] methodParams) {
-        return Collections.emptyMap();
     }
 
     @Override
@@ -205,26 +157,6 @@ public class Data_1_0 implements DataVersionCompatibility {
     @Trivial
     public String[] getSelections(AnnotatedElement element) {
         return NO_SELECTIONS;
-    }
-
-    @Override
-    @Trivial
-    public String[] getUpdateAttributeAndOperation(Annotation[] annos) {
-        return null; // let the caller raise an appropriate error
-    }
-
-    @Override
-    @Trivial
-    public int inspectMethodParam(int p,
-                                  Class<?> paramType,
-                                  Annotation[] paramAnnos,
-                                  String[] attrNames,
-                                  AttributeConstraint[] constraints,
-                                  char[] updateOps,
-                                  int prevNumJPQLParams) {
-        // In Data 1.0, all constraints are the equality condition
-        constraints[p] = AttributeConstraint.Equal;
-        return prevNumJPQLParams + 1;
     }
 
     @Override
@@ -291,12 +223,6 @@ public class Data_1_0 implements DataVersionCompatibility {
     @Trivial
     public Set<Class<?>> specialParamTypes() {
         return SPECIAL_PARAM_TYPES;
-    }
-
-    @Override
-    @Trivial
-    public Object[] toConstraintValues(Object value) {
-        return null;
     }
 
 }

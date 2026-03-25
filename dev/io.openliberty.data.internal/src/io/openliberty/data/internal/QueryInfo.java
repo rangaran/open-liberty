@@ -137,6 +137,19 @@ public abstract class QueryInfo {
     private static final int[] NONE_STATIC_SORT_ONLY = new int[0];
 
     /**
+     * Error condition returned by inspectMethodParam indicating that an annotation
+     * of the method parameter conflicts with the constraint type of the method
+     * parameter.
+     */
+    protected static final int PARAM_ANNO_CONFLICTS_WITH_CONSTRAINT = -1;
+
+    /**
+     * Error condition returned by inspectMethodParam indicating that two or more
+     * annotations on the method parameter conflict with each other.
+     */
+    protected static final int PARAM_ANNOS_CONFLICT = -2;
+
+    /**
      * The implicit entity identifier variable defined by Jakarta Persistence.
      */
     private static final String THIS = "this";
@@ -161,7 +174,7 @@ public abstract class QueryInfo {
      * Entity identifier variable name and . character if an identifier variable is used.
      * Otherwise the empty string. "o." is used as the default in generated queries.
      */
-    private String entityVar_ = THIS + '.';
+    protected String entityVar_ = THIS + '.';
 
     /**
      * Indicates if the query has a WHERE clause.
@@ -322,7 +335,7 @@ public abstract class QueryInfo {
      * If there are no special parameters, then the value is set to the total
      * number of method arguments.
      */
-    int specialParamsStartAt;
+    protected int specialParamsStartAt;
 
     /**
      * Categorization of query type.
@@ -453,6 +466,29 @@ public abstract class QueryInfo {
             q.append(entityVar_);
         q.append(attrName);
     }
+
+    /**
+     * Append a constraint such as o.myAttribute < ?1 to the JPQL query.
+     *
+     * @param q                 JPQL query to which to append.
+     * @param o_                entity identifier variable.
+     * @param attrName          entity attribute name.
+     * @param constraint        type of constraint to apply to the entity attribute.
+     * @param prevNumJPQLParams count of JQPL query parameters required for repository
+     *                              method parameters up to, but not including, the
+     *                              repository method parameter for the constraint
+     *                              being appended.
+     * @param isCollection      whether the entity attribute is a collection.
+     * @param annos             method parameter annotations.
+     * @return the updated JPQL query.
+     */
+    protected abstract StringBuilder appendConstraint(StringBuilder q,
+                                                      String o_,
+                                                      String attrName,
+                                                      AttributeConstraint constraint,
+                                                      int prevNumJPQLParams,
+                                                      boolean isCollection,
+                                                      Annotation[] annos);
 
     /**
      * Compute the zero-based offset to use as a starting point for a Limit range.
@@ -868,12 +904,11 @@ public abstract class QueryInfo {
                 q.append(info.hasWhere ? "AND " : "WHERE ");
                 info.hasWhere = true;
 
-                info.jpqlParamCount = compat.generateRestrictions(q,
-                                                                  entityVar_,
-                                                                  restriction,
-                                                                  info.jpqlParamCount,
-                                                                  info.jpqlParamNames,
-                                                                  jpqlParams);
+                info.jpqlParamCount = generateRestrictions(q,
+                                                           restriction,
+                                                           info.jpqlParamCount,
+                                                           info.jpqlParamNames,
+                                                           jpqlParams);
 
                 if (info.restrictAt >= 0 && info.restrictAt < len) {
                     int newPosition = q.length();
@@ -893,12 +928,11 @@ public abstract class QueryInfo {
             if (restriction != null) {
                 q.append(info.hasWhere ? " AND " : " WHERE ");
                 info.hasWhere = true;
-                info.jpqlParamCount = compat.generateRestrictions(q,
-                                                                  entityVar_,
-                                                                  restriction,
-                                                                  info.jpqlParamCount,
-                                                                  info.jpqlParamNames,
-                                                                  jpqlParams);
+                info.jpqlParamCount = generateRestrictions(q,
+                                                           restriction,
+                                                           info.jpqlParamCount,
+                                                           info.jpqlParamNames,
+                                                           jpqlParams);
             }
 
             // If there are no overrides from Order/Sort parameters, keep the
@@ -1050,9 +1084,7 @@ public abstract class QueryInfo {
             methodTypeAnno == null || methodTypeAnno instanceof Query)
             deferredConstraints = NO_CONSTRAINTS_DEFERRED;
         else
-            deferredConstraints = compat.getDeferredConstraints(restriction != null,
-                                                                specialParamsStartAt - 1,
-                                                                args);
+            deferredConstraints = getDeferredConstraints(restriction != null, args);
         boolean requiresNewQuery = restriction != null ||
                                    !deferredConstraints.isEmpty();
 
@@ -1448,9 +1480,7 @@ public abstract class QueryInfo {
             methodTypeAnno == null || methodTypeAnno instanceof Query)
             deferredConstraints = NO_CONSTRAINTS_DEFERRED;
         else
-            deferredConstraints = compat.getDeferredConstraints(restriction != null,
-                                                                specialParamsStartAt - 1,
-                                                                args);
+            deferredConstraints = getDeferredConstraints(restriction != null, args);
         boolean requiresNewQuery = restriction != null ||
                                    !deferredConstraints.isEmpty();
 
@@ -2136,6 +2166,31 @@ public abstract class QueryInfo {
     }
 
     /**
+     * Appends JPQL to the partially built query to represent a Constraint.
+     *
+     * @param q              partially built query to which to append JPQL
+     *                           representing the Constraint.
+     * @param constraint     the Constraint for which to generate JPQL.
+     * @param jpqlParamCount number of named or positional parameters identified
+     *                           up to this point for the JPQL.
+     * @param jpqlParamNames names of named parameters in the partially built
+     *                           query. Empty if the query uses positional
+     *                           parameters or has none. If using named parameters,
+     *                           this method should add any that are generated.
+     * @param jpqlParams     list for this method to populate with the name of
+     *                           named parameters or index of positional parameters,
+     *                           mapped to value, for each value obtained from the
+     *                           processed Restriction(s).
+     * @return the new count of named or positional parameters, including any that
+     *         were generated for the Constraint.
+     */
+    protected abstract int generateConstraint(StringBuilder q,
+                                              Object constraint,
+                                              int jpqlParamCount,
+                                              Set<String> jpqlParamNames,
+                                              Map<Object, Object> jpqlParams);
+
+    /**
      * Generates a query to select the COUNT of all entities matching the
      * supplied WHERE condition(s), or all entities if no WHERE conditions.
      * Populates the jpqlCount of the query information with the result.
@@ -2479,24 +2534,23 @@ public abstract class QueryInfo {
 
             Object constraint = constraints.get(p);
             if (constraint == null) {
-                numJPQLParams = compat.inspectMethodParam(p,
-                                                          paramTypes[p],
-                                                          annosForAllParams[p],
-                                                          attrNames,
-                                                          attrConstraints,
-                                                          updateOps,
-                                                          numJPQLParams);
+                numJPQLParams = inspectMethodParam(p,
+                                                   paramTypes[p],
+                                                   annosForAllParams[p],
+                                                   attrNames,
+                                                   attrConstraints,
+                                                   updateOps,
+                                                   numJPQLParams);
                 if (numJPQLParams < 0)
                     Fail.methodParamAnnoConflict(this, numJPQLParams, p,
                                                  paramTypes[p], annosForAllParams[p]);
             } else {
                 constraintJPQL[p] = new StringBuilder(50);
-                numJPQLParams = compat.generateConstraint(constraintJPQL[p],
-                                                          o_,
-                                                          constraint,
-                                                          numJPQLParams,
-                                                          jpqlParamNames,
-                                                          jpqlParams);
+                numJPQLParams = generateConstraint(constraintJPQL[p],
+                                                   constraint,
+                                                   numJPQLParams,
+                                                   jpqlParamNames,
+                                                   jpqlParams);
             }
 
             // Determine the entity attribute name, first from @By or an assignment
@@ -2640,13 +2694,13 @@ public abstract class QueryInfo {
                 jpqlParamCount += numPreviousJPQLParams[p + 1] - numPreviousJPQLParams[p];
 
                 if (constraintJPQL[p] == null) {
-                    compat.appendConstraint(q,
-                                            o_,
-                                            name,
-                                            attrConstraints[p],
-                                            numPreviousJPQLParams[p],
-                                            isCollection,
-                                            annosForAllParams[p]);
+                    appendConstraint(q,
+                                     o_,
+                                     name,
+                                     attrConstraints[p],
+                                     numPreviousJPQLParams[p],
+                                     isCollection,
+                                     annosForAllParams[p]);
                 } else {
                     if (name.charAt(name.length() - 1) != ')')
                         q.append(o_);
@@ -2669,6 +2723,32 @@ public abstract class QueryInfo {
             Tr.entry(this, tc, "generateParamBasedQuery", q);
         return q;
     }
+
+    /**
+     * Appends JPQL to the partially built query to implement a Restriction
+     * parameter of a repository method.
+     *
+     * @param q              partially built query ending with the WHERE clause.
+     * @param restriction    value of Restriction parameter. Otherwise null.
+     * @param jpqlParamCount number of named or positional parameters in the
+     *                           partially built query.
+     * @param jpqlParamNames names of named parameters in the partially bulit
+     *                           query. Empty if the query uses positional
+     *                           parameeters or has none. If using named parameters,
+     *                           this method should add any that are generated for
+     *                           the restriction part of the query.
+     * @param jpqlParams     list for this method to populate with the name of
+     *                           named parameters or index of positional parameters,
+     *                           mapped to value, for each value obtained from the
+     *                           processed Restriction(s).
+     * @return the new count of named or positional parameters, including any that
+     *         were generated for the Restriction(s).
+     */
+    protected abstract int generateRestrictions(StringBuilder q,
+                                                Object restriction,
+                                                int jpqlParamCount,
+                                                Set<String> jpqlParamNames,
+                                                Map<Object, Object> jpqlParams);
 
     /**
      * Generates the SELECT clause of the JPQL.
@@ -3041,6 +3121,21 @@ public abstract class QueryInfo {
             Tr.debug(this, tc, "getAttributeName " + name + ": " + attributeName);
         return attributeName;
     }
+
+    /**
+     * Identify Constraint-typed repository method parameters for which
+     * processing is deferred. Constraints that operate on non-literal
+     * expressions are always deferred until the expression instance is
+     * available.
+     *
+     * @param alwaysDefer  indicates that processing of every Constraint-typed
+     *                         method parameter is always deferred.
+     * @param methodParams repository method parameters.
+     * @return map of method parameter index (0-based) to Constraint instance
+     *         at that position. The empty map indicates none.
+     */
+    protected abstract Map<Integer, Object> getDeferredConstraints(boolean alwaysDefer,
+                                                                   Object[] methodParams);
 
     /**
      * Returns the entity information for this query,
@@ -3783,6 +3878,47 @@ public abstract class QueryInfo {
             Tr.exit(this, tc, "insert", loggable(returnValue));
         return returnValue;
     }
+
+    /**
+     * Inspects the type and annotations of a method parameter to a parameter-based
+     * Find/Delete/Update method to determine its meaning. Based on the meaning,
+     * updates one or more of (attrNames, constraints, updateOps) at position p.
+     *
+     * @param p                 repository method parameter index (0-based).
+     * @param paramType         class of the repository method parameter at index p.
+     *                              When generating the query upfront, this is from
+     *                              the repository method signature. When generating
+     *                              the query at invocation time and a Constraint
+     *                              subtype is supplied, this is the class of the
+     *                              supplied instance.
+     * @param paramAnnos        annotations on the repository method parameter at
+     *                              index p.
+     * @param attrNames         the implementer can update this at position p to
+     *                              supply the entity attribute name from the value
+     *                              of an assignment annotation.
+     * @param constraints       the implementer can update this at position p to
+     *                              supply the constraint type indicated by the
+     *                              Is annotation or by a Constraint-typed method
+     *                              parameter.
+     * @param updateOps         the implementer can update this at position p to
+     *                              supply the update operation indicated by an
+     *                              assignment annotation.
+     * @param prevNumJPQLParams count of JQPL query parameters required for
+     *                              repository method parameters up to, but not
+     *                              including, the current repository method
+     *                              parameter being inspected.
+     * @return count of JPQL query parameters required for repository method
+     *         parameters up to and including the current one. Otherwise returns
+     *         an error code: PARAM_ANNO_CONFLICTS_WITH_CONSTRAINT or
+     *         PARAM_ANNOS_CONFLICT.
+     */
+    protected abstract int inspectMethodParam(int p,
+                                              Class<?> paramType,
+                                              Annotation[] paramAnnos,
+                                              String[] attrNames,
+                                              AttributeConstraint[] constraints,
+                                              char[] updateOps,
+                                              int prevNumJPQLParams);
 
     /**
      * Write information about this instance to the introspection file for
@@ -5004,7 +5140,7 @@ public abstract class QueryInfo {
                     // supplied at execution time
                     continue;
                 value = args[a];
-                Object[] constraintValues = compat.toConstraintValues(value);
+                Object[] constraintValues = toConstraintValues(value);
                 if (constraintValues == null) { // Normal positional parameter
                     if (trace && tc.isDebugEnabled())
                         Tr.debug(this, tc, "[M] set ?" + paramNum + ' ' + loggable(value));
@@ -5160,6 +5296,18 @@ public abstract class QueryInfo {
     }
 
     /**
+     * Temporary method that obtains the literal value(s) from a constraint if the
+     * supplied value is a constraint for a literal expression.
+     * TODO 1.1 come up with better approach
+     *
+     * @param constraintOrValue a jakarta.data.constraint.Constraint subtype or a
+     *                              literal value.
+     * @return array of literal values obtained from the constraint.
+     *         Null if not a constraint.
+     */
+    protected abstract Object[] toConstraintValues(Object constraintOrValue);
+
+    /**
      * Functional interface that can be supplied to stream.mapToDouble.
      *
      * @param o object to convert.
@@ -5297,7 +5445,7 @@ public abstract class QueryInfo {
     @Override
     @Trivial
     public String toString() {
-        StringBuilder b = new StringBuilder("QueryInfo@") //
+        StringBuilder b = new StringBuilder(getClass().getSimpleName()).append('@') //
                         .append(Integer.toHexString(hashCode())).append(' ') //
                         .append(method.getGenericReturnType().getTypeName()).append(' ') //
                         .append(method.getName());

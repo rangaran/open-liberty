@@ -412,7 +412,7 @@ public class Fail {
                                                                  int paramIndex,
                                                                  Class<?> paramType,
                                                                  Annotation[] paramAnnos) {
-        if (errorCode == DataVersionCompatibility.PARAM_ANNO_CONFLICTS_WITH_CONSTRAINT)
+        if (errorCode == QueryInfo.PARAM_ANNO_CONFLICTS_WITH_CONSTRAINT)
             throw exc(UnsupportedOperationException.class,
                       "CWWKD1117.anno.constraint.conflict",
                       paramIndex + 1, // switch to 1-based
@@ -420,7 +420,7 @@ public class Fail {
                       info.repositoryInterface.getName(),
                       Arrays.toString(paramAnnos),
                       paramType.getClass().getName());
-        else if (errorCode == DataVersionCompatibility.PARAM_ANNOS_CONFLICT)
+        else if (errorCode == QueryInfo.PARAM_ANNOS_CONFLICT)
             throw exc(UnsupportedOperationException.class,
                       "CWWKD1118.param.anno.conflict",
                       paramIndex + 1, // switch to 1-based
