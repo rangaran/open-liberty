@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2014, 2022 IBM Corporation and others.
+ * Copyright (c) 2014, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -12,9 +12,13 @@
  *******************************************************************************/
 package com.ibm.ws.webcontainer.security;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 import java.util.Properties;
 
+import com.ibm.ws.common.crypto.CryptoUtils;
+import com.ibm.ws.webcontainer.security.internal.StringUtil;
 import org.osgi.framework.ServiceReference;
 import org.osgi.service.component.ComponentContext;
 
@@ -39,6 +43,10 @@ public class LoggedOutTokenCacheImpl implements LoggedOutTokenCache {
     private static final TraceComponent tc = Tr.register(LoggedOutTokenCacheImpl.class);
 
     private static final AtomicServiceReference<TokenManager> tokenManager = new AtomicServiceReference<TokenManager>("tokenManager");
+    
+    private static MessageDigest messageDigest = null;
+
+    private static final String LOGOUT_KEY_PREFIX = "LOGOUT:";
 
     private final InMemoryLoggedOutTokenCache inMemoryCookieCache = new InMemoryLoggedOutTokenCache();
 
@@ -72,10 +80,11 @@ public class LoggedOutTokenCacheImpl implements LoggedOutTokenCache {
         String keyStr = (String) key;
 
         LoggedOutCookieCache jCacheCookieCache = LoggedOutCookieCacheHelper.getLoggedOutCookieCacheService();
+        String hashedKeyStr = generateTokenHashKey(keyStr);
         if (jCacheCookieCache != null) {
-            return jCacheCookieCache.contains(keyStr);
+            return jCacheCookieCache.contains(hashedKeyStr);
         } else {
-            return inMemoryCookieCache.contains(keyStr);
+            return inMemoryCookieCache.contains(hashedKeyStr);
         }
     }
 
@@ -116,10 +125,11 @@ public class LoggedOutTokenCacheImpl implements LoggedOutTokenCache {
          * Choose between using the in-memory logged out cookie cache, or the JCache logged out cookie cache.
          */
         LoggedOutCookieCache jCacheCookieCache = LoggedOutCookieCacheHelper.getLoggedOutCookieCacheService();
+        String hashedKeyStr = generateTokenHashKey(keyStr);
         if (jCacheCookieCache != null) {
-            jCacheCookieCache.put(keyStr, value);
+            jCacheCookieCache.put(hashedKeyStr, value);
         } else {
-            inMemoryCookieCache.put(keyStr, value, timeOut);
+            inMemoryCookieCache.put(hashedKeyStr, value, timeOut);
         }
     }
 
@@ -129,6 +139,43 @@ public class LoggedOutTokenCacheImpl implements LoggedOutTokenCache {
          * Indicate we should always track tokens if LoggedOutCookieCacheService is available.
          */
         return LoggedOutCookieCacheHelper.getLoggedOutCookieCacheService() != null;
+    }
+
+    /**
+     * Generate a hash key from the token bytes for cache storage.
+     *
+     * @param tokenString The LTPA token bytes
+     * @return Hash string with LOGOUT: prefix, or null if error
+     */
+    private String generateTokenHashKey(String tokenString) {
+        if (tc.isEntryEnabled()) Tr.entry(tc, "generateTokenHashKey()", tokenString);
+
+        if (tokenString == null || tokenString.isEmpty()) {
+            if (tc.isEntryEnabled()) Tr.exit(tc, "generateTokenHashKey()", "null or empty token");
+            return null;
+        }
+
+        if (messageDigest == null) {
+            try {
+                messageDigest = CryptoUtils.getMessageDigest();
+            } catch (NoSuchAlgorithmException e) {
+
+            }
+        }
+
+        String hashKey = null;
+        if (messageDigest != null) {
+            messageDigest.reset();
+            messageDigest.update(StringUtil.getBytes(tokenString));
+            byte[] hash = messageDigest.digest();
+
+            hashKey = LOGOUT_KEY_PREFIX + Base64Coder.base64Encode(StringUtil.toString(hash));
+        } else {
+            if (tc.isDebugEnabled()) Tr.debug(tc, "MessageDigest unavailable; token hash cannot be generated. Logout tracking is disabled.");
+        }
+
+        if (tc.isEntryEnabled()) Tr.exit(tc, "generateTokenHashKey()", hashKey);
+        return hashKey;
     }
 
     /**
