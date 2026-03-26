@@ -25,14 +25,14 @@ Co-authored-by-AI: <AI Tool/IDE/Platform> (<Model Name/Version>)
 
 **Examples:**
 ```
-Co-authored-by-AI: Bob 1.0.0.0
+Co-authored-by-AI: IBM Bob 1.0.0
 Co-authored-by-AI: GitHub Copilot (gpt-4.1)
 Co-authored-by-AI: Claude Code (claude-sonnet-4-6)
 ```
 
 ### 2. Functional Quality
 
-AI Generated Code contributed should be reliable and engineered with care to be free of intellectual property or security problems and meet at least the same standard as human authored code:
+AI generated code contributed should be reliable and engineered with care to be free of intellectual property or security problems and meet at least the same standard as human authored code:
 
 - **Functionality**: Code must accomplish its intended purpose
 - **Quality**: Code must adhere to project standards and best practices

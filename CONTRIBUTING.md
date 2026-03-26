@@ -5,6 +5,7 @@ There are multiple ways to contribute: report bugs, fix bugs, contribute code, i
 * [Raising issues](https://github.com/OpenLiberty/open-liberty/blob/release/CONTRIBUTING.md#raising-issues)
 * [Contributor License Agreement](https://github.com/OpenLiberty/open-liberty/blob/release/CONTRIBUTING.md#contributor-license-agreement)
 * [Coding Standards](https://github.com/OpenLiberty/open-liberty/blob/release/CONTRIBUTING.md#coding-standards)
+* [GenAI Guidelines](https://github.com/OpenLiberty/open-liberty/blob/release/CONTRIBUTING.md#genai-guidelines)
 
 ## Raising issues
 Please raise any bug reports on the [Open Liberty project repository's GitHub issue tracker](https://github.com/OpenLiberty/open-liberty/issues). Be sure to search the list to see if your issue has already been raised.
@@ -31,3 +32,7 @@ Please ensure you follow the coding standards used throughout the existing code 
 * all files must have a Copyright including EPL license in the header following [this format.](https://www.eclipse.org/legal/epl-2.0/faq.php#h.q72cnghf29k0) 
 * all PRs must have a passing build.
 * all PRs must be reviewed and approved from another org member.
+
+## GenAI Guidelines
+
+Code contributions that include output from generative AI (GenAI) tools must follow the [GenAI Usage for Code Contributions guidelines](https://github.com/OpenLiberty/open-liberty/blob/release/GENAI_GUIDELINES.md).
