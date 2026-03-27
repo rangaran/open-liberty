@@ -35,4 +35,4 @@
 .envrc
 
 # Ignore any MCP configuration for Bob
-./bob/mcp.json
+.bob/mcp.json
