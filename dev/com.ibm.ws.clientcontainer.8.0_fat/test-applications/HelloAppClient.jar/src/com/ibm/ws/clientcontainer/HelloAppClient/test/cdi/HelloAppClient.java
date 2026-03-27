@@ -9,7 +9,7 @@
  *******************************************************************************/
 package com.ibm.ws.clientcontainer.HelloAppClient.test.cdi;
 
-import jakarta.inject.Inject;
+import javax.inject.Inject;
 
 public class HelloAppClient {
 

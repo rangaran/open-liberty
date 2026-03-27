@@ -21,7 +21,7 @@ public class AppClientTestUtils {
     }
 
     public static void assertNotAppMessage(String msg, LibertyClient client) throws Exception {
-        assertEquals("Shoudl NOT have found the following msg in logs: Detected \"" + msg + "\" message, but did not expect it", 0, client.findStringsInCopiedLogs(msg).size());
+        assertEquals("Should NOT have found the following msg in logs: Detected \"" + msg + "\" message, but did not expect it", 0, client.findStringsInCopiedLogs(msg).size());
     }
 
 }

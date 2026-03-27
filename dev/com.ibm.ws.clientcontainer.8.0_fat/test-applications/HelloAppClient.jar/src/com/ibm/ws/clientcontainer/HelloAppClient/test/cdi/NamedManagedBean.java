@@ -11,7 +11,7 @@ package com.ibm.ws.clientcontainer.HelloAppClient.test.cdi;
 
 import java.util.logging.Logger;
 
-import jakarta.inject.Named;
+import javax.inject.Named;
 
 /**
  * Simple Managed Bean that has been named.

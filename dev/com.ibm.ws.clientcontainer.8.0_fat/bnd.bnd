@@ -28,4 +28,4 @@ tested.features: \
 
 -buildpath: \
     com.ibm.websphere.javaee.annotation.1.1;version=latest, \
-    io.openliberty.jakarta.cdi.4.1;version=latest
+    com.ibm.websphere.javaee.cdi.2.0;version=latest
