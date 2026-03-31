@@ -1,14 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2023, 2025 IBM Corporation and others.
+ * Copyright (c) 2023, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-2.0/
  *
  * SPDX-License-Identifier: EPL-2.0
- *
- * Contributors:
- *     IBM Corporation - initial API and implementation
  *******************************************************************************/
 
 package com.ibm.ws.security.token.ltpa.fat;
@@ -25,6 +22,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -64,6 +62,7 @@ import componenttest.annotation.ExpectedFFDC;
 import componenttest.custom.junit.runner.FATRunner;
 import componenttest.custom.junit.runner.Mode;
 import componenttest.custom.junit.runner.Mode.TestMode;
+import componenttest.rules.repeater.JakartaEEAction;
 import componenttest.topology.impl.LibertyFileManager;
 import componenttest.topology.impl.LibertyServer;
 import componenttest.topology.impl.LibertyServerFactory;
@@ -233,6 +232,12 @@ public class LTPAKeyRotationTests {
             server.copyFileToLibertyServerRoot(DEFAULT_SERVER_XML);
         }
 
+        // Transform the application for EE9+ that was copied
+        // from com.ibm.ws.webcontainer.security_test.servlets.
+        if (JakartaEEAction.isEE9OrLaterActive()) {
+            JakartaEEAction.transformApp(Paths.get(server.getServerRoot() + "/apps/formlogin.war"));
+        }
+
         server.startServer(true);
 
         assertNotNull("Featurevalid did not report update was complete",
@@ -250,6 +255,12 @@ public class LTPAKeyRotationTests {
         }
 
         messagesLogFile = server.getDefaultLogFile();
+
+        // Now that this test is repeated and these clients are static this is necessary
+        // to avoid "Manager is shut down.". The @AfterClass method is executed at the end of each repeat
+        // which calls the shutdown() method on the ConnectionManager.
+        flClient1.resetClientState();
+        flClient2.resetClientState();
 
     }
 
@@ -2684,7 +2695,7 @@ public class LTPAKeyRotationTests {
     private static void notifyFileChangesWithMbean(List<String> createdFilePaths, List<String> modifiedFilePaths, List<String> deletedFilePaths) throws Exception {
 
         ObjectName appMBean = new ObjectName("WebSphere:service=com.ibm.ws.kernel.filemonitor.FileNotificationMBean");
-        
+
         // Use try-with-resources to ensure JMX connector is always closed
         try (JMXConnector jmxConnector = server.getJMXRestConnector("user1", "user1pwd", "Liberty")) {
             MBeanServerConnection mbs = jmxConnector.getMBeanServerConnection();
