@@ -147,7 +147,7 @@ public class ClientSSLHandshakeTest extends CommonTest {
     public void testHandshakeWithPlusCipherModifierPass() {
         try {
             Log.info(c, name.getMethodName(), "Starting the client with '+' cipher modifier (expected to pass) ...");
-            ProgramOutput programOutput = commonClientSetUpWithCalcArgs("myTestClientCipher", "client_handshake_plus_pass.xml", "CWWKF0040E");
+            ProgramOutput programOutput = commonClientSetUpWithCalcArgs("myTestClientCipher", "client_handshake_plus_pass.xml", 30, "CWWKF0040E");
             String output = programOutput.getStdout();
 
             assertTrue("Client should report it has started successfully (CWWKF0035I).",
