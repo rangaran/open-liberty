@@ -37,7 +37,7 @@ $ ./gradlew assemble
 $ ./gradlew releaseNeeded
 ```
 
-This task releases all projects to the local releaseRepo. The final openliberty zip can be found in:
+This task releases all projects to the local releaseRepo. The final `openliberty` zip can be found in:
 > open-liberty/dev/cnf/release/dev/openliberty/<version>/openliberty-xxx.zip
 
 ### Building a single project
@@ -62,17 +62,17 @@ $ ./gradlew build.example_fat:buildandrun
 
 ### Rule: AI Co-authorship Attribution
 
-**All commits that contain code created by AI must have the git commit message end with the following format:**
+**All commits that contain content created by AI must have the git commit message end with the following format:**
 
 ```
-Co-authored-by-AI: <Agent Name> <Agent Version> (<Model Name/Version>)
+Co-authored-by-AI: <Agent Name> <Agent Version> (<Model Version>)
 ```
 
 ### Format Details
 
 - **Agent Name**: The name of the AI tool
 - **Agent Version**: The version of the AI tool used (e.g., 1.0.0, 1.2.3)
-- **Model Name/Version**: The underlying LLM model and version used by the AI tool (e.g., claude-sonnet-4-6, gpt-4.1, llama-3.1-70b)
+- **Model Version**: The underlying LLM model and version used by the AI tool (e.g., Claude Sonnet 4.6, GPT-5.4, Llama 3.2 90B)
 
 ### Examples
 
@@ -83,17 +83,18 @@ Fix authentication bug in JWT validation
 Updated the token expiration check to properly handle timezone offsets.
 Added unit tests to verify the fix works across different timezones.
 
-Co-authored-by-AI: IBM Bob 1.0.0 (claude-sonnet-4-6)
+Co-authored-by-AI: IBM Bob 1.0.0 (Claude Sonnet 4.6)
 ```
 
-#### Example 2: Using GPT-4
+#### Example 2: Using multiple AI tools
 ```
 Add support for Jakarta EE 11 features
 
 Implemented new Jakarta EE 11 APIs and updated configuration handling.
 Includes backward compatibility for Jakarta EE 10.
 
-Co-authored-by-AI: GitHub Copilot (gpt-4.1)
+Co-authored-by-AI: IBM Bob 1.0.0 (Claude Sonnet 4.6)
+Co-authored-by-AI: GitHub Copilot (GPT-5.4)
 ```
 
 ### Important Notes
@@ -104,18 +105,10 @@ Co-authored-by-AI: GitHub Copilot (gpt-4.1)
 
 3. **Multiple AI Tools**: If multiple AI tools were used, include multiple co-authorship lines:
    ```
-   Co-authored-by-AI: IBM Bob 1.0.0 (claude-sonnet-4-6)
-   Co-authored-by-AI: GitHub Copilot (gpt-4.1)
+   Co-authored-by-AI: IBM Bob 1.0.0 (Claude Sonnet 4.6)
+   Co-authored-by-AI: GitHub Copilot (GPT-5.4)
    ```
 
 4. **Version Accuracy**: Always use the actual version numbers of the AI tool and the model at the time of code generation.
 
 5. **Compliance**: This rule ensures compliance with the [GenAI Usage for Code Contributions guidelines](GENAI_GUIDELINES.md).
-
-### Rationale
-
-This format enables:
-- **Transparency**: Clear identification of AI-assisted contributions
-- **Traceability**: Ability to track which AI tools and models were used
-- **Accountability**: Maintains contributor responsibility while acknowledging AI assistance
-- **Auditing**: Easier investigation if issues arise with AI-generated code
