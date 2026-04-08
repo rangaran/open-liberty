@@ -171,9 +171,12 @@ In order to facilitate early feedback from users, all new features and functiona
   - E.g. `kind=beta`, `ibm:beta`, `ProductInfo.getBetaEdition()`
 - [ ] Beta development complete and feature ready for inclusion in a beta release
   - Add label `target:beta` and the appropriate `target:YY00X-beta` (where YY00X is the targeted beta version) to the feature issue.
-    - Note: This is expected to be done only once, for the initial beta that includes this feature. You do not need to add a `target:YY00(X+1)-beta`, `target:YY00(X+2)-beta`, etc. label for each additional beta that includes this feature.
+    - Note: This is expected to be done whenever there is new functionality being added for this feature.
+
+      Example scenario: If you are introducing a new feature to the 26.0.0.1 beta release, you would add the `target:26001-beta` label to the feature issue. Once that beta is released, the `target:26001-beta` and `target:beta` labels can be removed from the feature issue. If additional functionality is added to the feature in the 26.0.0.3 beta release, you would re-add the `target:beta` label as well as the `target:26003-beta` label to the feature issue. This indicates that there is additional functionality being targeted for a beta release, and which specific beta is being targeted.
 - [ ] Feature delivered into beta
   - ([OpenLiberty/release-manager](https://github.com/orgs/OpenLiberty/teams/release-manager)) adds label `release:YY00X-beta` (where YY00X is the first beta version that included the functionality).
+    - Continuing from the example scenario above, after the 26.0.0.3 beta is released, the feature issue should have the `release:26001-beta` and `release:26003-beta` labels on the feature issue. The `target:beta` label can be removed at this point if there is no additional work being targeted for a beta release.
 
 ### **Beta Blog** (Complete by beta eGA)
 - [ ] Beta blog issue created and populated using the [Open Liberty BETA blog post](https://github.com/OpenLiberty/open-liberty/issues/new/choose) template.
