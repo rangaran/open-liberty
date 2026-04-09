@@ -25,7 +25,6 @@ import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
 import java.sql.SQLRecoverableException;
 import java.sql.SQLTransientConnectionException;
-import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -50,8 +49,11 @@ import com.ibm.websphere.ras.TraceComponent;
 import com.ibm.websphere.ras.annotation.Trivial;
 import com.ibm.ws.ffdc.annotation.FFDCIgnore;
 
+import io.openliberty.data.internal.cdi.StatefulPersistenceContext;
 import jakarta.data.exceptions.DataException;
 import jakarta.data.exceptions.MappingException;
+import jakarta.enterprise.inject.Instance;
+import jakarta.enterprise.inject.spi.CDI;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.metamodel.Attribute;
 import jakarta.persistence.metamodel.Attribute.PersistentAttributeType;
@@ -61,6 +63,7 @@ import jakarta.persistence.metamodel.Metamodel;
 import jakarta.persistence.metamodel.PluralAttribute;
 import jakarta.persistence.metamodel.SingularAttribute;
 import jakarta.persistence.metamodel.Type;
+import jakarta.transaction.Status;
 import jakarta.transaction.Synchronization;
 import jakarta.transaction.Transaction;
 
@@ -413,7 +416,7 @@ public abstract class EntityManagerBuilder {
      *
      * @return a new EntityManager instance.
      */
-    protected abstract EntityManager createEntityManager();
+    public abstract EntityManager createEntityManager();
 
     /**
      * Returns an alphabetized comma-delimited list of the class names as text
@@ -458,35 +461,33 @@ public abstract class EntityManagerBuilder {
      * and the repository is stateful. Otherwise create a new instance.
      *
      * @param stateful indicates a stateful repository.
-     * @return EntityManager and indicator of whether the EntityManager will be
-     *         automatically closed by the current transaction.
+     * @return the EntityManager.
      * @throws Exception if an error occurs.
      */
-    SimpleEntry<EntityManager, Boolean> getEntityManager(boolean stateful) //
-                    throws Exception {
-        boolean autoClosedByTx;
+    EntityManager getEntityManager(boolean stateful) throws Exception {
         EntityManager em;
 
         if (stateful) {
-            Transaction tx = provider.tranMgr.getTransaction();
-            if (tx == null) {
-                autoClosedByTx = false;
-                em = createEntityManager();
+            Instance<StatefulPersistenceContext> instance = //
+                            CDI.current().select(StatefulPersistenceContext.class);
+            if (instance.isResolvable()) {
+                StatefulPersistenceContext bean = instance.get();
+                em = bean.get(this);
+                if (!em.isJoinedToTransaction() &&
+                    provider.tranMgr.getStatus() != Status.STATUS_NO_TRANSACTION)
+                    em.joinTransaction();
             } else {
-                autoClosedByTx = true;
-                em = entityManagerPerTx.get(tx);
-                if (em == null) {
-                    em = createEntityManager();
-                    tx.registerSynchronization(new EntityManagerCleanup(tx));
-                    entityManagerPerTx.put(tx, em);
-                }
+                // TODO NLS message indicating that the operation must be invoked
+                // within a request scope. Can mention alternative of explictly
+                // invoking RequestContextController.activate()/deactivate() around
+                // repository operations to establish a request scope context.
+                throw new IllegalStateException();
             }
         } else {
-            autoClosedByTx = false;
             em = createEntityManager();
         }
 
-        return new SimpleEntry<>(em, autoClosedByTx);
+        return em;
     }
 
     @FFDCIgnore(NoSuchFieldException.class)
