@@ -18,7 +18,7 @@ import com.ibm.wsspi.bytebuffer.WsByteBuffer;
 
 public class utils {
 
-    public static final int IO_DEFAULT_TIMEOUT = 28000;
+    public static final int IO_DEFAULT_TIMEOUT = 40000;
     public static final int IO_DEFAULT_BUFFER_SIZE = 4090;
 
     public static final byte FRAME_TYPE_DATA = 0x00;
