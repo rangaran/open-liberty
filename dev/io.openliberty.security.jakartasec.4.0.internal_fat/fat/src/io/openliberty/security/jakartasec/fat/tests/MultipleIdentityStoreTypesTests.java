@@ -55,7 +55,6 @@ import multiple.identity.stores.handlers.CustomIdentityStoreHandler;
  * 2. Priority mechanism works correctly - lower priority number = higher priority
  * 3. In-memory store (priority 100) is checked before database store (priority 200)
  * 4. Users can authenticate against either store based on where they are defined
- * 5. When a user exists in both stores, the higher priority store is used
  */
 @RunWith(FATRunner.class)
 @Mode(TestMode.LITE)
