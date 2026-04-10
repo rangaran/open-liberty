@@ -65,6 +65,11 @@ public class StatefulPersistenceContext {
                 if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
                     Tr.debug(this, tc, "flush and close " + em);
 
+                // TODO consider having the spec provide a way for the user
+                // to request a flush when they want changes persisted,
+                // and then we could make this into an error path and
+                // discard insteading flushing unresolved changes.
+
                 boolean startedTransaction = false;
                 LocalTransactionCoordinator suspendedLTC = null;
                 try {

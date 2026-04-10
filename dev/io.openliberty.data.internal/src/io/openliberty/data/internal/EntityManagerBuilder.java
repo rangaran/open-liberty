@@ -52,6 +52,7 @@ import com.ibm.ws.ffdc.annotation.FFDCIgnore;
 import io.openliberty.data.internal.cdi.StatefulPersistenceContext;
 import jakarta.data.exceptions.DataException;
 import jakarta.data.exceptions.MappingException;
+import jakarta.enterprise.context.ContextNotActiveException;
 import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.spi.CDI;
 import jakarta.persistence.EntityManager;
@@ -465,19 +466,30 @@ public abstract class EntityManagerBuilder {
      * @return the EntityManager.
      * @throws Exception if an error occurs.
      */
-    @FFDCIgnore(IllegalStateException.class) // CDI not available on unmanaged thread
+    @FFDCIgnore({ ContextNotActiveException.class, // RequestScope not available on unmanaged thread
+                  IllegalStateException.class }) // CDI not available on unmanaged thread
     EntityManager getEntityManager(boolean stateful) throws Exception {
-        EntityManager em;
+        EntityManager em = null;
 
         if (stateful) {
-            Instance<StatefulPersistenceContext> instance;
             try {
+                // Use an EnityManager that follows the life cycle of the current
+                // request scope.
+                Instance<StatefulPersistenceContext> instance;
                 instance = CDI.current().select(StatefulPersistenceContext.class);
+                if (instance != null && instance.isResolvable()) {
+                    StatefulPersistenceContext bean = instance.get();
+                    em = bean.get(this);
+                    if (!em.isJoinedToTransaction() &&
+                        provider.tranMgr.getStatus() != Status.STATUS_NO_TRANSACTION)
+                        em.joinTransaction();
+                }
+            } catch (ContextNotActiveException x) {
+                // raised by bean.get() when on unmanaged thread
             } catch (IllegalStateException x) {
                 // raised by CDI.current() when on unmanaged thread
-                instance = null;
             }
-            if (instance == null || !instance.isResolvable()) {
+            if (em == null) {
                 // Use an EntityManager that follows the life cycle of the current
                 // transaction.
                 Transaction tx = provider.tranMgr.getTransaction();
@@ -500,14 +512,6 @@ public abstract class EntityManagerBuilder {
                         entityManagerPerTx.put(tx, em);
                     }
                 }
-            } else {
-                // Use an EnityManager that follows the life cycle of the current
-                // request scope.
-                StatefulPersistenceContext bean = instance.get();
-                em = bean.get(this);
-                if (!em.isJoinedToTransaction() &&
-                    provider.tranMgr.getStatus() != Status.STATUS_NO_TRANSACTION)
-                    em.joinTransaction();
             }
         } else {
             em = createEntityManager();
