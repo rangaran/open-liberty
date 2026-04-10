@@ -44,12 +44,7 @@ import multiple.identity.stores.handlers.CustomIdentityStoreHandler;
 
 /**
  * Tests for multiple identity stores of different types (in-memory and custom database).
- * This test class verifies:
- * 1. Both identity stores can coexist in the same application
- * 2. Priority mechanism works correctly - lower priority number = higher priority
- * 3. In-memory store (priority 100) is checked before database store (priority 200)
- * 4. Users can authenticate against either store based on where they are defined
- * 5. When a user exists in both stores, the higher priority store is used
+ * This test class verifies that when a user exists in both stores, the higher priority store is used
  */
 @RunWith(FATRunner.class)
 @Mode(TestMode.LITE)
@@ -60,14 +55,7 @@ public class MultipleIdentityStoresPriorityTests extends BaseJakartaSecurity40Te
     public static final String APP_NAME = "MultipleIdentityStores";
     private static final String CONTEXT_ROOT = "/" + APP_NAME;
     private static final String RESOURCE_PATH = "/resource/test";
-    private static final String USER_PATH = "/resource/user";
-    private static final String DBUSER_PATH = "/resource/dbuser";
-    private static final String MEMORYUSER_PATH = "/resource/memoryuser";
-
     private static String url = null;
-    private static String userUrl = null;
-    private static String dbuserUrl = null;
-    private static String memoryuserUrl = null;
 
     @Server(IN_MEM_ID_STORE_ENABLED_SERVER_NAME)
     public static LibertyServer server;
@@ -89,9 +77,6 @@ public class MultipleIdentityStoresPriorityTests extends BaseJakartaSecurity40Te
 
         // Build URLs
         url = instance.buildUrl(CONTEXT_ROOT, RESOURCE_PATH);
-        userUrl = instance.buildUrl(CONTEXT_ROOT, USER_PATH);
-        dbuserUrl = instance.buildUrl(CONTEXT_ROOT, DBUSER_PATH);
-        memoryuserUrl = instance.buildUrl(CONTEXT_ROOT, MEMORYUSER_PATH);
 
         // Create the web application with both in-memory and custom database identity stores
         WebArchive app = ShrinkWrap.create(WebArchive.class,
