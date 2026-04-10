@@ -16,13 +16,15 @@ import static io.openliberty.security.jakartasec.fat.utils.Jakartasec40TestConst
 import static io.openliberty.security.jakartasec.fat.utils.Jakartasec40TestConstants.DB_USER_ALICE;
 import static io.openliberty.security.jakartasec.fat.utils.Jakartasec40TestConstants.DB_USER_CHARLIE;
 import static io.openliberty.security.jakartasec.fat.utils.Jakartasec40TestConstants.DB_USER_RORY;
+import static io.openliberty.security.jakartasec.fat.utils.Jakartasec40TestConstants.ID_STORE_FOUND_MSG;
+import static io.openliberty.security.jakartasec.fat.utils.Jakartasec40TestConstants.ID_STORE_VALIDATION_FAIL_MSG;
+import static io.openliberty.security.jakartasec.fat.utils.Jakartasec40TestConstants.ID_STORE_VALIDATION_SUCCESS_MSG;
 import static io.openliberty.security.jakartasec.fat.utils.Jakartasec40TestConstants.INVALID_PASSWORD;
 import static io.openliberty.security.jakartasec.fat.utils.Jakartasec40TestConstants.PRODUCTION_USE_WARNING_MSG;
 import static io.openliberty.security.jakartasec.fat.utils.Jakartasec40TestConstants.USER_JASMINE;
 import static io.openliberty.security.jakartasec.fat.utils.Jakartasec40TestConstants.USER_LISA;
 import static io.openliberty.security.jakartasec.fat.utils.Jakartasec40TestConstants.VALID_PASSWORD;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -45,6 +47,7 @@ import componenttest.topology.impl.LibertyServer;
 import multiple.identity.stores.CustomDatabaseIdentityStore;
 import multiple.identity.stores.MultipleIdentityStoresApplication;
 import multiple.identity.stores.MultipleIdentityStoresProtectedResource;
+import multiple.identity.stores.handlers.CustomIdentityStoreHandler;
 
 /**
  * Tests for multiple identity stores of different types (in-memory and custom database).
@@ -67,8 +70,6 @@ public class MultipleIdentityStoreTypesTests extends BaseJakartaSecurity40Test {
     private static final String USER_PATH = "/resource/user";
     private static final String DBUSER_PATH = "/resource/dbuser";
     private static final String MEMORYUSER_PATH = "/resource/memoryuser";
-    private static final String CUSTOM_DB_ID_STORE_MSG = "CustomDatabaseIdentityStore";
-    private static final String CUSTOM_DB_ID_STORE_VALIDATE_MSG = "CustomDatabaseIdentityStore - validate";
 
     private static String url = null;
     private static String userUrl = null;
@@ -101,7 +102,7 @@ public class MultipleIdentityStoreTypesTests extends BaseJakartaSecurity40Test {
 
         // Create the web application with both in-memory and custom database identity stores
         WebArchive app = ShrinkWrap.create(WebArchive.class,
-                                           APP_NAME + ".war").addClass(MultipleIdentityStoresApplication.class).addClass(CustomDatabaseIdentityStore.class).addClass(MultipleIdentityStoresProtectedResource.class).addAsWebInfResource(new File("test-applications/multipleidentitystores/WEB-INF/web.xml"));
+                                           APP_NAME + ".war").addClass(MultipleIdentityStoresApplication.class).addClass(CustomDatabaseIdentityStore.class).addClass(MultipleIdentityStoresProtectedResource.class).addClass(CustomIdentityStoreHandler.class).addAsWebInfResource(new File("test-applications/multipleidentitystores/WEB-INF/web.xml"));
 
         ShrinkHelper.exportDropinAppToServer(server, app, DeployOptions.SERVER_ONLY);
 
@@ -169,19 +170,28 @@ public class MultipleIdentityStoreTypesTests extends BaseJakartaSecurity40Test {
     }
 
     /**
-     * Test that database store password fails for user in both stores.
-     * Since in-memory store has higher priority, the database password should not work.
+     * Test that database store password is checked on both stores and is validated successfully in the one with lower priority.
+     * Since in-memory store has higher priority, it should be checked first and fail to validate the user.
+     * The database password should work as the next in-line id store.
      */
-    //@Test
-    public void testDatabasePasswordFailsForUserInBothStores() throws Exception {
-        logInfo("testDatabasePasswordFailsForUserInBothStores",
-                "Testing that database password fails when in-memory store has priority");
+    @Test
+    public void testUserCredentialOnBothStores() throws Exception {
+        logInfo("testUserCredentialOnBothStores",
+                "Testing that a user rendential is validated in both stored, respecting the priority");
 
-        // Should fail with database password because in-memory store is checked first
-        executeGetRequest(url, DB_USER_ALICE, DB_PASSWORD, 401);
+        // Should pass with database password since the credential exists there
+        executeGetRequest(url, DB_USER_ALICE, DB_PASSWORD, 200);
 
-        logInfo("testDatabasePasswordFailsForUserInBothStores",
-                "Test passed - database password correctly rejected");
+        // The prioritised in-memory store should fail to validate that credential,
+        // so database store should be called for credential validation as the next in-line id store.
+        String inMemIdStoreNotValidated = String.format(ID_STORE_VALIDATION_FAIL_MSG, "IdentityStore");
+        String customDbIdStoreValidated = String.format(ID_STORE_VALIDATION_SUCCESS_MSG, "CustomDatabaseIdentityStore");
+
+        assertNotNull("InMemoryIdentityStore should fail to validate the user", waitForStringInLog(inMemIdStoreNotValidated, 2000));
+        assertNotNull("CustomDatabaseIdentityStore should be validate the user", waitForStringInLog(customDbIdStoreValidated, 2000));
+
+        logInfo("testUserCredentialOnBothStores",
+                "Test passed - database password correctly validaded on the lower priority store");
     }
 
     /**
@@ -271,7 +281,7 @@ public class MultipleIdentityStoreTypesTests extends BaseJakartaSecurity40Test {
         executeGetRequest(url, DB_USER_RORY, DB_PASSWORD, 200);
 
         // Check that database store was invoked
-        String logContent = waitForStringInLog(CUSTOM_DB_ID_STORE_MSG, 5000);
+        String logContent = waitForStringInLog("CustomDatabaseIdentityStore", 5000);
         assertNotNull("Database identity store should be invoked", logContent);
 
         logInfo("testBothStoresActive", "Test passed - both identity stores are active");
@@ -281,20 +291,24 @@ public class MultipleIdentityStoreTypesTests extends BaseJakartaSecurity40Test {
      * Test the priority order by checking which store validates first.
      * When alice authenticates with in-memory password, database store should not be called.
      */
-    //@Test
+    @Test
     public void testPriorityOrder() throws Exception {
         logInfo("testPriorityOrder", "Testing identity store priority order");
 
         // Authenticate alice with in-memory store password
         executeGetRequest(url, DB_USER_ALICE, VALID_PASSWORD, 200);
 
+        String inMemIdStoreName = String.format(ID_STORE_FOUND_MSG, "IdentityStore");
+        String customDbIdStoreName = String.format(ID_STORE_FOUND_MSG, "CustomDatabaseIdentityStore");
+
+        //Both stores are found
+        assertNotNull("InMemoryIdentityStore should be found", waitForStringInLog(inMemIdStoreName, 2000));
+        assertNotNull("CustomDatabaseIdentityStore should be found", waitForStringInLog(customDbIdStoreName, 2000));
+
         // The in-memory store should validate successfully, so database store should not be called
         // for credential validation (it might be called for groups, but not for validation)
-        String logContent = waitForStringInLog(CUSTOM_DB_ID_STORE_VALIDATE_MSG, 2000);
-        assertNull("Database identity store should not be invoked", logContent);
-
-        // If database store validate was called, it means priority is not working correctly
-        // Note: The store might be called for other operations, but not for validation of alice
+        String inMemIdStoreValidated = String.format(ID_STORE_VALIDATION_SUCCESS_MSG, "IdentityStore");
+        assertNotNull("InMemoryIdentityStore should be validated", waitForStringInLog(inMemIdStoreValidated, 2000));
 
         logInfo("testPriorityOrder", "Test passed - priority order verified");
     }

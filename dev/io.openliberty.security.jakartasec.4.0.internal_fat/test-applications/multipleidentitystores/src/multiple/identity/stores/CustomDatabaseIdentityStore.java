@@ -44,23 +44,21 @@ public class CustomDatabaseIdentityStore implements IdentityStore {
 
         String username = credential.getCaller();
         String password = credential.getPasswordAsString();
+        Set<String> groups = new HashSet<>();
 
         // Simulate database lookup
         if (DB_USER_ALICE.equals(username) && DB_PASSWORD.equals(password)) {
             log.info(CLASS_NAME + " - User " + username + " validated successfully from database store");
-            Set<String> groups = new HashSet<>();
             groups.add("dbuser");
             groups.add("caller");
             return new CredentialValidationResult(username, groups);
         } else if (DB_USER_RORY.equals(username) && DB_PASSWORD.equals(password)) {
             log.info(CLASS_NAME + " - User " + username + " validated successfully from database store");
-            Set<String> groups = new HashSet<>();
             groups.add("dbuser");
             groups.add("user");
             return new CredentialValidationResult(username, groups);
         } else if (DB_USER_CHARLIE.equals(username) && DB_PASSWORD.equals(password)) {
             log.info(CLASS_NAME + " - User " + username + " validated successfully from database store");
-            Set<String> groups = new HashSet<>();
             groups.add("dbadmin");
             groups.add("user");
             return new CredentialValidationResult(username, groups);
