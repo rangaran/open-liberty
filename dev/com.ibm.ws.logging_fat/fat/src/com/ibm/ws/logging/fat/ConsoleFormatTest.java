@@ -371,9 +371,15 @@ public class ConsoleFormatTest {
         RemoteFile consoleLogFile = server.getConsoleLogFile();
 
         // Set the consoleFormat="simple", traceSpec=off, isoDateFormat=false in server.xml
+        Log.info(c, "testSimpleConsoleFormatWithException", "==================================== setServerConfiguration =======================================");
+        Log.info(c, "testSimpleConsoleFormatWithException",
+                 ">>>>> CARL_DEBUG: setServerConfiguration:" + consoleLogFile.getName());
         setServerConfiguration(server, SIMPLE_FORMAT, false, false, consoleLogFile);
 
         // Verify if the server was successfully updated
+        Log.info(c, "testSimpleConsoleFormatWithException", "==================================== waitForStringInMark =======================================");
+        Log.info(c, "testSimpleConsoleFormatWithException",
+                 ">>>>> CARL_DEBUG: waitForStringInMark: " + consoleLogFile.getName());
         String line = server.waitForStringInLogUsingMark("CWWKG0017I", consoleLogFile);
         assertNotNull("Message CWWKG0017I did not appear.", line);
 
@@ -388,7 +394,7 @@ public class ConsoleFormatTest {
 
         // Verify if the exception is complete, and not trimmed and/or suppressed
         List<String> lines = server.findStringsInLogs(INTERNAL_CLASSES_REGEXP, consoleLogFile);
-        assertTrue("The SystemErr message is not in the  simple console format.", lines.isEmpty());
+        assertTrue("The SystemErr message is not in the simple console format.", lines.isEmpty());
     }
 
     /*
@@ -548,9 +554,8 @@ public class ConsoleFormatTest {
         loggingObj.setConsoleFormat(consoleFormat);
         libertyServer.setMarkToEndOfLog(consoleLogFile);
 
-        Thread.sleep(1000);
-
         libertyServer.updateServerConfiguration(serverConfig);
+        Thread.sleep(1000);
         libertyServer.waitForConfigUpdateInLogUsingMark(null);
     }
 
