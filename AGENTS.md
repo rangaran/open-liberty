@@ -11,11 +11,6 @@
 - `cla/` - Contributor License Agreements (corporate and individual)
 - `.ci-orchestrator/` - CI/CD infrastructure
 
-## Critical Documents
-
-- `GENAI_GUIDELINES.md` - GenAI usage policy for code contributions
-  - Agents MUST adhere to the AI code identification requirements outlined in this file, particularly around commit message requirements for commits that include AI-generated content
-
 ## Common Development Tasks
 
 All of the following commands assume that you have cloned the repository and are in the `open-liberty/dev` directory.
@@ -103,12 +98,4 @@ Co-authored-by-AI: GitHub Copilot (GPT-5.4)
 
 2. **Blank Line**: Include a blank line before the co-authorship attribution if your commit message has a body.
 
-3. **Multiple AI Tools**: If multiple AI tools were used, include multiple co-authorship lines:
-   ```
-   Co-authored-by-AI: IBM Bob 1.0.0 (Claude Sonnet 4.6)
-   Co-authored-by-AI: GitHub Copilot (GPT-5.4)
-   ```
-
-4. **Version Accuracy**: Always use the actual version numbers of the AI tool and the model at the time of code generation.
-
-5. **Compliance**: This rule ensures compliance with the [GenAI Usage for Code Contributions guidelines](GENAI_GUIDELINES.md).
+3. **Version Accuracy**: Always use the actual version numbers of the AI tool and the model at the time of code generation.

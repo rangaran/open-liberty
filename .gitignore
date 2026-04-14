@@ -34,5 +34,10 @@
 # Ignore direnv files - for quickly switching between JDK levels between projects
 .envrc
 
-# Ignore any MCP configuration for Bob
-.bob/mcp.json
+# Ignore IBM Bob files aside from an allow list
+.bob/*
+!.bob/rules/
+.bob/rules/*
+
+# Allow list of IBM Bob rules
+!.bob/rules/contributing.md
