@@ -703,7 +703,7 @@ org.eclipse.platform:org.eclipse.equinox.console:1.4.1100
 org.eclipse.platform:org.eclipse.equinox.coordinator:1.5.500
 org.eclipse.platform:org.eclipse.equinox.metatype:1.6.900
 org.eclipse.platform:org.eclipse.equinox.region:1.5.800
-org.eclipse.platform:org.eclipse.osgi:3.24.0
+org.eclipse.platform:org.eclipse.osgi:3.24.100
 org.eclipse.transformer:org.eclipse.transformer.bnd.analyzer:0.5.0
 org.eclipse.transformer:org.eclipse.transformer.cli:0.5.0
 org.eclipse.transformer:org.eclipse.transformer.jakarta:0.5.0
