@@ -170,8 +170,6 @@ public class SRTServletResponse61 extends SRTServletResponse60 implements HttpSe
      * @exception IllegalStateException    If the response was already committed when this method was called
      *
      * @see #sendRedirect(String, int, boolean)
-     *
-     *      TODO: Update official API doc link when it is available.
      */
     @Override
     public void sendRedirect(String location) throws IOException {
@@ -197,8 +195,6 @@ public class SRTServletResponse61 extends SRTServletResponse60 implements HttpSe
      * @see #sendRedirect(String, int, boolean)
      *
      * @since Servlet 6.1
-     *
-     *        TODO: Update official API doc link when it is available.
      */
     @Override
     public void sendRedirect(String location, boolean clearBuffer) throws IOException {
@@ -223,8 +219,6 @@ public class SRTServletResponse61 extends SRTServletResponse60 implements HttpSe
      * @see #sendRedirect(String, int, boolean)
      *
      * @since Servlet 6.1
-     *
-     *        TODO: Update official API doc link when it is available.
      */
     @Override
     public void sendRedirect(String location, int sc) throws IOException {
@@ -269,7 +263,7 @@ public class SRTServletResponse61 extends SRTServletResponse60 implements HttpSe
      *
      * @since Servlet 6.1
      *
-     *        TODO: Update official API doc link when it is available.
+     *        https://jakarta.ee/specifications/servlet/6.1/apidocs/jakarta.servlet/jakarta/servlet/http/httpservletresponse#sendRedirect(java.lang.String,int,boolean)
      */
     @Override
     public void sendRedirect(String location, int sc, boolean clearBuffer) throws IOException {
