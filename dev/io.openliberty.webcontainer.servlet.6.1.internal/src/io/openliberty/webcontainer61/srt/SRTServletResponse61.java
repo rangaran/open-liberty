@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2023, 2024 IBM Corporation and others.
+ * Copyright (c) 2023, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -52,6 +52,22 @@ public class SRTServletResponse61 extends SRTServletResponse60 implements HttpSe
             return;
         }
         super.addDateHeader(name, date);
+    }
+
+    @Override
+    public void setBufferSize(int size) {
+        if (com.ibm.ejs.ras.TraceComponent.isAnyTracingEnabled() && logger.isLoggable(Level.FINE))
+            logger.logp(Level.FINE, CLASS_NAME, "setBufferSize", String.valueOf(size) + " [" + this + "]");
+
+        if (isCommitted()) {
+            logger.logp(Level.SEVERE, CLASS_NAME, "setBufferSize", "setbuffer.size.called.after.write");
+            if (com.ibm.ejs.ras.TraceComponent.isAnyTracingEnabled() && logger.isLoggable(Level.FINE))
+                logger.logp(Level.FINE, CLASS_NAME, "setBufferSize", "throw IllegalStateException. Response is committed");
+
+            throw new IllegalStateException(nls.getString("setbuffer.size.called.after.write"));
+        }
+
+        super.setBufferSize(size);
     }
 
     /**
@@ -154,8 +170,8 @@ public class SRTServletResponse61 extends SRTServletResponse60 implements HttpSe
      * @exception IllegalStateException    If the response was already committed when this method was called
      *
      * @see #sendRedirect(String, int, boolean)
-     * 
-     * TODO: Update official API doc link when it is available.
+     *
+     *      TODO: Update official API doc link when it is available.
      */
     @Override
     public void sendRedirect(String location) throws IOException {
@@ -181,8 +197,8 @@ public class SRTServletResponse61 extends SRTServletResponse60 implements HttpSe
      * @see #sendRedirect(String, int, boolean)
      *
      * @since Servlet 6.1
-     * 
-     * TODO: Update official API doc link when it is available.
+     *
+     *        TODO: Update official API doc link when it is available.
      */
     @Override
     public void sendRedirect(String location, boolean clearBuffer) throws IOException {
@@ -207,8 +223,8 @@ public class SRTServletResponse61 extends SRTServletResponse60 implements HttpSe
      * @see #sendRedirect(String, int, boolean)
      *
      * @since Servlet 6.1
-     * 
-     * TODO: Update official API doc link when it is available.
+     *
+     *        TODO: Update official API doc link when it is available.
      */
     @Override
     public void sendRedirect(String location, int sc) throws IOException {
@@ -252,8 +268,8 @@ public class SRTServletResponse61 extends SRTServletResponse60 implements HttpSe
      * @exception IllegalStateException    If the response was already committed when this method was called
      *
      * @since Servlet 6.1
-     * 
-     * TODO: Update official API doc link when it is available.
+     *
+     *        TODO: Update official API doc link when it is available.
      */
     @Override
     public void sendRedirect(String location, int sc, boolean clearBuffer) throws IOException {
