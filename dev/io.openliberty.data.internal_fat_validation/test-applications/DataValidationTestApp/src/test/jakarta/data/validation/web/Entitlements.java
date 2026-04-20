@@ -22,7 +22,7 @@ import jakarta.validation.Valid;
 /**
  * Repository for a Jakarta Persistence entity with bean validation annotations.
  */
-@Repository(dataStore = "java:module/jdbc/DerbyDataSource")
+@Repository(dataStore = "java:module/jdbc/H2DataSource")
 public interface Entitlements extends DataRepository<Entitlement, Long> {
 
     Optional<Entitlement> findById(long id);
