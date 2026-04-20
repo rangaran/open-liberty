@@ -27,7 +27,6 @@ import io.openliberty.microprofile.telemetry.internal.utils.TestConstants;
  * public static ZipkinContainer zipkinContainer = new ZipkinContainer().withLogConsumer(new SimpleLogConsumer(MyTest.class, "zipkin"));
  * </pre>
  */
-//TODO switch to use ghcr.io/openzipkin/zipkin-slim:2.23
 public class ZipkinContainer extends GenericContainer<ZipkinContainer> {
 
     public static final int HTTP_PORT = 9411;

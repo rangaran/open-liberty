@@ -15,7 +15,6 @@ icr.io/db2_community/db2:12.1.2.0
 icr.io/ibm-messaging/mq:9.4.5.0-r2
 infinispan/server:10.0.1.Final
 infinispan/server:13.0.10.Final
-jaegertracing/all-in-one:1.54
 jboss/keycloak:16.1.1
 jiwoo/nexus:1.0
 jiwoo/simple-keyserver:1.0
@@ -50,6 +49,7 @@ public.ecr.aws/docker/library/node:20-alpine
 public.ecr.aws/docker/library/postgres:17
 public.ecr.aws/docker/library/postgres:17-alpine
 public.ecr.aws/docker/library/python:3.11.6
+quay.io/jaegertracing/all-in-one:1.54
 ryanesch/acme-boulder:1.2
 seleniarm/standalone-chromium:4.8.3
 selenium/standalone-chrome:4.8.3

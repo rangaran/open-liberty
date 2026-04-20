@@ -23,7 +23,6 @@ wasliberty-infrastructure-docker/elastic/logstash:7.16.3
 wasliberty-infrastructure-docker/fbicodex/spnego-kdc-server:1.0
 wasliberty-infrastructure-docker/infinispan/server:10.0.1.Final
 wasliberty-infrastructure-docker/infinispan/server:13.0.10.Final
-wasliberty-infrastructure-docker/jaegertracing/all-in-one:1.54
 wasliberty-infrastructure-docker/jboss/keycloak:16.1.1
 wasliberty-infrastructure-docker/jiwoo/nexus:1.0
 wasliberty-infrastructure-docker/jiwoo/simple-keyserver:1.0
@@ -53,3 +52,4 @@ wasliberty-internal-docker-local/openliberty/testcontainers/postgres-ssl:17.0.0.
 wasliberty-internal-docker-local/openliberty/testcontainers/spnego-kdc-server:1.0.0.1
 wasliberty-internal-docker-local/openliberty/testcontainers/sqlserver-ssl:2022.0.0.1-latest
 wasliberty-mcr-docker-remote/mssql/server:2022-latest
+wasliberty-quay-docker-remote/jaegertracing/all-in-one:1.54

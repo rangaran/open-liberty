@@ -25,6 +25,7 @@ import io.openliberty.microprofile.telemetry.internal.tests.AgentConfigMultiAppT
 import io.openliberty.microprofile.telemetry.internal.tests.AgentConfigTest;
 import io.openliberty.microprofile.telemetry.internal.tests.AgentTest;
 import io.openliberty.microprofile.telemetry.internal.tests.CrossFeatureJaegerTest;
+import io.openliberty.microprofile.telemetry.internal.tests.CrossFeatureZipkinTest;
 import io.openliberty.microprofile.telemetry.internal.tests.JaegerLegacyTest;
 import io.openliberty.microprofile.telemetry.internal.tests.JaegerOtelCollectorTest;
 import io.openliberty.microprofile.telemetry.internal.tests.JaegerOtlpTest;
@@ -40,6 +41,7 @@ import io.openliberty.microprofile.telemetry.internal.tests.ZipkinTest;
 @SuiteClasses({
 
                 AlwaysPassesTest.class, //Must keep this test to run something in the Java 6 builds.
+
                 AgentTest.class,
                 Agent129Test.class,
                 Agent214Test.class,
@@ -47,6 +49,7 @@ import io.openliberty.microprofile.telemetry.internal.tests.ZipkinTest;
                 AgentConfigTest.class,
                 AgentConfigMultiAppTest.class,
                 CrossFeatureJaegerTest.class,
+                CrossFeatureZipkinTest.class,
                 JaegerSecureOtelCollectorTest.class,
                 JaegerSecureOtlpTest.class,
                 JaegerOtlpTest.class,
