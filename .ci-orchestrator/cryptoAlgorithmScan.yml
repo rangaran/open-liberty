@@ -1,0 +1,35 @@
+type: pipeline_definition
+product: Liberty
+name: Cryptographic Algorithms Scan
+description: |
+  Scans pull request changes to find certain cryptography algorithms and send Slack notice if found
+
+triggers:
+- type: manual
+  description: "Manually trigger a scan of pull request changes to find certain cryptography algorithms and send Slack notice if found"
+  triggerName: "cryptoAlgoScan-manual"
+  triggerRank: 5
+  groups: ["LibertyDev"]
+  propertyDefinitions:
+    - name: githubPRNumber
+      isRequired: true
+      description: "PR number to perform delivery requirement verification against e.g. 30188"
+
+- type: github
+  description: "Trigger a scan of pull request changes to find certain cryptography algorithms and send Slack notice if found"
+  triggerName: "cryptoAlgoScan-pr"
+  triggerRank: 5
+  groups: ["LibertyDev"]
+  keyword: "!crypto-algo-scan"
+  aliasKeywords:
+    - "#crypto-algo-scan"
+    - "!crypto-scan"
+    - "!crypto-algo-scan"
+
+steps:
+- stepName: Cryptographic Algorithms Scan
+  workType: Jenkins
+  projectName: cryptoAlgorithmsScan
+  timeoutInMinutes: 1440
+  properties:
+    githubPRApi: "https://api.github.com/repos/OpenLiberty/open-liberty/pulls/${githubPRNumber}"
