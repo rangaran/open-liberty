@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2019, 2025 IBM Corporation and others.
+ * Copyright (c) 2019, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -39,11 +39,13 @@ task cleanBeforeRun(type: Delete) {
   delete new File(autoFvtDir, 'results')
 }
 
-// See derby/java support matrix https://db.apache.org/derby/derby_downloads.html
 ext {
+    // See derby/java support matrix https://db.apache.org/derby/derby_downloads.html
     derbyJava8PlusVersion = '10.11.1.1' // TODO update to 10.14.2.0
     derbyJava17PlusVersion = '10.16.1.1'
     derbyJava21PlusVersion = '10.17.1.0' // Unused for now
+    
+    //TODO add version of H2 that is compiled at Java 8 for legacy (2.1.214)
     h2Version = '2.4.240'
 }
 
