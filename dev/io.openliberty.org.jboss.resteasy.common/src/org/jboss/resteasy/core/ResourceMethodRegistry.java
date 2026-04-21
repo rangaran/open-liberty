@@ -390,14 +390,17 @@ public class ResourceMethodRegistry implements Registry
       {
          ResourceMethodInvoker invoker
                  = new ResourceMethodInvoker((ResourceMethod) method, injectorFactory, rf, providerFactory);
+         
          if (widerMatching)
             rootNode.addInvoker(fullpath, invoker);
-         else root.addInvoker(classExpression, fullpath, invoker);
+         else
+            root.addInvoker(classExpression, fullpath, invoker);
          statisticsController.register(invoker);
       }
       else
       {
          ResourceLocatorInvoker locator = new ResourceLocatorInvoker(rf, injectorFactory, providerFactory, method);
+         
          if (widerMatching)
             rootNode.addInvoker(fullpath, locator);
          else root.addInvoker(classExpression, fullpath, locator);
@@ -483,12 +486,12 @@ public class ResourceMethodRegistry implements Registry
    {
       RESTEasyTracingLogger tracingLogger = RESTEasyTracingLogger.getInstance(request);
       final long timestamp = tracingLogger.timestamp("MATCH_SUMMARY");
+      
       try {
-         if (widerMatching) {
+         if (widerMatching)
             return rootNode.match(request, 0);
-         } else {
+         else
             return root.match(request, 0);
-         }
       } catch (RuntimeException e) {
          throw e;
       }

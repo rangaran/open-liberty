@@ -15,8 +15,11 @@ import javax.enterprise.inject.spi.BeanManager;
 import javax.ws.rs.WebApplicationException;
 
 import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -29,45 +32,110 @@ import java.util.Set;
 public class CdiConstructorInjector implements ConstructorInjector
 {
    private BeanManager manager;
-   private Type type;
+   // Liberty Change Start
+   private Collection<Type> types;
 
-   public CdiConstructorInjector(final Type type, final BeanManager manager)
+   public CdiConstructorInjector(final Collection<Type> type, final BeanManager manager)
    {
-      this.type = type;
+      this.types = type;
       this.manager = manager;
    }
+   // Liberty Change End
 
    @Override
    public Object construct(boolean unwrapAsync)
    {
-      Set<Bean<?>> beans = manager.getBeans(type);
-
-      if (beans.size() > 1)
-      {
-         Set<Bean<?>> modifiableBeans = new HashSet<Bean<?>>();
-         modifiableBeans.addAll(beans);
-         // Ambiguous dependency may occur if a resource has subclasses
-         // Therefore we remove those beans
-         for (Iterator<Bean<?>> iterator = modifiableBeans.iterator(); iterator.hasNext();)
-         {
-            Bean<?> bean = iterator.next();
-            if (!bean.getBeanClass().equals(type) && !bean.isAlternative())
-            {
-               // remove Beans that have clazz in their type closure but not as a base class
-               iterator.remove();
-            }
-         }
-         beans = modifiableBeans;
-      }
-
-      if (LogMessages.LOGGER.isDebugEnabled()) //keep this check for performance reasons, as toString() is expensive on CDI Bean
-      {
-         LogMessages.LOGGER.debug(Messages.MESSAGES.beansFound(type, beans));
-      }
-
-      Bean<?> bean = manager.resolve(beans);
-      CreationalContext<?> context = manager.createCreationalContext(bean);
-      return manager.getReference(bean, type, context);
+       // Liberty Change Start
+       // Get the target bean class (first concrete class that's not Object)
+       Class<?> targetBeanClass = null;
+       for (Type type : types) {
+          if (type instanceof Class<?>) {
+             Class<?> clazz = (Class<?>) type;
+             if (!clazz.isInterface() && !clazz.equals(Object.class)) {
+                targetBeanClass = clazz;
+                break;
+             }
+          }
+       }
+       
+       // Try interfaces first, then concrete class
+       // For EJBs with @Local interfaces not implemented by the class, the bean is a proxy
+       // that only implements the interfaces. We must resolve using interface types.
+       List<Type> interfaceTypes = new ArrayList<>();
+       List<Type> classTypes = new ArrayList<>();
+       
+       for (Type type : types) {
+          if (type instanceof Class && ((Class<?>) type).isInterface()) {
+             interfaceTypes.add(type);
+          } else {
+             classTypes.add(type);
+          }
+       }
+       
+       // Try interface types first
+       List<Type> orderedTypes = new ArrayList<>();
+       orderedTypes.addAll(interfaceTypes);
+       orderedTypes.addAll(classTypes);
+       
+       for (Type type : orderedTypes) {
+          Set<Bean<?>> beans = manager.getBeans(type);
+    
+          if (beans.size() > 1)
+          {
+             Set<Bean<?>> modifiableBeans = new HashSet<Bean<?>>();
+             modifiableBeans.addAll(beans);
+             // Ambiguous dependency may occur if a resource has subclasses
+             // Therefore we remove those beans
+             
+             // Check if type is an interface or class
+             boolean isInterface = (type instanceof Class) && ((Class<?>) type).isInterface();
+             
+             for (Iterator<Bean<?>> iterator = modifiableBeans.iterator(); iterator.hasNext();)
+             {
+                Bean<?> bean = iterator.next();
+                if (isInterface) {
+                   // For interfaces, if we have a target bean class, keep only beans matching that class
+                   // This disambiguates when multiple EJBs implement the same @Local interface
+                   if (targetBeanClass != null && !bean.getBeanClass().equals(targetBeanClass)) {
+                      iterator.remove();
+                   } else if (!bean.getTypes().contains(type) && !bean.isAlternative()) {
+                      // Keep beans that have the interface in their types
+                      // Remove beans that don't have this interface in their type closure
+                      iterator.remove();
+                   }
+                } else {
+                   // For classes, use the original logic
+                   if (!bean.getBeanClass().equals(type) && !bean.isAlternative()) {
+                      // remove Beans that have clazz in their type closure but not as a base class
+                      iterator.remove();
+                   }
+                }
+             }
+             beans = modifiableBeans;
+          }
+    
+          if (LogMessages.LOGGER.isDebugEnabled()) //keep this check for performance reasons, as toString() is expensive on CDI Bean
+          {
+             LogMessages.LOGGER.debug(Messages.MESSAGES.beansFound(type, beans));
+          }
+    
+          Bean<?> bean = manager.resolve(beans);
+          if (bean != null) {
+              CreationalContext<?> context = manager.createCreationalContext(bean);
+              try {
+                  Object result = manager.getReference(bean, type, context);
+                  return result;
+              } catch (Exception e) {
+                  // Continue to next type if this one fails
+                  LogMessages.LOGGER.debug("Failed to get bean reference for type " + type + ": " + e.getMessage());
+              }
+          }
+       }
+       
+       // Log warning if no bean could be resolved from any type
+       LogMessages.LOGGER.warn("Unable to resolve CDI bean for any of the provided types");
+       return null;
+       // Liberty Change End
    }
 
    @Override
