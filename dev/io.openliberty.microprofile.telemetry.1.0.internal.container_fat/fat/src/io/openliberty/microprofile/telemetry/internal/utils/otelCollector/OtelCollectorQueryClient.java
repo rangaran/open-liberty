@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2024 IBM Corporation and others.
+ * Copyright (c) 2024, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -61,7 +61,7 @@ public class OtelCollectorQueryClient {
         metricsFound.put("JvmMemoryUsedAfterLastGc", false);
         metricsFound.put("JvmMemoryLimit", false);
         metricsFound.put("JvmThreadCount", false);
-        //Finds each expected JVM metric in the OpenTelemetry Collector output
+        //Finds each expected JVM metric in the OpenTelemetry Collector output. Names have slightly changed since OpenTelemetry Collector 0.40.0. E.g. jvm_class_unloaded ->  jvm_class_unloaded_total
         for (String s : splits) {
             if (s.contains("jvm_class_count Number of classes currently loaded.")) {
                 metricsFound.put("JvmClassCount", true);
