@@ -290,7 +290,7 @@ public class ResteasyCdiExtension implements Extension
       // Liberty Change End
    }
 
-   public Map<Class<?>, Collection<Type>> getSessionBeanInterface()
+   public Map<Class<?>, Collection<Type>> getSessionBeanInterface() // Liberty Change
    {
       return sessionBeanInterface;
    }

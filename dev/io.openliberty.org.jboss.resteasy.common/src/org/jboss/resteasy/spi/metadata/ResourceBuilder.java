@@ -982,16 +982,18 @@ public class ResourceBuilder
          }
      }
      // Liberty Change End
-     
+
      if (!clazz.isInterface())
       {
          processFields(builder, clazz);
       }
       processSetters(builder, clazz);
-      
+
+      // Liberty Change Start
       ResourceClass resourceClass = builder.buildClass();
       ResourceClass processed = applyProcessors(resourceClass);
       return processed;
+      // Liberty Change End
    }
    
    private List<Method> ifaceMethods = new ArrayList<Method>(); // Liberty Change
@@ -1136,7 +1138,7 @@ public class ResourceBuilder
             return overriddenMethod;
          }
       }
-   
+
       return null;
    }
 
@@ -1274,7 +1276,6 @@ public class ResourceBuilder
             annotationMethod = ifaceMethod;
          }
       }
-      // Liberty Change End
       
       if (annotationMethod == null)
       {
@@ -1284,16 +1285,17 @@ public class ResourceBuilder
       if (annotationMethod != null)
       {
          Set<String> httpMethods = getHttpMethods(annotationMethod);
+         // Liberty Change End
 
          ResourceLocatorBuilder resourceLocatorBuilder;
 
          if (httpMethods == null)
          {
-            resourceLocatorBuilder = resourceClassBuilder.locator(implementation, annotationMethod);
+            resourceLocatorBuilder = resourceClassBuilder.locator(implementation, annotationMethod); // Liberty Change
          }
          else
          {
-            ResourceMethodBuilder resourceMethodBuilder = resourceClassBuilder.method(implementation, annotationMethod);
+            ResourceMethodBuilder resourceMethodBuilder = resourceClassBuilder.method(implementation, annotationMethod); // Liberty Change
             resourceLocatorBuilder = resourceMethodBuilder;
 
             for (String httpMethod : httpMethods)
@@ -1314,28 +1316,28 @@ public class ResourceBuilder
                   resourceMethodBuilder.httpMethod(httpMethod);
             }
             
-            Path methodPath = getAnnotation(Path.class, annotationMethod, ifaceMethod);
+            Path methodPath = getAnnotation(Path.class, annotationMethod, ifaceMethod); // Liberty Change
             if (methodPath != null) {
                resourceMethodBuilder.path(methodPath.value());
             }
             
-            Produces produces = getAnnotation(Produces.class, annotationMethod, ifaceMethod);
+            Produces produces = getAnnotation(Produces.class, annotationMethod, ifaceMethod); // Liberty Change
             if (produces == null)
                produces = resourceClassBuilder.resourceClass.getClazz().getAnnotation(Produces.class);
             if (produces == null)
-               produces = annotationMethod.getDeclaringClass().getAnnotation(Produces.class);
+               produces = annotationMethod.getDeclaringClass().getAnnotation(Produces.class); // Liberty Change
             if (produces != null)
                resourceMethodBuilder.produces(produces.value());
 
-            Consumes consumes = getAnnotation(Consumes.class, annotationMethod, ifaceMethod);
+            Consumes consumes = getAnnotation(Consumes.class, annotationMethod, ifaceMethod); // Liberty Change
             if (consumes == null)
                consumes = resourceClassBuilder.resourceClass.getClazz().getAnnotation(Consumes.class);
             if (consumes == null)
-               consumes = annotationMethod.getDeclaringClass().getAnnotation(Consumes.class);
+               consumes = annotationMethod.getDeclaringClass().getAnnotation(Consumes.class); // Liberty Change
             if (consumes != null)
                resourceMethodBuilder.consumes(consumes.value());
          }
-         Path methodPath = getAnnotation(Path.class, annotationMethod, ifaceMethod);
+         Path methodPath = getAnnotation(Path.class, annotationMethod, ifaceMethod); // Liberty Change
          if (methodPath != null)
             resourceLocatorBuilder.path(methodPath.value());
          for (int i = 0; i < resourceLocatorBuilder.locator.params.length; i++)
