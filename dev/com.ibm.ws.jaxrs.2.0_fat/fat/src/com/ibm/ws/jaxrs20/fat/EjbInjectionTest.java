@@ -20,12 +20,14 @@ import com.ibm.websphere.simplicity.ShrinkHelper;
 import com.ibm.ws.jaxrs.fat.ejbinjection.servlet.EjbInjectionClientTestServlet;
 
 import componenttest.annotation.Server;
+import componenttest.annotation.SkipForRepeat;
 import componenttest.annotation.TestServlet;
 import componenttest.custom.junit.runner.FATRunner;
 import componenttest.topology.impl.LibertyServer;
 import componenttest.topology.utils.FATServletClient;
 
 @RunWith(FATRunner.class)
+@SkipForRepeat({SkipForRepeat.NO_MODIFICATION, "JAXRS-2.1"}) // Skip EE7 and EE8 - requires RESTEasy (EE9+) for EJB @Local interface resolution
 public class EjbInjectionTest extends FATServletClient {
 
     private static final String appName = "EjbInjection";
@@ -41,7 +43,8 @@ public class EjbInjectionTest extends FATServletClient {
                                                        "com.ibm.ws.jaxrs.fat.ejbinjection.ejbs",
                                                        "com.ibm.ws.jaxrs.fat.ejbinjection.interfaces",
                                                        "com.ibm.ws.jaxrs.fat.ejbinjection.interfaces.annotated",
-                                                       "com.ibm.ws.jaxrs.fat.ejbinjection.servlet");
+                                                       "com.ibm.ws.jaxrs.fat.ejbinjection.servlet",
+                                                       "com.ibm.ws.jaxrs.fat.ejbinjection.singleton");
 
         // Make sure we don't fail because we try to start an
         // already started server
