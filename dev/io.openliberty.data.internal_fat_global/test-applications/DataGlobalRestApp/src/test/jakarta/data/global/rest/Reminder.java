@@ -120,7 +120,7 @@ public class Reminder {
         }
     }
 
-    // TODO remove once EclipseLink issue #TODO is fixed
+    // TODO remove once EclipseLink issue https://github.com/OpenLiberty/open-liberty/issues/34694 is fixed
     static class YearConverter implements AttributeConverter<Year, Integer> {
 
         @Override
