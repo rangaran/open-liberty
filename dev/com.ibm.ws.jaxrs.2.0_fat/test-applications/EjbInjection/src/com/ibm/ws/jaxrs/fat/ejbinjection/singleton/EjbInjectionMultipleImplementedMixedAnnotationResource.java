@@ -47,4 +47,3 @@ public class EjbInjectionMultipleImplementedMixedAnnotationResource implements M
     }
 }
 
-// Made with Bob

@@ -25,4 +25,3 @@ public interface MixedAnnotationInterfaceA {
     public String methodA();
 }
 
-// Made with Bob

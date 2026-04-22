@@ -31,4 +31,3 @@ public interface MixedAnnotationInterface {
     public String classAnnotatedMethod();
 }
 
-// Made with Bob

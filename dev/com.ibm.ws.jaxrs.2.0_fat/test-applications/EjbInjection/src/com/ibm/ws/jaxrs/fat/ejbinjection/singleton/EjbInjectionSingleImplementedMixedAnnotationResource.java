@@ -46,4 +46,3 @@ public class EjbInjectionSingleImplementedMixedAnnotationResource implements Mix
     }
 }
 
-// Made with Bob
