@@ -2,7 +2,6 @@
  * Copyright The RESTEasy Authors
  * SPDX-License-Identifier: Apache-2.0
  */
-
 // Source: https://github.com/resteasy/resteasy/blob/6.2.8.Final/resteasy-cdi/src/main/java/org/jboss/resteasy/cdi/CdiPropertyInjector.java
 
 package org.jboss.resteasy.cdi;
@@ -13,6 +12,7 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Type;
+import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
@@ -67,7 +67,7 @@ public class CdiPropertyInjector implements PropertyInjector {
     private boolean injectorEnabled = true;
 
     public CdiPropertyInjector(final PropertyInjector delegate, final Class<?> clazz,
-            final Map<Class<?>, Type> sessionBeanInterface, final BeanManager manager) {
+            final Map<Class<?>, Collection<Type>> sessionBeanInterface, final BeanManager manager) { // Liberty Change
         this.delegate = delegate;
         this.clazz = clazz;
 

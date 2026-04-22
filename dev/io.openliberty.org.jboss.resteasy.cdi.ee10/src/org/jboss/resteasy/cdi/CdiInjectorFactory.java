@@ -2,7 +2,6 @@
  * Copyright The RESTEasy Authors
  * SPDX-License-Identifier: Apache-2.0
  */
-
 // Source: https://github.com/resteasy/resteasy/blob/6.2.8.Final/resteasy-cdi/src/main/java/org/jboss/resteasy/cdi/CdiInjectorFactory.java
 
 package org.jboss.resteasy.cdi;
@@ -11,6 +10,8 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Type;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
@@ -47,7 +48,7 @@ public class CdiInjectorFactory implements InjectorFactory {
     private final BeanManager manager;
     private final InjectorFactory delegate = new InjectorFactoryImpl();
     private final ResteasyCdiExtension extension;
-    private final Map<Class<?>, Type> sessionBeanInterface;
+    private final Map<Class<?>, Collection<Type>> sessionBeanInterface; // Liberty Change
 
     @SuppressWarnings("unused")
     public CdiInjectorFactory() {
@@ -75,7 +76,7 @@ public class CdiInjectorFactory implements InjectorFactory {
     @Override
     public PropertyInjector createPropertyInjector(ResourceClass resourceClass, ResteasyProviderFactory providerFactory) {
         return new CdiPropertyInjector(delegate.createPropertyInjector(resourceClass, providerFactory),
-                resourceClass.getClazz(), sessionBeanInterface, manager);
+                resourceClass.getClazz(), sessionBeanInterface, manager); // Liberty Change
     }
 
     @Override
@@ -105,13 +106,14 @@ public class CdiInjectorFactory implements InjectorFactory {
     protected ConstructorInjector cdiConstructor(Class<?> clazz) {
         if (!manager.getBeans(clazz).isEmpty()) {
             LogMessages.LOGGER.debug(Messages.MESSAGES.usingCdiConstructorInjector(clazz));
-            return new CdiConstructorInjector(clazz, manager);
+            return new CdiConstructorInjector(Collections.singleton(clazz), manager); // Liberty Change
         }
 
         if (sessionBeanInterface.containsKey(clazz)) {
-            Type intfc = sessionBeanInterface.get(clazz);
-            LogMessages.LOGGER.debug(Messages.MESSAGES.usingInterfaceForLookup(intfc, clazz));
+            // Liberty Change Start
+            Collection<Type> intfc = sessionBeanInterface.get(clazz);
             return new CdiConstructorInjector(intfc, manager);
+            // Liberty Change End
         }
 
         return null;
@@ -119,7 +121,7 @@ public class CdiInjectorFactory implements InjectorFactory {
 
     public PropertyInjector createPropertyInjector(Class resourceClass, ResteasyProviderFactory factory) {
         return new CdiPropertyInjector(delegate.createPropertyInjector(resourceClass, factory), resourceClass,
-                sessionBeanInterface, manager);
+                sessionBeanInterface, manager); // Liberty Change
     }
 
     public ValueInjector createParameterExtractor(Class injectTargetClass, AccessibleObject injectTarget, String defaultName,
