@@ -4,7 +4,8 @@
 #*******************************************************************************
 
 # Package for this bucket's test suite
--privatepackage: com.ibm.ws.jpa.tests.spec10.callback.jpa20
+-privatepackage: com.ibm.ws.jpa.tests.spec10.callback.jpa20,\ 
+                 com.ibm.ws.jpa.tests.spec10.callback.tests
 
 # Suite class that will be run
 suite.name=com.ibm.ws.jpa.tests.spec10.callback.jpa20.FATSuite

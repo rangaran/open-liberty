@@ -27,7 +27,8 @@ import componenttest.rules.repeater.RepeatTests;
 @RunWith(Suite.class)
 @SuiteClasses({
     Callback_EJB.class,
-    Callback_Web.class
+    Callback_Web.class,
+    componenttest.custom.junit.runner.AlwaysPassesTest.class
 })
 public class FATSuite extends AbstractFATSuite {
     

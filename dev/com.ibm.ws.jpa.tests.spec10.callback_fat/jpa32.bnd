@@ -3,7 +3,8 @@
 # SPDX-License-Identifier: EPL-2.0
 #*******************************************************************************
 
--privatepackage: com.ibm.ws.jpa.tests.spec10.callback.jpa32
+-privatepackage: com.ibm.ws.jpa.tests.spec10.callback.jpa32,\ 
+                 com.ibm.ws.jpa.tests.spec10.callback.tests
 
 suite.name=com.ibm.ws.jpa.tests.spec10.callback.jpa32.FATSuite
 
