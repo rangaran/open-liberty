@@ -58,7 +58,8 @@ public class EjbInjectionTest extends FATServletClient {
     @AfterClass
     public static void teardown() throws Exception {
         if (server != null) {
-            server.stopServer("CWWKE1102W");  //ignore server quiesce timeouts due to slow test machines
+            server.stopServer("CWWKE1102W",  //ignore server quiesce timeouts due to slow test machines
+                             "CWWKE0912W", "CWWKE0921W");  //ignore Java 2 Security warnings in EE11
         }
     }
 }
