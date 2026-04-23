@@ -509,9 +509,27 @@ public class Constants {
                 continue;
             }
             if (mod.startsWith("+")) {
-                addCiphers.add(mod.substring(1));
+                String cipher = mod.substring(1);
+                if (cipher.isEmpty() && TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                    Tr.debug(tc, "parseCipherModifiers: '+' detected but no cipher suite provided after");
+                }
+                addCiphers.add(cipher);
             } else if (mod.startsWith("-")) {
-                removeCiphers.add(mod.substring(1));
+                String pattern = mod.substring(1);
+                if (pattern.isEmpty() && TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                    Tr.debug(tc, "parseCipherModifiers: '-' detected but no cipher suite provided after");
+                } else if (pattern.contains("*") && TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                    // Check if wildcard is in the middle
+                    int firstStar = pattern.indexOf("*");
+                    int lastStar = pattern.lastIndexOf("*");
+                    boolean hasMiddleWildcard = (firstStar > 0 && lastStar < pattern.length() - 1) || (firstStar != lastStar);
+                    
+                    if (hasMiddleWildcard) {
+                        Tr.debug(tc, "parseCipherModifiers: Pattern '-" + pattern +
+                                 "' contains wildcard in middle, will default to the effective jdk list");
+                    }
+                }
+                removeCiphers.add(pattern);
             } else {
                 customCiphers.add(mod);
             }

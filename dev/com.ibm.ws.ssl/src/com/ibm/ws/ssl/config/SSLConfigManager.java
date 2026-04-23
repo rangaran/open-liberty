@@ -575,8 +575,6 @@ public class SSLConfigManager {
 
         prop = (String) map.get("securityLevel");
         if (null != prop && !prop.isEmpty()) {
-            sslprops.setProperty(Constants.SSLPROP_SECURITY_LEVEL, prop);
-
             
             // Get the SSL config ID for per-config logging
             String configId = (String) map.get("id");
