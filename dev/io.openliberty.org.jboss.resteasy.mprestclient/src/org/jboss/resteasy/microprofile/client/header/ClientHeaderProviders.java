@@ -37,6 +37,7 @@ import org.eclipse.microprofile.rest.client.ext.DefaultClientHeadersFactoryImpl;
 import org.jboss.resteasy.cdi.CdiConstructorInjector;
 
 import java.lang.reflect.Method;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.ServiceLoader;
@@ -136,7 +137,7 @@ public class ClientHeaderProviders {
         if (manager != null) {
             Set<Bean<?>> beans = manager.getBeans(factory);
             if (!beans.isEmpty()) {
-                final CdiConstructorInjector injector = new CdiConstructorInjector(factory, (jakarta.enterprise.inject.spi.BeanManager) manager); // Liberty change
+                final CdiConstructorInjector injector = new CdiConstructorInjector(Collections.singleton(factory), (jakarta.enterprise.inject.spi.BeanManager) manager); // Liberty change
                 // The CdiConstructorInjector does not use the unwrapAsync value using false has no effect
                 return factory.cast(injector.construct(false));
             }
