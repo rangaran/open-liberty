@@ -36,5 +36,6 @@
     </library>
   
     <javaPermission codebase="${shared.resource.dir}/h2Java8/h2.jar" className="java.security.AllPermission"/>
+    <!-- Due to lack of doPriv in h2: -->
     <javaPermission className="java.lang.RuntimePermission" name="getClassLoader"/>
 </server>
