@@ -42,12 +42,14 @@ import io.openliberty.jpa.persistence.tests.models.Book;
 import io.openliberty.jpa.persistence.tests.models.DateTimeEntity;
 import io.openliberty.jpa.persistence.tests.models.DocumentEntity;
 import io.openliberty.jpa.persistence.tests.models.Employee;
+import io.openliberty.jpa.persistence.tests.models.EmployeeSalaryDTO;
 import io.openliberty.jpa.persistence.tests.models.Event;
 import io.openliberty.jpa.persistence.tests.models.Organization;
 import io.openliberty.jpa.persistence.tests.models.Participant;
 import io.openliberty.jpa.persistence.tests.models.Person;
 import io.openliberty.jpa.persistence.tests.models.Priority;
 import io.openliberty.jpa.persistence.tests.models.Product;
+import io.openliberty.jpa.persistence.tests.models.SimpleEmployee;
 import io.openliberty.jpa.persistence.tests.models.Ticket;
 import io.openliberty.jpa.persistence.tests.models.TicketStatus;
 import io.openliberty.jpa.persistence.tests.models.User;
@@ -1912,6 +1914,7 @@ public class JakartaPersistenceServlet extends FATServlet {
     }
 
     @Test
+    @SkipIfSysProp(DB_Oracle)
     public void testConstructorExpressionWithCasePrimitiveLong() throws Exception {
         deleteAllEntities(SimpleEmployee.class);
 
