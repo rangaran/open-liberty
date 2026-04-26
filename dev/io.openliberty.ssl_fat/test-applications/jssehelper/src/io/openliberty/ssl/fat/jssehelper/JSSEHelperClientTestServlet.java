@@ -26,6 +26,9 @@ import javax.servlet.annotation.WebServlet;
 
 import org.junit.Test;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import com.ibm.websphere.ssl.JSSEHelper;
 
 import componenttest.app.FATServlet;
@@ -239,5 +242,78 @@ public class JSSEHelperClientTestServlet extends FATServlet {
 
         // Verify that we are using LibertySSLSocketFactoryWrapper
         Assert.assertTrue("com.ibm.ws.ssl.LibertySSLSocketFactoryWrapper".equals(sslSocketFactoryName));
+    }
+
+    /**
+     * Test PQC TLS 1.3 handshake using JSSEHelper.
+     * This test verifies that Liberty's JSSEHelper can establish a TLS 1.3 connection
+     * and capture handshake details including cipher suite information.
+     */
+    @Test
+    public void testPQCTLS13Handshake() throws Exception {
+        System.out.println("=== PQC TLS 1.3 Handshake Test ===");
+        
+        // Get Liberty-managed SSL context using default SSL configuration
+        SSLContext sslContext = JSSEHelper.getInstance().getSSLContext(null, null, null, true);
+        assertNotNull("Failed to obtain SSL context", sslContext);
+        
+        System.out.println("Obtained Liberty SSL context: " + sslContext.getProtocol());
+        
+        // Get SSL socket factory from context
+        SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+        assertNotNull("SSL socket factory should not be null", sslSocketFactory);
+        
+        verifySSLContext(sslContext.getClass().getName());
+        verifySSLSocketFactory(sslSocketFactory.getClass().getName());
+        
+        // Perform HTTPS connection and capture handshake details
+        int responseCode = -1;
+        String cipherSuite = null;
+        StringBuffer sb = new StringBuffer();
+        
+        try {
+            // Set the default SSLContext for the application
+            HttpsURLConnection.setDefaultSSLSocketFactory(sslSocketFactory);
+            
+            // URL to connect to
+            URL url = new URL(URI_CONTEXT_ROOT);
+            
+            // Open connection
+            HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
+            
+            // Set request method
+            connection.setRequestMethod("GET");
+            
+            // Get response code
+            responseCode = connection.getResponseCode();
+            
+            // Capture cipher suite
+            cipherSuite = connection.getCipherSuite();
+            
+            // Read response
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    sb.append(line);
+                }
+            }
+            
+            // Disconnect
+            connection.disconnect();
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
+        
+        // Verify results
+        assertEquals(200, responseCode);
+        assertEquals("Hello World!", sb.toString());
+        assertNotNull("Cipher suite should not be null", cipherSuite);
+        
+        System.out.println("=== Handshake Details ===");
+        System.out.println("Cipher Suite: " + cipherSuite);
+        System.out.println("Response Code: " + responseCode);
+        System.out.println("=== PQC TLS 1.3 Test Complete ===");
     }
 }

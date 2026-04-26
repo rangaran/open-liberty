@@ -15,7 +15,8 @@ bVersion=1.0
 
 src: \
   fat/src,\
-  test-applications/jssehelper/src
+  test-applications/jssehelper/src,\
+  test-applications/pqctlsclient/src
 
 fat.project: true
 

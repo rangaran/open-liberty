@@ -18,6 +18,7 @@ import org.junit.runners.Suite.SuiteClasses;
 
 @RunWith(Suite.class)
 @SuiteClasses({
-                JSSEHelperTest.class
+                JSSEHelperTest.class,
+                PQCTLS13Test.class
 })
 public class FATSuite {}
