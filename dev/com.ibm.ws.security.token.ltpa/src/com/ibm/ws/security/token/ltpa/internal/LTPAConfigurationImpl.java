@@ -44,6 +44,7 @@ import com.ibm.ws.security.filemonitor.FileBasedActionable;
 import com.ibm.ws.security.filemonitor.LTPAFileMonitor;
 import com.ibm.ws.security.token.ltpa.LTPAConfiguration;
 import com.ibm.ws.security.token.ltpa.LTPAKeyInfoManager;
+import com.ibm.ws.security.token.ltpa.pqc.PQCConstants;
 import com.ibm.wsspi.kernel.filemonitor.FileMonitor;
 import com.ibm.wsspi.kernel.service.location.WsLocationAdmin;
 import com.ibm.wsspi.kernel.service.location.WsResource;
@@ -108,6 +109,11 @@ public class LTPAConfigurationImpl implements LTPAConfiguration, FileBasedAction
     private List<Properties> nonConfigValidationKeys = null;
     private final Collection<File> currentlyDeletedFiles = new HashSet<File>();
     private static final Collection<File> allKeysFiles = new HashSet<File>();
+
+    // ========== PQC Configuration Fields (Issue #35556 - Task 2.8) ==========
+    private String cryptoMode = PQCConstants.DEFAULT_CRYPTO_MODE;
+    private String pqcAlgorithm = PQCConstants.DEFAULT_PQC_ALGORITHM;
+    private boolean enablePQC = PQCConstants.DEFAULT_ENABLE_PQC;
     boolean isValidationKeysFileConfigured = false;
 
     protected void setExecutorService(ServiceReference<ExecutorService> ref) {
@@ -202,6 +208,31 @@ public class LTPAConfigurationImpl implements LTPAConfiguration, FileBasedAction
         primaryKeyPassword = resolvePrimaryKeyPassword(props);
         keyTokenExpiration = (Long) props.get(CFG_KEY_TOKEN_EXPIRATION);
         monitorInterval = (Long) props.get(CFG_KEY_MONITOR_INTERVAL);
+
+        // ========== PQC Configuration Loading (Issue #35556 - Task 2.8) ==========
+        Object cryptoModeObj = props.get(CFG_KEY_CRYPTO_MODE);
+        if (cryptoModeObj != null) {
+            cryptoMode = (String) cryptoModeObj;
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                Tr.debug(tc, "PQC crypto mode: " + cryptoMode);
+            }
+        }
+        
+        Object pqcAlgorithmObj = props.get(CFG_KEY_PQC_ALGORITHM);
+        if (pqcAlgorithmObj != null) {
+            pqcAlgorithm = (String) pqcAlgorithmObj;
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                Tr.debug(tc, "PQC algorithm: " + pqcAlgorithm);
+            }
+        }
+        
+        Object enablePQCObj = props.get(CFG_KEY_ENABLE_PQC);
+        if (enablePQCObj != null) {
+            enablePQC = (Boolean) enablePQCObj;
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                Tr.debug(tc, "PQC enabled: " + enablePQC);
+            }
+        }
         authFilterRef = (String) props.get(KEY_AUTH_FILTER_REF);
         // expirationDifferenceAllowed is set to 3 seconds (3000ms) by default.
         // If expirationDifferenceAllowed is set to less than 0, then the two expiration values will not be compared in the LTPAToken2.decrypt() method.
@@ -831,6 +862,23 @@ public class LTPAConfigurationImpl implements LTPAConfiguration, FileBasedAction
         }
     }
 
+
+    // ========== PQC Configuration Getters (Issue #35556 - Task 2.8) ==========
+    
+    @Override
+    public String getCryptoMode() {
+        return cryptoMode;
+    }
+    
+    @Override
+    public String getPQCAlgorithm() {
+        return pqcAlgorithm;
+    }
+    
+    @Override
+    public boolean isEnablePQC() {
+        return enablePQC;
+    }
     /**
      * Creates or returns a security change notifier.
      */

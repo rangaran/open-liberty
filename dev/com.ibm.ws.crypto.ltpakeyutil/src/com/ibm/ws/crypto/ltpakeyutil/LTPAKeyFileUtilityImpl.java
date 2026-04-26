@@ -17,6 +17,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.security.AccessController;
+import java.security.KeyPair;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Properties;
@@ -98,6 +99,26 @@ public class LTPAKeyFileUtilityImpl implements LTPAKeyFileUtility {
             expProps.put(CREATION_HOST_PROPERTY, "localhost");
             expProps.put(LTPA_VERSION_PROPERTY, CryptoUtils.isFips140_3Enabled() ? "2.0" : "1.0");
             expProps.put(CREATION_DATE_PROPERTY, (new java.util.Date()).toString());
+            
+            // Generate PQC (ML-DSA) keys
+            try {
+                KeyPair pqcKeyPair = generateMLDSAKeyPair();
+                if (pqcKeyPair != null) {
+                    byte[] pqcPublicKeyBytes = pqcKeyPair.getPublic().getEncoded();
+                    byte[] pqcPrivateKeyBytes = pqcKeyPair.getPrivate().getEncoded();
+                    byte[] encryptedPQCPrivateKeyBytes = encryptor.encrypt(pqcPrivateKeyBytes);
+                    
+                    String tmpPQCPublic = Base64Coder.base64EncodeToString(pqcPublicKeyBytes);
+                    String tmpPQCPrivate = Base64Coder.base64EncodeToString(encryptedPQCPrivateKeyBytes);
+                    
+                    expProps.put("com.ibm.websphere.ltpa.pqc.PublicKey", tmpPQCPublic);
+                    expProps.put("com.ibm.websphere.ltpa.pqc.PrivateKey", tmpPQCPrivate);
+                    expProps.put("com.ibm.websphere.ltpa.pqc.Algorithm", "ML-DSA-65");
+                }
+            } catch (Exception pqcEx) {
+                // PQC key generation failed - log but continue with classical keys only
+                System.err.println("Warning: PQC key generation failed: " + pqcEx.getMessage());
+            }
         } catch (Exception e) {
             throw e;
         }
@@ -153,4 +174,59 @@ public class LTPAKeyFileUtilityImpl implements LTPAKeyFileUtility {
         return;
     }
 
+    /**
+     * Generate ML-DSA (Dilithium) key pair for PQC support.
+     * Uses Java 25's built-in ML-DSA support without requiring MLDSAParameterSpec.
+     * The KeyPairGenerator uses default parameters (ML-DSA-65) when not explicitly initialized.
+     * 
+     * @return KeyPair containing ML-DSA public and private keys, or null if generation fails
+     */
+     private KeyPair generateMLDSAKeyPair() {
+        System.out.println("DEBUG: Starting ML-DSA key pair generation");
+        System.out.println("DEBUG: Java version: " + System.getProperty("java.version"));
+        System.out.println("DEBUG: Java vendor: " + System.getProperty("java.vendor"));
+        
+        try {
+            // List all available security providers
+            System.out.println("DEBUG: Available security providers:");
+            java.security.Provider[] providers = java.security.Security.getProviders();
+            for (java.security.Provider provider : providers) {
+                System.out.println("DEBUG:   - " + provider.getName() + " (version " + provider.getVersion() + ")");
+                // Check if provider supports ML-DSA
+                if (provider.getService("KeyPairGenerator", "ML-DSA") != null) {
+                    System.out.println("DEBUG:     * Supports ML-DSA KeyPairGenerator");
+                }
+            }
+            
+            // Generate ML-DSA key pair using default SUN provider
+            // Note: IBM Java 25 doesn't expose MLDSAParameterSpec class, but the KeyPairGenerator
+            // works with default parameters (ML-DSA-65) without explicit initialization
+            System.out.println("DEBUG: Getting KeyPairGenerator instance for ML-DSA...");
+            java.security.KeyPairGenerator keyGen = java.security.KeyPairGenerator.getInstance("ML-DSA");
+            System.out.println("DEBUG: KeyPairGenerator obtained, provider: " + keyGen.getProvider().getName());
+            System.out.println("DEBUG: Using default parameters (ML-DSA-65) - no explicit initialization needed");
+            
+            System.out.println("DEBUG: Generating ML-DSA key pair...");
+            KeyPair keyPair = keyGen.generateKeyPair();
+            System.out.println("DEBUG: ML-DSA key pair generated successfully!");
+            System.out.println("DEBUG: Public key algorithm: " + keyPair.getPublic().getAlgorithm());
+            System.out.println("DEBUG: Public key format: " + keyPair.getPublic().getFormat());
+            System.out.println("DEBUG: Public key size: " + keyPair.getPublic().getEncoded().length + " bytes");
+            System.out.println("DEBUG: Private key algorithm: " + keyPair.getPrivate().getAlgorithm());
+            System.out.println("DEBUG: Private key format: " + keyPair.getPrivate().getFormat());
+            System.out.println("DEBUG: Private key size: " + keyPair.getPrivate().getEncoded().length + " bytes");
+            
+            return keyPair;
+        } catch (java.security.NoSuchAlgorithmException e) {
+            System.err.println("ERROR: ML-DSA algorithm not available in any security provider");
+            System.err.println("ERROR: Exception: " + e.getClass().getName() + ": " + e.getMessage());
+            e.printStackTrace(System.err);
+            return null;
+        } catch (Exception e) {
+            System.err.println("ERROR: ML-DSA key generation failed");
+            System.err.println("ERROR: Exception: " + e.getClass().getName() + ": " + e.getMessage());
+            e.printStackTrace(System.err);
+            return null;
+        }
+    } 
 }

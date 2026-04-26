@@ -83,7 +83,9 @@ public class LTPAKeyInfoManager {
     private static final String SECRETKEY = "secretkey";
     private static final String PRIVATEKEY = "privatekey";
     private static final String PUBLICKEY = "publickey";
-
+    // PQC key cache identifiers (Issue #35556 - Task 2.3)
+    private static final String MLDSA_PRIVATEKEY = "mldsaprivatekey";
+    private static final String MLDSA_PUBLICKEY = "mldsapublickey";
     private static final String LTPA_KEYS_BACKUP_EXTENSION = ".defaultpassword.backup";
 
     private final List<String> importFileCache = new ArrayList<String>();
@@ -265,6 +267,17 @@ public class LTPAKeyInfoManager {
         String secretKeyStr = props.getProperty(LTPAKeyFileUtility.KEYIMPORT_SECRETKEY);
         String privateKeyStr = props.getProperty(LTPAKeyFileUtility.KEYIMPORT_PRIVATEKEY);
         String publicKeyStr = props.getProperty(LTPAKeyFileUtility.KEYIMPORT_PUBLICKEY);
+        // PQC: Load ML-DSA keys if present (Issue #35556 - Task 2.3)
+        String mldsaPrivateKeyStr = props.getProperty(LTPAKeyFileUtility.KEYIMPORT_MLDSA_PRIVATEKEY);
+        String mldsaPublicKeyStr = props.getProperty(LTPAKeyFileUtility.KEYIMPORT_MLDSA_PUBLICKEY);
+        String pqcAlgorithm = props.getProperty(LTPAKeyFileUtility.KEYIMPORT_PQC_ALGORITHM);
+        String cryptoMode = props.getProperty(LTPAKeyFileUtility.KEYIMPORT_CRYPTO_MODE);
+
+        if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                Tr.debug(tc, "PQC keys present: " + (mldsaPrivateKeyStr != null && mldsaPublicKeyStr != null));
+                Tr.debug(tc, "PQC algorithm: " + pqcAlgorithm);
+                Tr.debug(tc, "Crypto mode: " + cryptoMode);
+        }
 
         byte[] secretKey, privateKey, publicKey;
         byte[][] keys;
@@ -302,6 +315,39 @@ public class LTPAKeyInfoManager {
         if (publicKey != null) {
             this.keyCache.put(keyImportFile + PUBLICKEY, publicKey);
         }
+        // PQC: Decrypt and cache ML-DSA keys if present (Issue #35556 - Task 2.3)
+        if (mldsaPrivateKeyStr != null && !mldsaPrivateKeyStr.isEmpty()) {
+                try {
+                         byte[] mldsaPrivateKey = Base64Coder.base64DecodeString(mldsaPrivateKeyStr);
+                         // TODO: Decrypt ML-DSA private key if encrypted (similar to RSA key decryption)
+                         this.keyCache.put(keyImportFile + MLDSA_PRIVATEKEY, mldsaPrivateKey);
+
+                         if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                                 Tr.debug(tc, "ML-DSA private key loaded and cached");
+                         }
+                 } catch (Exception e) {
+                         if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                                 Tr.debug(tc, "Error loading ML-DSA private key: " + e.getMessage());
+                         }
+                 }
+         }
+
+         if (mldsaPublicKeyStr != null && !mldsaPublicKeyStr.isEmpty()) {
+                 try {
+                         byte[] mldsaPublicKey = Base64Coder.base64DecodeString(mldsaPublicKeyStr);
+                         this.keyCache.put(keyImportFile + MLDSA_PUBLICKEY, mldsaPublicKey);
+
+                         if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                                 Tr.debug(tc, "ML-DSA public key loaded and cached");
+                         }
+                 } catch (Exception e) {
+                         if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                                Tr.debug(tc, "Error loading ML-DSA public key: " + e.getMessage());
+                         }
+                 }
+          }
+        
+
         if (realm != null) {
             this.realmCache.put(keyImportFile, realm); //TODO: REALM? to support different realm name
         }
@@ -548,5 +594,26 @@ public class LTPAKeyInfoManager {
     public final List<LTPAValidationKeysInfo> getValidationLTPAKeys() {
         return ltpaValidationKeysInfos;
     }
+
+    /**
+         * Get ML-DSA private key from cache.
+         *
+         * @param keyImportFile The key file name
+         * @return ML-DSA private key bytes or null if not present
+         */
+        public byte[] getMLDSAPrivateKey(String keyImportFile) {
+                return this.keyCache.get(keyImportFile + MLDSA_PRIVATEKEY);
+        }
+
+        /**
+         * Get ML-DSA public key from cache.
+         *
+         * @param keyImportFile The key file name
+         * @return ML-DSA public key bytes or null if not present
+         */
+        public byte[] getMLDSAPublicKey(String keyImportFile) {
+                return this.keyCache.get(keyImportFile + MLDSA_PUBLICKEY);
+        }
+
 
 }

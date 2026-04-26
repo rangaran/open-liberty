@@ -73,6 +73,25 @@ public interface LTPAConfiguration {
      */
     static final String CFG_KEY_VALIDATION_VALID_UNTIL_DATE = "validUntilDate";
 
+    // ========== PQC Configuration Properties (Issue #35556) ==========
+    
+    /**
+     * The cryptographic mode for LTPA tokens.
+     * Valid values: "classical" (RSA only), "pqc" (ML-DSA only), "hybrid" (both RSA and ML-DSA)
+     */
+    public static final String CFG_KEY_CRYPTO_MODE = "cryptoMode";
+    
+    /**
+     * The PQC algorithm to use for digital signatures.
+     * Valid values: "ML-DSA-44" (128-bit security), "ML-DSA-65" (192-bit security), "ML-DSA-87" (256-bit security)
+     */
+    public static final String CFG_KEY_PQC_ALGORITHM = "pqcAlgorithm";
+    
+    /**
+     * Enable or disable Post-Quantum Cryptography support.
+     */
+    public static final String CFG_KEY_ENABLE_PQC = "enablePQC";
+
     /**
      * Internal property used to distinguish configured validation keys from non-configured validation keys.
      * Configured validation keys are explicitly defined in the server.xml using <validationKeys /> and require a password.
@@ -121,6 +140,30 @@ public interface LTPAConfiguration {
      * @return Maximum expiration difference allowed
      */
     long getExpirationDifferenceAllowed();
+
+    
+    // ========== PQC Configuration Getters (Issue #35556) ==========
+    
+    /**
+     * Get the cryptographic mode for LTPA tokens.
+     * 
+     * @return The crypto mode: "classical" (RSA only), "pqc" (ML-DSA only), or "hybrid" (both)
+     */
+    String getCryptoMode();
+    
+    /**
+     * Get the PQC algorithm to use for digital signatures.
+     * 
+     * @return The PQC algorithm: "ML-DSA-44", "ML-DSA-65", or "ML-DSA-87"
+     */
+    String getPQCAlgorithm();
+    
+    /**
+     * Check if Post-Quantum Cryptography support is enabled.
+     * 
+     * @return true if PQC is enabled, false otherwise
+     */
+    boolean isEnablePQC();
 
     /**
      * @return monitor interval
