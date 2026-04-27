@@ -1914,7 +1914,10 @@ public class JakartaPersistenceServlet extends FATServlet {
     }
 
     @Test
-    @SkipIfSysProp(DB_Oracle)
+    @SkipIfSysProp({
+        DB_SQLServer,
+        DB_Oracle
+    })
     public void testConstructorExpressionWithCasePrimitiveLong() throws Exception {
         deleteAllEntities(SimpleEmployee.class);
 
