@@ -91,6 +91,36 @@ public interface LTPAConfiguration {
      * Enable or disable Post-Quantum Cryptography support.
      */
     public static final String CFG_KEY_ENABLE_PQC = "enablePQC";
+    
+    /**
+     * The ML-DSA algorithm variant for quantum-resistant signatures.
+     */
+    public static final String CFG_KEY_MLDSA_ALGORITHM = "mldsaAlgorithm";
+    
+    /**
+     * The ML-DSA keystore file path.
+     */
+    public static final String CFG_KEY_MLDSA_KEYSTORE_FILE = "mldsaKeystoreFile";
+    
+    /**
+     * The ML-DSA keystore password.
+     */
+    public static final String CFG_KEY_MLDSA_KEYSTORE_PASSWORD = "mldsaKeystorePassword";
+    
+    /**
+     * The ML-KEM algorithm variant for quantum-resistant encryption.
+     */
+    public static final String CFG_KEY_MLKEM_ALGORITHM = "mlkemAlgorithm";
+    
+    /**
+     * The PQC keystore file path (for ML-KEM keys).
+     */
+    public static final String CFG_KEY_PQC_KEYSTORE_FILE = "pqcKeystoreFile";
+    
+    /**
+     * The PQC keystore password (for ML-KEM keys).
+     */
+    public static final String CFG_KEY_PQC_KEYSTORE_PASSWORD = "pqcKeystorePassword";
 
     /**
      * Internal property used to distinguish configured validation keys from non-configured validation keys.
@@ -160,10 +190,52 @@ public interface LTPAConfiguration {
     
     /**
      * Check if Post-Quantum Cryptography support is enabled.
-     * 
+     *
      * @return true if PQC is enabled, false otherwise
      */
     boolean isEnablePQC();
+    
+    /**
+     * Get the ML-DSA algorithm variant for quantum-resistant signatures.
+     *
+     * @return The ML-DSA algorithm: "ML-DSA-44", "ML-DSA-65", or "ML-DSA-87"
+     */
+    String getMLDSAAlgorithm();
+    
+    /**
+     * Get the ML-DSA keystore file path.
+     *
+     * @return Path to the PKCS12 keystore containing ML-DSA keys
+     */
+    String getMLDSAKeystoreFile();
+    
+    /**
+     * Get the ML-DSA keystore password.
+     *
+     * @return Password for the ML-DSA keystore
+     */
+    String getMLDSAKeystorePassword();
+    
+    /**
+     * Get the ML-KEM algorithm variant for quantum-resistant encryption.
+     *
+     * @return The ML-KEM algorithm: "ML-KEM-512", "ML-KEM-768", or "ML-KEM-1024"
+     */
+    String getMLKEMAlgorithm();
+    
+    /**
+     * Get the PQC keystore file path (for ML-KEM keys).
+     *
+     * @return Path to the PKCS12 keystore containing ML-KEM keys
+     */
+    String getPQCKeystoreFile();
+    
+    /**
+     * Get the PQC keystore password (for ML-KEM keys).
+     *
+     * @return Password for the PQC keystore
+     */
+    String getPQCKeystorePassword();
 
     /**
      * @return monitor interval
