@@ -21,6 +21,7 @@ import javax.crypto.SecretKey;
 
 import com.ibm.websphere.ras.Tr;
 import com.ibm.websphere.ras.TraceComponent;
+import com.ibm.websphere.ras.annotation.Sensitive;
 
 /**
  * Runtime support for Post-Quantum Cryptography (PQC) algorithms.
@@ -114,7 +115,7 @@ public class PQCRuntimeSupport {
     
     /**
      * Generate ML-KEM key pair.
-     * 
+     *
      * @param algorithm ML-KEM algorithm (ML-KEM-512, ML-KEM-768, ML-KEM-1024)
      * @return KeyPair containing ML-KEM public and private keys
      * @throws Exception if key generation fails
@@ -129,6 +130,17 @@ public class PQCRuntimeSupport {
         KeyPairGenerator kpg = KeyPairGenerator.getInstance("ML-KEM");
         kpg.initialize(paramSpec);
         return kpg.generateKeyPair();
+    }
+    
+    /**
+     * Generate ML-KEM key pair using MLKEMAlgorithmType enum.
+     *
+     * @param algorithmType ML-KEM algorithm type
+     * @return KeyPair containing ML-KEM public and private keys
+     * @throws Exception if key generation fails
+     */
+    public static KeyPair generateMLKEMKeyPair(MLKEMAlgorithmType algorithmType) throws Exception {
+        return generateMLKEMKeyPair(algorithmType.getAlgorithmName());
     }
     
     /**
@@ -215,6 +227,57 @@ public class PQCRuntimeSupport {
         // Use reflection to call secretKeyWithEncap.encapsulation()
         Method encapsulation = secretKeyWithEncap.getClass().getMethod("encapsulation");
         return (byte[]) encapsulation.invoke(secretKeyWithEncap);
+    }
+    
+    /**
+     * Validate ML-KEM key sizes match expected values.
+     *
+     * @param publicKeyBytes public key bytes
+     * @param privateKeyBytes private key bytes
+     * @param algorithm ML-KEM algorithm type
+     * @return true if key sizes are valid
+     */
+    public static boolean validateKeySizes(byte[] publicKeyBytes,
+                                          @Sensitive byte[] privateKeyBytes,
+                                          MLKEMAlgorithmType algorithm) {
+        
+        if (publicKeyBytes == null || privateKeyBytes == null) {
+            return false;
+        }
+
+        // Note: Encoded keys include ASN.1 overhead, so we check minimum sizes
+        int minPublicSize = algorithm.getPublicKeySize();
+        int minPrivateSize = algorithm.getPrivateKeySize();
+
+        boolean valid = publicKeyBytes.length >= minPublicSize &&
+                       privateKeyBytes.length >= minPrivateSize;
+
+        if (tc.isDebugEnabled()) {
+            Tr.debug(tc, "ML-KEM key size validation: " + algorithm.getAlgorithmName() +
+                    ", public=" + publicKeyBytes.length + " (min " + minPublicSize + ")" +
+                    ", private=" + privateKeyBytes.length + " (min " + minPrivateSize + ")" +
+                    ", valid=" + valid);
+        }
+
+        return valid;
+    }
+    
+    /**
+     * Get ML-KEM provider information.
+     *
+     * @return provider name and version, or null if ML-KEM not available
+     */
+    public static String getProviderInfo() {
+        if (!IS_JAVA_26_OR_LATER) {
+            return null;
+        }
+
+        try {
+            KeyPairGenerator kpg = KeyPairGenerator.getInstance("ML-KEM");
+            return kpg.getProvider().getName() + " " + kpg.getProvider().getVersion();
+        } catch (Exception e) {
+            return null;
+        }
     }
 }
 

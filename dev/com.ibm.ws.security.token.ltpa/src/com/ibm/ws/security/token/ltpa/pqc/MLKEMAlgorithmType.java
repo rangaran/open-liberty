@@ -109,11 +109,32 @@ public enum MLKEMAlgorithmType {
     
     /**
      * Get the NIST security level.
-     * 
+     *
      * @return The NIST security level (1, 3, or 5)
      */
     public int getNistSecurityLevel() {
         return nistSecurityLevel;
+    }
+    
+    /**
+     * Get the security level (alias for getNistSecurityLevel).
+     *
+     * @return The NIST security level (1, 3, or 5)
+     */
+    public int getSecurityLevel() {
+        return nistSecurityLevel;
+    }
+    
+    /**
+     * Get the approximate private key size in bytes.
+     * ML-KEM private keys are approximately 2x the public key size.
+     *
+     * @return The private key size
+     */
+    public int getPrivateKeySize() {
+        // ML-KEM private keys contain both public and private components
+        // Approximate sizes: ML-KEM-512: ~1632, ML-KEM-768: ~2400, ML-KEM-1024: ~3168
+        return publicKeySize * 2;
     }
     
     /**
