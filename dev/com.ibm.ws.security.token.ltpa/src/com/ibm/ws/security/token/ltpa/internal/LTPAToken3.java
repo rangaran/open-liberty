@@ -178,9 +178,10 @@ public class LTPAToken3 implements Token, Serializable {
             byte[] plaintextBytes = plaintext.array();
             
             // Encrypt using ML-KEM + AES-256-GCM
-            byte[] encryptedData = LTPAPQCCrypto.encrypt(
-                plaintextBytes, 
-                pqcKeys.getMlkemPublicKey()
+            byte[] encryptedData = LTPAPQCCrypto.encryptToken(
+                plaintextBytes,
+                pqcKeys.getMlkemPublicKey(),
+                pqcKeys.getMlkemAlgorithm()
             );
             
             // Build final token: version + rsaSignature + encryptedData
@@ -231,9 +232,10 @@ public class LTPAToken3 implements Token, Serializable {
             buffer.get(encryptedData);
             
             // Decrypt using ML-KEM + AES-256-GCM
-            byte[] decryptedData = LTPAPQCCrypto.decrypt(
+            byte[] decryptedData = LTPAPQCCrypto.decryptToken(
                 encryptedData,
-                pqcKeys.getMlkemPrivateKey()
+                pqcKeys.getMlkemPrivateKey(),
+                pqcKeys.getMlkemAlgorithm()
             );
             
             // Parse decrypted data

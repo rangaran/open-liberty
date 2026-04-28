@@ -157,6 +157,31 @@ public class LTPAPQCKeys {
     public PublicKey getMlkemPublicKey() {
         return mlkemPublicKey;
     }
+    /**
+     * Get the RSA private key as a PrivateKey object (for signatures).
+     * This method reconstructs the PrivateKey from the stored byte array.
+     * 
+     * @return The RSA private key
+     * @throws Exception if key reconstruction fails
+     */
+    @Sensitive
+    public java.security.PrivateKey getRsaPrivateKey() throws Exception {
+        // Use LTPAPrivateKey to reconstruct the key from encoded bytes
+        return new com.ibm.ws.crypto.ltpakeyutil.LTPAPrivateKey(rsaPrivateKeyBytes.clone());
+    }
+    
+    /**
+     * Get the RSA public key as a PublicKey object (for signatures).
+     * This method reconstructs the PublicKey from the stored byte array.
+     * 
+     * @return The RSA public key
+     * @throws Exception if key reconstruction fails
+     */
+    public java.security.PublicKey getRsaPublicKey() throws Exception {
+        // Use LTPAPublicKey to reconstruct the key from encoded bytes
+        return new com.ibm.ws.crypto.ltpakeyutil.LTPAPublicKey(rsaPublicKeyBytes.clone());
+    }
+    
     
     /**
      * Get the ML-KEM algorithm type.

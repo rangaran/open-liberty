@@ -22,10 +22,7 @@ import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.Mac;
 import javax.crypto.SecretKey;
-import javax.crypto.SecretKeyWithEncapsulation;
 import javax.crypto.spec.GCMParameterSpec;
-import javax.crypto.spec.KEMExtractSpec;
-import javax.crypto.spec.KEMGenerateSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 import com.ibm.websphere.ras.Tr;
@@ -103,12 +100,10 @@ public class LTPAPQCCrypto {
                 Tr.debug(tc, "Performing ML-KEM encapsulation");
             }
             
-            KeyGenerator kg = KeyGenerator.getInstance(ML_KEM_ALGORITHM, SUNJCE_PROVIDER);
-            kg.init(new KEMGenerateSpec(recipientPublicKey, AES_ALGORITHM));
-            SecretKeyWithEncapsulation skwe = (SecretKeyWithEncapsulation) kg.generateKey();
-            
-            byte[] encapsulation = skwe.getEncapsulation();
-            SecretKey sharedSecret = skwe.getSecretKey();
+            // Use PQCRuntimeSupport for Java 26 ML-KEM operations
+            Object secretKeyWithEncap = PQCRuntimeSupport.encapsulate(recipientPublicKey);
+            byte[] encapsulation = PQCRuntimeSupport.extractEncapsulation(secretKeyWithEncap);
+            SecretKey sharedSecret = PQCRuntimeSupport.extractSharedSecret(secretKeyWithEncap);
             
             if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
                 Tr.debug(tc, "Encapsulation size: " + encapsulation.length + " bytes");
@@ -199,9 +194,8 @@ public class LTPAPQCCrypto {
                 Tr.debug(tc, "Performing ML-KEM decapsulation");
             }
             
-            KeyGenerator kg = KeyGenerator.getInstance(ML_KEM_ALGORITHM, SUNJCE_PROVIDER);
-            kg.init(new KEMExtractSpec(recipientPrivateKey, encapsulation, AES_ALGORITHM));
-            SecretKey sharedSecret = kg.generateKey();
+            // Use PQCRuntimeSupport for Java 26 ML-KEM operations
+            SecretKey sharedSecret = PQCRuntimeSupport.decapsulate(recipientPrivateKey, encapsulation);
             
             // 3. Derive AES-256 key
             SecretKey aesKey = deriveAESKey(sharedSecret);

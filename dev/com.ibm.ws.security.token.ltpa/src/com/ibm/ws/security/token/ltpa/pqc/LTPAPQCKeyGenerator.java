@@ -19,11 +19,8 @@ import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
 import java.security.spec.AlgorithmParameterSpec;
 
-import javax.crypto.spec.MLKEMParameterSpec;
-
 import com.ibm.websphere.ras.Tr;
 import com.ibm.websphere.ras.TraceComponent;
-import com.ibm.ws.crypto.ltpakeyutil.LTPADigSignature;
 import com.ibm.ws.crypto.ltpakeyutil.LTPAKeyPair;
 
 /**
@@ -83,9 +80,9 @@ public class LTPAPQCKeyGenerator {
             if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
                 Tr.debug(tc, "Generating RSA-2048 key pair for signatures");
             }
-            LTPAKeyPair rsaKeyPair = LTPADigSignature.generateLTPAKeyPair();
-            byte[] rsaPrivateKeyBytes = rsaKeyPair.getPrivateKey().getRawKey()[0];
-            byte[] rsaPublicKeyBytes = rsaKeyPair.getPublicKey().getRawKey()[0];
+            LTPAKeyPair rsaKeyPair = com.ibm.ws.crypto.ltpakeyutil.LTPAKeyUtil.generateLTPAKeyPair();
+            byte[] rsaPrivateKeyBytes = com.ibm.ws.crypto.ltpakeyutil.LTPAKeyUtil.getRawKey(rsaKeyPair.getPrivate())[0];
+            byte[] rsaPublicKeyBytes = com.ibm.ws.crypto.ltpakeyutil.LTPAKeyUtil.getRawKey(rsaKeyPair.getPublic())[0];
             
             // 2. Generate ML-KEM keys (new - for encryption)
             if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
@@ -130,42 +127,13 @@ public class LTPAPQCKeyGenerator {
      * @throws NoSuchProviderException if SunJCE provider is not available
      * @throws Exception if key generation fails
      */
-    private static KeyPair generateMLKEMKeyPair(MLKEMAlgorithmType mlkemAlgorithm) 
+    private static KeyPair generateMLKEMKeyPair(MLKEMAlgorithmType mlkemAlgorithm)
             throws NoSuchAlgorithmException, NoSuchProviderException, Exception {
         
-        // Get KeyPairGenerator for ML-KEM from SunJCE provider
-        KeyPairGenerator kpg = KeyPairGenerator.getInstance(ML_KEM_ALGORITHM, SUNJCE_PROVIDER);
-        
-        // Get the appropriate MLKEMParameterSpec for the algorithm type
-        AlgorithmParameterSpec paramSpec = getMLKEMParameterSpec(mlkemAlgorithm);
-        
-        // Initialize with parameter spec and secure random
-        SecureRandom secureRandom = new SecureRandom();
-        kpg.initialize(paramSpec, secureRandom);
-        
-        // Generate and return the key pair
-        return kpg.generateKeyPair();
+        // Use PQCRuntimeSupport for Java 26 ML-KEM key generation
+        return PQCRuntimeSupport.generateMLKEMKeyPair(mlkemAlgorithm.getAlgorithmName());
     }
     
-    /**
-     * Get the MLKEMParameterSpec for the specified algorithm type.
-     * 
-     * @param mlkemAlgorithm The ML-KEM algorithm type
-     * @return The corresponding MLKEMParameterSpec
-     */
-    private static AlgorithmParameterSpec getMLKEMParameterSpec(MLKEMAlgorithmType mlkemAlgorithm) {
-        switch (mlkemAlgorithm) {
-            case ML_KEM_512:
-                return MLKEMParameterSpec.ml_kem_512;
-            case ML_KEM_768:
-                return MLKEMParameterSpec.ml_kem_768;
-            case ML_KEM_1024:
-                return MLKEMParameterSpec.ml_kem_1024;
-            default:
-                // Should never happen due to enum
-                throw new IllegalArgumentException("Unknown ML-KEM algorithm: " + mlkemAlgorithm);
-        }
-    }
     
     /**
      * Check if ML-KEM support is available in the current Java runtime.
