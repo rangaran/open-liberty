@@ -40,6 +40,11 @@ public class LTPAConstants {
     public static final String VALIDATION_KEYS = "ltpa_validation_keys";
 
     /**
+     * Used to identify the primary PQC keys (RSA + ML-KEM) for LTPA3 tokens.
+     */
+    protected static final String PRIMARY_PQC_KEYS = "primary_pqc_keys";
+
+    /**
      * Used to identify the unique identifier of a user.
      */
     protected static final String UNIQUE_ID = "unique_id";

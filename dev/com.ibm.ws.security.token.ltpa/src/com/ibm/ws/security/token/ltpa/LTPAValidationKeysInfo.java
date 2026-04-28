@@ -16,9 +16,10 @@ import com.ibm.websphere.ras.Tr;
 import com.ibm.websphere.ras.TraceComponent;
 import com.ibm.ws.crypto.ltpakeyutil.LTPAPrivateKey;
 import com.ibm.ws.crypto.ltpakeyutil.LTPAPublicKey;
+import com.ibm.ws.security.token.ltpa.pqc.LTPAPQCKeys;
 
 /**
- *
+ * Container for LTPA validation keys, supporting both classical (LTPA2) and PQC (LTPA3) keys.
  */
 public class LTPAValidationKeysInfo {
     private static final TraceComponent tc = Tr.register(LTPAValidationKeysInfo.class);
@@ -29,6 +30,7 @@ public class LTPAValidationKeysInfo {
     private byte[] publicKey = null;
     private LTPAPrivateKey ltpaPrivateKey = null;
     private LTPAPublicKey ltpaPublicKey = null;
+    private LTPAPQCKeys pqcKeys = null;
     OffsetDateTime validUntilDateOdt = null;
 
     LTPAValidationKeysInfo(String filename, byte[] secretKey, byte[] privateKey, byte[] publicKey, OffsetDateTime validUntilDateOdt) {
@@ -59,6 +61,24 @@ public class LTPAValidationKeysInfo {
 
     public LTPAPublicKey getLTPAPublicKey() {
         return ltpaPublicKey;
+    }
+
+    /**
+     * Sets the PQC keys for LTPA3 token validation.
+     *
+     * @param pqcKeys The PQC keys (RSA + ML-KEM)
+     */
+    public void setPQCKeys(LTPAPQCKeys pqcKeys) {
+        this.pqcKeys = pqcKeys;
+    }
+
+    /**
+     * Gets the PQC keys for LTPA3 token validation.
+     *
+     * @return The PQC keys, or null if not set
+     */
+    public LTPAPQCKeys getPQCKeys() {
+        return pqcKeys;
     }
 
     // Check if the validUntilDate0dt has already passed.
