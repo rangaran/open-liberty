@@ -69,10 +69,10 @@
   </dataSource>
   
   <transaction enableHADBPeerLocking="false">
-    <DATASOURCE transactional="false">
+    <DATASOURCE transactional="false" containerAuthDataRef="auth1">
       <connectionManager maxPoolSize="5" connectionTimeout="0s"/>
       <jdbcDriver libraryRef="H2"/>
-   	  <properties.h2 URL="jdbc:h2:mem:recoverydb;DB_CLOSE_DELAY=-1;INIT=CREATE USER IF NOT EXISTS dbuser PASSWORD 'dbpass' ADMIN"/>
+   	  <properties.h2 URL="jdbc:h2:mem:recoverydb;DB_CLOSE_DELAY=-1"/>
     </DATASOURCE>
   </transaction>
   

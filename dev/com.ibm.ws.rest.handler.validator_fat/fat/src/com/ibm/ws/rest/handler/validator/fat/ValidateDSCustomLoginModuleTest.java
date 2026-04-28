@@ -10,6 +10,8 @@
 package com.ibm.ws.rest.handler.validator.fat;
 
 import static com.ibm.websphere.simplicity.ShrinkHelper.DeployOptions.SERVER_ONLY;
+import static componenttest.annotation.SkipForRepeat.EE7_FEATURES;
+import static componenttest.annotation.SkipForRepeat.EE8_FEATURES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -37,9 +39,9 @@ import com.ibm.websphere.simplicity.ShrinkHelper;
 import com.ibm.websphere.simplicity.log.Log;
 import com.ibm.ws.rest.handler.validator.loginmodule.TestLoginModule;
 
-
 import componenttest.annotation.AllowedFFDC;
 import componenttest.annotation.Server;
+import componenttest.annotation.SkipForRepeat;
 import componenttest.custom.junit.runner.FATRunner;
 import componenttest.rules.repeater.EERepeatActions;
 import componenttest.rules.repeater.FeatureReplacementAction;
@@ -101,17 +103,11 @@ public class ValidateDSCustomLoginModuleTest extends FATServletClient {
         messages.add("J2CA7001I: .* TestValidationJMSAdapter"); // J2CA7001I: Resource adapter TestValidationJMSAdapter installed in # seconds.
         server.waitForStringsInLogUsingMark(messages);
 
-        Log.info(c, "setUp", "initialize users for defaultdb (customLoginDS) and recoverydb (transaction dataSource)");
+        Log.info(c, "setUp", "initialize users for defaultdb (customLoginDS)");
 
-        JsonObject response;
-        response = FATSuite.createHttpsRequestWithAdminUser(server, "/ibm/api/validation/dataSource/customLoginDS?auth=container")
-                           .run(JsonObject.class);
-        Log.info(c, "setUp", "customLoginDS response: " + response);
-
-        response = FATSuite.createHttpsRequestWithAdminUser(server, "/ibm/api/validation/DATASOURCE/transaction%2FDATASOURCE%5Bdefault-0%5D")//?auth=container&authAlias=auth1")
-                           .run(JsonObject.class);
-        Log.info(c, "setUp", "transaction dataSource response: " + response);
-    }
+        JsonObject response = FATSuite.createHttpsRequestWithAdminUser(server, "/ibm/api/validation/dataSource/customLoginDS?auth=container")
+                                      .run(JsonObject.class);
+        Log.info(c, "setUp", "customLoginDS response: " + response);    }
 
     @AfterClass
     public static void tearDown() throws Exception {
@@ -369,6 +365,7 @@ public class ValidateDSCustomLoginModuleTest extends FATServletClient {
      * when the type matches the case specified in server.xml. In this test the specific
      * instance's uid is specified.
      */
+    @SkipForRepeat({ EE7_FEATURES, EE8_FEATURES }) // container auth not yet used for recovery data source
     @Test
     public void testValidateNestedDifferentCase() throws Exception {
         JsonObject json = FATSuite.createHttpsRequestWithAdminUser(server, "/ibm/api/validation/DATASOURCE/transaction%2FDATASOURCE%5Bdefault-0%5D?auth=container&authAlias=auth1")
@@ -395,6 +392,7 @@ public class ValidateDSCustomLoginModuleTest extends FATServletClient {
      * when the type matches the case specified in server.xml. In this test no
      * UID is provided.
      */
+    @SkipForRepeat({ EE7_FEATURES, EE8_FEATURES }) // container auth not yet used for recovery data source
     @Test
     public void testValidateNestedDifferentCaseMulitple() throws Exception {
         JsonArray json = FATSuite.createHttpsRequestWithAdminUser(server, "/ibm/api/validation/DATASOURCE?auth=container&authAlias=auth1")
