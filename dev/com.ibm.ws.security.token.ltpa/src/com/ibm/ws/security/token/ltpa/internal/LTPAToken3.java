@@ -25,6 +25,7 @@ import java.security.spec.RSAPrivateCrtKeySpec;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Map;
 
 import com.ibm.websphere.ras.Tr;
@@ -665,6 +666,84 @@ public class LTPAToken3 implements Token, Serializable {
             }
             throw e;
         }
+    }
+    
+    /**
+     * Get token as multiple cookies if splitting is required.
+     *
+     * For large LTPA3 tokens (>3KB), this method splits the token across multiple
+     * cookies to stay within browser cookie size limits (4KB per cookie).
+     *
+     * @return Map of cookie names to Base64-encoded cookie values
+     * @throws InvalidTokenException if token generation fails
+     * @throws TokenExpiredException if token has expired
+     */
+    public Map<String, String> getCookies() throws InvalidTokenException, TokenExpiredException {
+        byte[] tokenBytes = getBytes();
+        
+        if (LTPACookieSplitter.requiresSplitting(tokenBytes)) {
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                Tr.debug(this, tc, "Token requires splitting, size=" + tokenBytes.length);
+            }
+            return LTPACookieSplitter.splitToken(tokenBytes, "LtpaToken3");
+        } else {
+            // Single cookie (backward compatible)
+            Map<String, String> cookies = new HashMap<>();
+            cookies.put("LtpaToken3", Base64Coder.base64EncodeToString(tokenBytes));
+            
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                Tr.debug(this, tc, "Token fits in single cookie, size=" + tokenBytes.length);
+            }
+            
+            return cookies;
+        }
+    }
+    
+    /**
+     * Create an LTPA3 token from cookie fragments.
+     *
+     * This method handles both single-cookie tokens (backward compatible) and
+     * multi-cookie fragmented tokens. It automatically detects which format is
+     * being used and reassembles the token accordingly.
+     *
+     * @param cookies Map of cookie names to Base64-encoded values
+     * @param hybridKeys The hybrid keys for token validation
+     * @return The reconstructed LTPA3 token
+     * @throws InvalidTokenException if cookies are missing, invalid, or corrupted
+     */
+    public static LTPAToken3 fromCookies(Map<String, String> cookies, LTPAHybridKeys hybridKeys)
+            throws InvalidTokenException {
+        
+        if (cookies == null || cookies.isEmpty()) {
+            throw new InvalidTokenException("No cookies provided");
+        }
+        
+        String mainCookie = cookies.get("LtpaToken3");
+        if (mainCookie == null) {
+            throw new InvalidTokenException("LtpaToken3 cookie not found");
+        }
+        
+        byte[] tokenBytes;
+        
+        // Check if this is a fragmented token
+        if (LTPACookieSplitter.isFragmented(cookies, "LtpaToken3")) {
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                Tr.debug(tc, "Reassembling fragmented token from " + cookies.size() + " cookies");
+            }
+            tokenBytes = LTPACookieSplitter.reassembleToken(cookies, "LtpaToken3");
+        } else {
+            // Single cookie (backward compatible)
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                Tr.debug(tc, "Processing single-cookie token");
+            }
+            try {
+                tokenBytes = Base64Coder.base64Decode(mainCookie);
+            } catch (Exception e) {
+                throw new InvalidTokenException("Failed to decode token: " + e.getMessage());
+            }
+        }
+        
+        return new LTPAToken3(tokenBytes, hybridKeys);
     }
 }
 
