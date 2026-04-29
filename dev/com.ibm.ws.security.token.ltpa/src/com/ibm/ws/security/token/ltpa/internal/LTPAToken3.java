@@ -31,28 +31,33 @@ import com.ibm.websphere.security.auth.InvalidTokenException;
 import com.ibm.websphere.security.auth.TokenExpiredException;
 import com.ibm.ws.common.encoder.Base64Coder;
 import com.ibm.ws.ffdc.annotation.FFDCIgnore;
+import com.ibm.ws.security.token.ltpa.LTPAHybridKeys;
 import com.ibm.ws.security.token.ltpa.pqc.LTPAPQCCrypto;
-import com.ibm.ws.security.token.ltpa.pqc.LTPAPQCKeys;
+import com.ibm.ws.security.token.ltpa.pqc.LTPAPQCSignature;
+import com.ibm.ws.security.token.ltpa.pqc.MLDSAAlgorithmType;
+import com.ibm.ws.security.token.ltpa.pqc.MLKEMAlgorithmType;
 import com.ibm.wsspi.security.ltpa.Token;
 import com.ibm.wsspi.security.token.AttributeNameConstants;
 
 /**
  * Represents an LTPA Token Version 3 with Post-Quantum Cryptography (PQC) support.
- * 
- * This token uses a hybrid cryptographic approach:
+ *
+ * This token uses a hybrid cryptographic approach combining three cryptographic systems:
  * - RSA-2048 for digital signatures (classical security)
- * - ML-KEM-768 for key encapsulation and encryption (quantum-resistant security)
+ * - ML-DSA for quantum-resistant digital signatures (NIST FIPS 204)
+ * - ML-KEM for quantum-resistant key encapsulation (NIST FIPS 203)
  * - AES-256-GCM for authenticated encryption of token data
- * 
+ *
  * Token Format (Base64-encoded):
- * [version:1][userData][expiration:8][rsaSignature:256][mlkemEncapsulation:variable][iv:12][encryptedData:variable][authTag:16]
- * 
+ * [version:1][userData][expiration:8][rsaSignature:256][mldsaSignature:variable][mlkemEncapsulation:variable][iv:12][encryptedData:variable][authTag:16]
+ *
  * Security Properties:
- * - Provides ~192-bit quantum security via ML-KEM-768 (NIST Level 3)
+ * - Provides quantum-resistant security via ML-DSA + ML-KEM (NIST Level 1/3/5)
  * - Maintains classical security via RSA-2048 signatures
+ * - Defense-in-depth: Both RSA and ML-DSA signatures must verify
  * - Forward secrecy through ephemeral ML-KEM key encapsulation
  * - Authenticated encryption prevents tampering
- * 
+ *
  * @since Liberty 26.0.0.1
  */
 public class LTPAToken3 implements Token, Serializable {
@@ -66,53 +71,58 @@ public class LTPAToken3 implements Token, Serializable {
     private static final int VERSION_SIZE = 1;
     private static final int EXPIRATION_SIZE = 8;
     private static final int RSA_SIGNATURE_SIZE = 256; // RSA-2048 signature
+    private static final int MLDSA_SIGNATURE_SIZE_OFFSET = 2; // 2 bytes for signature size
     
     // Token components
     private byte[] encryptedBytes = null;
     private byte[] rsaSignature = null;
+    private byte[] mldsaSignature = null;
     private UserData userData;
     private long expirationInMilliseconds;
     
     // Cryptographic keys
-    private final LTPAPQCKeys pqcKeys;
+    private final LTPAHybridKeys hybridKeys;
     
     /**
      * Constructor for validating an existing LTPA3 token.
-     * 
+     *
      * @param tokenBytes The Base64-encoded byte representation of the LTPA3 token
-     * @param pqcKeys The PQC keys (RSA + ML-KEM) for validation
+     * @param hybridKeys The hybrid keys (RSA + ML-DSA + ML-KEM) for validation
      * @throws InvalidTokenException if the token is malformed or invalid
      */
-    public LTPAToken3(byte[] tokenBytes, LTPAPQCKeys pqcKeys) throws InvalidTokenException {
+    public LTPAToken3(byte[] tokenBytes, LTPAHybridKeys hybridKeys) throws InvalidTokenException {
         checkTokenBytes(tokenBytes);
         this.encryptedBytes = tokenBytes.clone();
-        this.pqcKeys = pqcKeys;
+        this.hybridKeys = hybridKeys;
         this.rsaSignature = null;
+        this.mldsaSignature = null;
         this.expirationInMilliseconds = 0;
         decrypt();
     }
     
     /**
      * Constructor for validating an existing LTPA3 token with attribute removal.
-     * 
+     *
      * @param tokenBytes The Base64-encoded byte representation of the LTPA3 token
-     * @param pqcKeys The PQC keys (RSA + ML-KEM) for validation
+     * @param hybridKeys The hybrid keys (RSA + ML-DSA + ML-KEM) for validation
      * @param attributes The list of attributes to remove from the token
      * @throws InvalidTokenException if the token is malformed or invalid
      * @throws TokenExpiredException if the token has expired
      */
-    public LTPAToken3(byte[] tokenBytes, LTPAPQCKeys pqcKeys, String... attributes) 
+    public LTPAToken3(byte[] tokenBytes, LTPAHybridKeys hybridKeys, String... attributes)
             throws InvalidTokenException, TokenExpiredException {
         checkTokenBytes(tokenBytes);
         this.encryptedBytes = tokenBytes.clone();
-        this.pqcKeys = pqcKeys;
+        this.hybridKeys = hybridKeys;
         this.rsaSignature = null;
+        this.mldsaSignature = null;
         this.expirationInMilliseconds = 0;
         decrypt();
         isValid();
         if (attributes != null) {
-            // Reset signature and encrypted bytes, then remove attributes
+            // Reset signatures and encrypted bytes, then remove attributes
             this.rsaSignature = null;
+            this.mldsaSignature = null;
             this.encryptedBytes = null;
             userData.removeAttributes(attributes);
         }
@@ -120,44 +130,46 @@ public class LTPAToken3 implements Token, Serializable {
     
     /**
      * Constructor for creating a new LTPA3 token.
-     * 
+     *
      * @param accessID The unique user identifier
      * @param expirationInMinutes Expiration limit of the token in minutes
-     * @param pqcKeys The PQC keys (RSA + ML-KEM) for signing and encryption
+     * @param hybridKeys The hybrid keys (RSA + ML-DSA + ML-KEM) for signing and encryption
      */
-    protected LTPAToken3(String accessID, long expirationInMinutes, LTPAPQCKeys pqcKeys) {
-        this.pqcKeys = pqcKeys;
+    protected LTPAToken3(String accessID, long expirationInMinutes, LTPAHybridKeys hybridKeys) {
+        this.hybridKeys = hybridKeys;
         this.userData = new UserData(accessID);
         this.rsaSignature = null;
+        this.mldsaSignature = null;
         this.encryptedBytes = null;
         setExpiration(expirationInMinutes);
     }
     
     /**
      * Constructor for cloning an LTPA3 token.
-     * 
+     *
      * @param expirationInMinutes Expiration limit of the token in minutes
-     * @param pqcKeys The PQC keys (RSA + ML-KEM)
+     * @param hybridKeys The hybrid keys (RSA + ML-DSA + ML-KEM)
      * @param userdata The UserData to clone
      */
-    protected LTPAToken3(long expirationInMinutes, LTPAPQCKeys pqcKeys, UserData userdata) {
-        this.pqcKeys = pqcKeys;
+    protected LTPAToken3(long expirationInMinutes, LTPAHybridKeys hybridKeys, UserData userdata) {
+        this.hybridKeys = hybridKeys;
         this.userData = userdata;
         this.rsaSignature = null;
+        this.mldsaSignature = null;
         this.encryptedBytes = null;
         setExpiration(expirationInMinutes);
     }
     
     /**
      * Encrypts the token data using ML-KEM key encapsulation and AES-256-GCM.
-     * 
+     *
      * Token Structure:
      * 1. Version byte (1 byte)
-     * 2. User data (variable length, Base64-encoded)
-     * 3. Expiration timestamp (8 bytes, long)
-     * 4. RSA signature (256 bytes)
+     * 2. RSA signature (256 bytes)
+     * 3. ML-DSA signature size (2 bytes)
+     * 4. ML-DSA signature (variable length)
      * 5. ML-KEM encapsulation + IV + encrypted data + auth tag
-     * 
+     *
      * @throws Exception if encryption fails
      */
     @FFDCIgnore(Exception.class)
@@ -177,19 +189,29 @@ public class LTPAToken3 implements Token, Serializable {
             plaintext.putLong(expirationInMilliseconds);
             byte[] plaintextBytes = plaintext.array();
             
+            // Reconstruct ML-KEM public key from bytes
+            MLKEMAlgorithmType mlkemAlgo = MLKEMAlgorithmType.fromString(hybridKeys.getMlkemAlgorithm());
+            PublicKey mlkemPublicKey = reconstructMLKEMPublicKey(
+                hybridKeys.getMlkemPublicKeyBytes(),
+                mlkemAlgo
+            );
+            
             // Encrypt using ML-KEM + AES-256-GCM
             byte[] encryptedData = LTPAPQCCrypto.encryptToken(
                 plaintextBytes,
-                pqcKeys.getMlkemPublicKey(),
-                pqcKeys.getMlkemAlgorithm()
+                mlkemPublicKey,
+                mlkemAlgo
             );
             
-            // Build final token: version + rsaSignature + encryptedData
+            // Build final token: version + rsaSignature + mldsaSignatureSize + mldsaSignature + encryptedData
+            int mldsaSignatureSize = mldsaSignature.length;
             ByteBuffer tokenBuffer = ByteBuffer.allocate(
-                VERSION_SIZE + RSA_SIGNATURE_SIZE + encryptedData.length
+                VERSION_SIZE + RSA_SIGNATURE_SIZE + MLDSA_SIGNATURE_SIZE_OFFSET + mldsaSignatureSize + encryptedData.length
             );
             tokenBuffer.put((byte) VERSION);
             tokenBuffer.put(rsaSignature);
+            tokenBuffer.putShort((short) mldsaSignatureSize);
+            tokenBuffer.put(mldsaSignature);
             tokenBuffer.put(encryptedData);
             
             encryptedBytes = tokenBuffer.array();
@@ -208,7 +230,7 @@ public class LTPAToken3 implements Token, Serializable {
     
     /**
      * Decrypts the encrypted token bytes.
-     * 
+     *
      * @throws InvalidTokenException if decryption fails or token is malformed
      */
     @FFDCIgnore(Exception.class)
@@ -223,19 +245,37 @@ public class LTPAToken3 implements Token, Serializable {
             }
             
             // Read RSA signature
-            byte[] signature = new byte[RSA_SIGNATURE_SIZE];
-            buffer.get(signature);
-            this.rsaSignature = signature;
+            byte[] rsaSig = new byte[RSA_SIGNATURE_SIZE];
+            buffer.get(rsaSig);
+            this.rsaSignature = rsaSig;
+            
+            // Read ML-DSA signature size
+            short mldsaSigSize = buffer.getShort();
+            if (mldsaSigSize < 0 || mldsaSigSize > 10000) { // Sanity check
+                throw new InvalidTokenException("Invalid ML-DSA signature size: " + mldsaSigSize);
+            }
+            
+            // Read ML-DSA signature
+            byte[] mldsaSig = new byte[mldsaSigSize];
+            buffer.get(mldsaSig);
+            this.mldsaSignature = mldsaSig;
             
             // Read encrypted data (ML-KEM encapsulation + IV + ciphertext + tag)
             byte[] encryptedData = new byte[buffer.remaining()];
             buffer.get(encryptedData);
             
+            // Reconstruct ML-KEM private key from bytes
+            MLKEMAlgorithmType mlkemAlgo = MLKEMAlgorithmType.fromString(hybridKeys.getMlkemAlgorithm());
+            PrivateKey mlkemPrivateKey = reconstructMLKEMPrivateKey(
+                hybridKeys.getMlkemPrivateKeyBytes(),
+                mlkemAlgo
+            );
+            
             // Decrypt using ML-KEM + AES-256-GCM
             byte[] decryptedData = LTPAPQCCrypto.decryptToken(
                 encryptedData,
-                pqcKeys.getMlkemPrivateKey(),
-                pqcKeys.getMlkemAlgorithm()
+                mlkemPrivateKey,
+                mlkemAlgo
             );
             
             // Parse decrypted data
@@ -267,8 +307,8 @@ public class LTPAToken3 implements Token, Serializable {
     }
     
     /**
-     * Signs the token data using RSA-2048 with SHA-256.
-     * 
+     * Signs the token data using both RSA-2048 and ML-DSA.
+     *
      * @throws Exception if signing fails
      */
     @FFDCIgnore(Exception.class)
@@ -281,15 +321,30 @@ public class LTPAToken3 implements Token, Serializable {
             ByteBuffer signData = ByteBuffer.allocate(userDataBytes.length + EXPIRATION_SIZE);
             signData.put(userDataBytes);
             signData.putLong(expirationInMilliseconds);
+            byte[] dataToSign = signData.array();
             
             // Sign with RSA-2048
-            Signature signer = Signature.getInstance("SHA256withRSA");
-            signer.initSign(pqcKeys.getRsaPrivateKey());
-            signer.update(signData.array());
-            rsaSignature = signer.sign();
+            Signature rsaSigner = Signature.getInstance("SHA256withRSA");
+            rsaSigner.initSign(hybridKeys.getRsaPrivateKey());
+            rsaSigner.update(dataToSign);
+            rsaSignature = rsaSigner.sign();
+            
+            // Reconstruct ML-DSA private key from bytes
+            MLDSAAlgorithmType mldsaAlgo = MLDSAAlgorithmType.fromString(hybridKeys.getMldsaAlgorithm());
+            PrivateKey mldsaPrivateKey = LTPAPQCSignature.reconstructPrivateKey(
+                hybridKeys.getMldsaPrivateKeyBytes(),
+                mldsaAlgo
+            );
+            
+            // Sign with ML-DSA
+            mldsaSignature = LTPAPQCSignature.sign(
+                dataToSign,
+                mldsaPrivateKey,
+                mldsaAlgo
+            );
             
             if (TraceComponent.isAnyTracingEnabled() && tc.isEventEnabled()) {
-                Tr.event(this, tc, "Token signed successfully");
+                Tr.event(this, tc, "Token signed successfully with RSA and ML-DSA");
             }
             
         } catch (Exception e) {
@@ -301,9 +356,10 @@ public class LTPAToken3 implements Token, Serializable {
     }
     
     /**
-     * Verifies the RSA signature of the token.
-     * 
-     * @return true if signature is valid
+     * Verifies both RSA and ML-DSA signatures of the token.
+     * Both signatures must be valid for the token to be considered valid.
+     *
+     * @return true if both signatures are valid
      * @throws Exception if verification fails
      */
     @FFDCIgnore(Exception.class)
@@ -316,22 +372,45 @@ public class LTPAToken3 implements Token, Serializable {
             ByteBuffer verifyData = ByteBuffer.allocate(userDataBytes.length + EXPIRATION_SIZE);
             verifyData.put(userDataBytes);
             verifyData.putLong(expirationInMilliseconds);
+            byte[] dataToVerify = verifyData.array();
             
             // Verify RSA signature
-            Signature verifier = Signature.getInstance("SHA256withRSA");
-            verifier.initVerify(pqcKeys.getRsaPublicKey());
-            verifier.update(verifyData.array());
-            boolean valid = verifier.verify(rsaSignature);
+            Signature rsaVerifier = Signature.getInstance("SHA256withRSA");
+            rsaVerifier.initVerify(hybridKeys.getRsaPublicKey());
+            rsaVerifier.update(dataToVerify);
+            boolean rsaValid = rsaVerifier.verify(rsaSignature);
             
-            if (TraceComponent.isAnyTracingEnabled() && tc.isEventEnabled()) {
-                Tr.event(this, tc, "Signature verification: " + valid);
+            if (!rsaValid) {
+                if (TraceComponent.isAnyTracingEnabled() && tc.isEventEnabled()) {
+                    Tr.event(this, tc, "RSA signature verification failed");
+                }
+                return false;
             }
             
-            return valid;
+            // Reconstruct ML-DSA public key from bytes
+            MLDSAAlgorithmType mldsaAlgo = MLDSAAlgorithmType.fromString(hybridKeys.getMldsaAlgorithm());
+            PublicKey mldsaPublicKey = LTPAPQCSignature.reconstructPublicKey(
+                hybridKeys.getMldsaPublicKeyBytes(),
+                mldsaAlgo
+            );
+            
+            // Verify ML-DSA signature
+            boolean mldsaValid = LTPAPQCSignature.verify(
+                dataToVerify,
+                mldsaSignature,
+                mldsaPublicKey,
+                mldsaAlgo
+            );
+            
+            if (TraceComponent.isAnyTracingEnabled() && tc.isEventEnabled()) {
+                Tr.event(this, tc, "Signature verification - RSA: " + rsaValid + ", ML-DSA: " + mldsaValid);
+            }
+            
+            return rsaValid && mldsaValid;
             
         } catch (Exception e) {
             if (TraceComponent.isAnyTracingEnabled() && tc.isEventEnabled()) {
-                Tr.event(this, tc, "Error verifying signature", e);
+                Tr.event(this, tc, "Error verifying signatures", e);
             }
             throw e;
         }
@@ -419,6 +498,7 @@ public class LTPAToken3 implements Token, Serializable {
     @Override
     public String[] addAttribute(String name, String value) {
         rsaSignature = null;
+        mldsaSignature = null;
         encryptedBytes = null;
         return userData.addAttribute(name, value);
     }
@@ -443,13 +523,13 @@ public class LTPAToken3 implements Token, Serializable {
     
     /**
      * Creates a deep copy of this LTPA3 token.
-     * 
+     *
      * @return A new copy of the token
      */
     @Override
     public Object clone() {
         UserData clonedUserData = (UserData) userData.clone();
-        return new LTPAToken3(expirationInMilliseconds, pqcKeys, clonedUserData);
+        return new LTPAToken3(expirationInMilliseconds, hybridKeys, clonedUserData);
     }
     
     /**
@@ -472,11 +552,54 @@ public class LTPAToken3 implements Token, Serializable {
     private void setExpiration(long expirationInMinutes) {
         expirationInMilliseconds = System.currentTimeMillis() + (expirationInMinutes * 60 * 1000);
         rsaSignature = null;
+        mldsaSignature = null;
         encryptedBytes = null;
         
         if (userData != null) {
-            userData.addAttribute(AttributeNameConstants.WSTOKEN_EXPIRATION, 
+            userData.addAttribute(AttributeNameConstants.WSTOKEN_EXPIRATION,
                                 Long.toString(expirationInMilliseconds));
+        }
+    }
+    
+    /**
+     * Reconstruct ML-KEM public key from byte array.
+     *
+     * @param keyBytes The public key bytes
+     * @param algorithm The ML-KEM algorithm type
+     * @return The reconstructed public key
+     * @throws Exception if reconstruction fails
+     */
+    private PublicKey reconstructMLKEMPublicKey(byte[] keyBytes, MLKEMAlgorithmType algorithm) throws Exception {
+        try {
+            java.security.KeyFactory keyFactory = java.security.KeyFactory.getInstance("ML-KEM");
+            java.security.spec.X509EncodedKeySpec keySpec = new java.security.spec.X509EncodedKeySpec(keyBytes);
+            return keyFactory.generatePublic(keySpec);
+        } catch (Exception e) {
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                Tr.debug(this, tc, "Failed to reconstruct ML-KEM public key", e);
+            }
+            throw e;
+        }
+    }
+    
+    /**
+     * Reconstruct ML-KEM private key from byte array.
+     *
+     * @param keyBytes The private key bytes
+     * @param algorithm The ML-KEM algorithm type
+     * @return The reconstructed private key
+     * @throws Exception if reconstruction fails
+     */
+    private PrivateKey reconstructMLKEMPrivateKey(byte[] keyBytes, MLKEMAlgorithmType algorithm) throws Exception {
+        try {
+            java.security.KeyFactory keyFactory = java.security.KeyFactory.getInstance("ML-KEM");
+            java.security.spec.PKCS8EncodedKeySpec keySpec = new java.security.spec.PKCS8EncodedKeySpec(keyBytes);
+            return keyFactory.generatePrivate(keySpec);
+        } catch (Exception e) {
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                Tr.debug(this, tc, "Failed to reconstruct ML-KEM private key", e);
+            }
+            throw e;
         }
     }
 }

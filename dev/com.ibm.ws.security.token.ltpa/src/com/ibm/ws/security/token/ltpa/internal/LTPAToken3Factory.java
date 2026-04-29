@@ -23,24 +23,25 @@ import com.ibm.websphere.security.auth.InvalidTokenException;
 import com.ibm.websphere.security.auth.TokenCreationFailedException;
 import com.ibm.websphere.security.auth.TokenExpiredException;
 import com.ibm.ws.ffdc.annotation.FFDCIgnore;
+import com.ibm.ws.security.token.ltpa.LTPAHybridKeys;
 import com.ibm.ws.security.token.ltpa.LTPAValidationKeysInfo;
-import com.ibm.ws.security.token.ltpa.pqc.LTPAPQCKeys;
 import com.ibm.wsspi.security.ltpa.Token;
 import com.ibm.wsspi.security.ltpa.TokenFactory;
 
 /**
  * Factory for creating and validating LTPA Token Version 3 with Post-Quantum Cryptography (PQC) support.
- * 
- * This factory creates tokens using hybrid cryptography:
+ *
+ * This factory creates tokens using hybrid cryptography combining three cryptographic systems:
  * - RSA-2048 for digital signatures (classical security)
- * - ML-KEM-768 for key encapsulation and encryption (quantum-resistant security)
- * 
+ * - ML-DSA for quantum-resistant digital signatures (NIST FIPS 204)
+ * - ML-KEM for quantum-resistant key encapsulation (NIST FIPS 203)
+ *
  * The factory supports:
- * - Creating new LTPA3 tokens with PQC keys
+ * - Creating new LTPA3 tokens with hybrid keys
  * - Validating existing LTPA3 tokens
- * - Using primary PQC keys for token creation
- * - Using validation PQC keys for backward compatibility
- * 
+ * - Using primary hybrid keys for token creation
+ * - Using validation hybrid keys for backward compatibility
+ *
  * @since Liberty 26.0.0.1
  */
 public class LTPAToken3Factory implements TokenFactory {
@@ -50,31 +51,31 @@ public class LTPAToken3Factory implements TokenFactory {
     // Token configuration
     private long expirationInMinutes;
     
-    // Primary PQC keys (for creating new tokens)
-    private LTPAPQCKeys primaryPQCKeys;
+    // Primary hybrid keys (for creating new tokens)
+    private LTPAHybridKeys primaryHybridKeys;
     
-    // Validation PQC keys (for validating tokens from other servers)
+    // Validation hybrid keys (for validating tokens from other servers)
     private CopyOnWriteArrayList<LTPAValidationKeysInfo> validationKeys;
     
     /**
-     * Initializes the factory with PQC keys and configuration.
-     * 
+     * Initializes the factory with hybrid keys and configuration.
+     *
      * @param tokenFactoryMap Map containing:
      *   - LTPAConstants.EXPIRATION: Token expiration in minutes
-     *   - LTPAConstants.PRIMARY_PQC_KEYS: Primary PQC keys for token creation
+     *   - LTPAConstants.PRIMARY_HYBRID_KEYS: Primary hybrid keys for token creation
      *   - LTPAConstants.VALIDATION_KEYS: List of validation keys
      */
     @SuppressWarnings("unchecked")
     @Override
     public void initialize(@Sensitive Map tokenFactoryMap) {
         expirationInMinutes = (Long) tokenFactoryMap.get(LTPAConstants.EXPIRATION);
-        primaryPQCKeys = (LTPAPQCKeys) tokenFactoryMap.get(LTPAConstants.PRIMARY_PQC_KEYS);
+        primaryHybridKeys = (LTPAHybridKeys) tokenFactoryMap.get(LTPAConstants.PRIMARY_HYBRID_KEYS);
         validationKeys = (CopyOnWriteArrayList<LTPAValidationKeysInfo>) tokenFactoryMap.get(LTPAConstants.VALIDATION_KEYS);
         
         if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
             Tr.debug(tc, "LTPAToken3Factory initialized");
             Tr.debug(tc, "Expiration: " + expirationInMinutes + " minutes");
-            Tr.debug(tc, "Primary PQC keys: " + (primaryPQCKeys != null ? "present" : "null"));
+            Tr.debug(tc, "Primary hybrid keys: " + (primaryHybridKeys != null ? "present" : "null"));
             Tr.debug(tc, "Validation keys: " + (validationKeys != null ? validationKeys.size() : 0));
         }
     }
@@ -90,9 +91,9 @@ public class LTPAToken3Factory implements TokenFactory {
     public Token createToken(Map tokenData) throws TokenCreationFailedException {
         String userUniqueId = getUniqueId(tokenData);
         
-        if (primaryPQCKeys == null) {
-            Tr.error(tc, "LTPA_TOKEN3_FACTORY_NO_PQC_KEYS");
-            String formattedMessage = Tr.formatMessage(tc, "LTPA_TOKEN3_FACTORY_NO_PQC_KEYS");
+        if (primaryHybridKeys == null) {
+            Tr.error(tc, "LTPA_TOKEN3_FACTORY_NO_HYBRID_KEYS");
+            String formattedMessage = Tr.formatMessage(tc, "LTPA_TOKEN3_FACTORY_NO_HYBRID_KEYS");
             throw new TokenCreationFailedException(formattedMessage);
         }
         
@@ -100,7 +101,7 @@ public class LTPAToken3Factory implements TokenFactory {
             Tr.debug(tc, "Creating LTPA3 token for user: " + userUniqueId);
         }
         
-        return new LTPAToken3(userUniqueId, expirationInMinutes, primaryPQCKeys);
+        return new LTPAToken3(userUniqueId, expirationInMinutes, primaryHybridKeys);
     }
     
     /**
@@ -135,11 +136,11 @@ public class LTPAToken3Factory implements TokenFactory {
     
     /**
      * Validates token bytes and returns a validated token with specified attributes removed.
-     * 
+     *
      * This method attempts validation in the following order:
-     * 1. Primary PQC keys (for tokens created by this server)
-     * 2. Validation PQC keys (for tokens created by other servers in the cluster)
-     * 
+     * 1. Primary hybrid keys (for tokens created by this server)
+     * 2. Validation hybrid keys (for tokens created by other servers in the cluster)
+     *
      * @param tokenBytes The Base64-encoded token bytes
      * @param removeAttributes Attributes to remove from the validated token
      * @return A validated LTPA3 token
@@ -148,22 +149,22 @@ public class LTPAToken3Factory implements TokenFactory {
      */
     @FFDCIgnore(Exception.class)
     @Override
-    public Token validateTokenBytes(byte[] tokenBytes, String... removeAttributes) 
+    public Token validateTokenBytes(byte[] tokenBytes, String... removeAttributes)
             throws InvalidTokenException, TokenExpiredException {
         
         Token validatedToken = null;
         
-        // Try primary PQC keys first
-        if (primaryPQCKeys != null) {
+        // Try primary hybrid keys first
+        if (primaryHybridKeys != null) {
             if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-                Tr.debug(tc, "Validating token with primary PQC keys");
+                Tr.debug(tc, "Validating token with primary hybrid keys");
             }
             
             try {
-                validatedToken = new LTPAToken3(tokenBytes, primaryPQCKeys, removeAttributes);
+                validatedToken = new LTPAToken3(tokenBytes, primaryHybridKeys, removeAttributes);
                 if (validatedToken != null) {
                     if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-                        Tr.debug(tc, "Token validated successfully with primary PQC keys");
+                        Tr.debug(tc, "Token validated successfully with primary hybrid keys");
                     }
                     return validatedToken;
                 }
@@ -182,7 +183,7 @@ public class LTPAToken3Factory implements TokenFactory {
             }
         }
         
-        // Try validation PQC keys
+        // Try validation hybrid keys
         if (validationKeys != null && !validationKeys.isEmpty()) {
             Exception lastException = null;
             Iterator<LTPAValidationKeysInfo> validationKeysIterator = validationKeys.iterator();
@@ -203,11 +204,11 @@ public class LTPAToken3Factory implements TokenFactory {
                     continue;
                 }
                 
-                // Get PQC keys from validation key info
-                LTPAPQCKeys validationPQCKeys = ltpaKeyInfo.getPQCKeys();
-                if (validationPQCKeys == null) {
+                // Get hybrid keys from validation key info
+                LTPAHybridKeys validationHybridKeys = ltpaKeyInfo.getHybridKeys();
+                if (validationHybridKeys == null) {
                     if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-                        Tr.debug(tc, "Validation key has no PQC keys, skipping");
+                        Tr.debug(tc, "Validation key has no hybrid keys, skipping");
                     }
                     continue;
                 }
@@ -217,7 +218,7 @@ public class LTPAToken3Factory implements TokenFactory {
                 }
                 
                 try {
-                    validatedToken = new LTPAToken3(tokenBytes, validationPQCKeys, removeAttributes);
+                    validatedToken = new LTPAToken3(tokenBytes, validationHybridKeys, removeAttributes);
                     if (validatedToken != null) {
                         if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
                             Tr.debug(tc, "Token validated successfully with validation key");
