@@ -13,12 +13,15 @@
 package com.ibm.ws.security.token.ltpa.internal;
 
 import java.io.Serializable;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.security.KeyFactory;
 import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
+import java.security.spec.RSAPrivateCrtKeySpec;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
@@ -183,41 +186,74 @@ public class LTPAToken3 implements Token, Serializable {
             
             byte[] userDataBytes = ud.getBytes(StandardCharsets.UTF_8);
             
-            // Build plaintext: userData + expiration
-            ByteBuffer plaintext = ByteBuffer.allocate(userDataBytes.length + EXPIRATION_SIZE);
-            plaintext.put(userDataBytes);
-            plaintext.putLong(expirationInMilliseconds);
-            byte[] plaintextBytes = plaintext.array();
+            // Check if ML-KEM keys are available for encryption
+            boolean hasMLKEMKeys = (hybridKeys.getMlkemPublicKeyBytes() != null &&
+                                   hybridKeys.getMlkemAlgorithm() != null);
             
-            // Reconstruct ML-KEM public key from bytes
-            MLKEMAlgorithmType mlkemAlgo = MLKEMAlgorithmType.fromString(hybridKeys.getMlkemAlgorithm());
-            PublicKey mlkemPublicKey = reconstructMLKEMPublicKey(
-                hybridKeys.getMlkemPublicKeyBytes(),
-                mlkemAlgo
-            );
-            
-            // Encrypt using ML-KEM + AES-256-GCM
-            byte[] encryptedData = LTPAPQCCrypto.encryptToken(
-                plaintextBytes,
-                mlkemPublicKey,
-                mlkemAlgo
-            );
-            
-            // Build final token: version + rsaSignature + mldsaSignatureSize + mldsaSignature + encryptedData
-            int mldsaSignatureSize = mldsaSignature.length;
-            ByteBuffer tokenBuffer = ByteBuffer.allocate(
-                VERSION_SIZE + RSA_SIGNATURE_SIZE + MLDSA_SIGNATURE_SIZE_OFFSET + mldsaSignatureSize + encryptedData.length
-            );
-            tokenBuffer.put((byte) VERSION);
-            tokenBuffer.put(rsaSignature);
-            tokenBuffer.putShort((short) mldsaSignatureSize);
-            tokenBuffer.put(mldsaSignature);
-            tokenBuffer.put(encryptedData);
-            
-            encryptedBytes = tokenBuffer.array();
-            
-            if (TraceComponent.isAnyTracingEnabled() && tc.isEventEnabled()) {
-                Tr.event(this, tc, "Token encrypted successfully, size=" + encryptedBytes.length);
+            if (hasMLKEMKeys) {
+                // Build plaintext: userData + expiration
+                ByteBuffer plaintext = ByteBuffer.allocate(userDataBytes.length + EXPIRATION_SIZE);
+                plaintext.put(userDataBytes);
+                plaintext.putLong(expirationInMilliseconds);
+                byte[] plaintextBytes = plaintext.array();
+                
+                // Reconstruct ML-KEM public key from bytes
+                MLKEMAlgorithmType mlkemAlgo = MLKEMAlgorithmType.fromString(hybridKeys.getMlkemAlgorithm());
+                PublicKey mlkemPublicKey = reconstructMLKEMPublicKey(
+                    hybridKeys.getMlkemPublicKeyBytes(),
+                    mlkemAlgo
+                );
+                
+                // Encrypt using ML-KEM + AES-256-GCM
+                byte[] encryptedData = LTPAPQCCrypto.encryptToken(
+                    plaintextBytes,
+                    mlkemPublicKey,
+                    mlkemAlgo
+                );
+                
+                // Build final token: version + rsaSignature + mldsaSignatureSize + mldsaSignature + encryptedData
+                int mldsaSignatureSize = mldsaSignature.length;
+                ByteBuffer tokenBuffer = ByteBuffer.allocate(
+                    VERSION_SIZE + RSA_SIGNATURE_SIZE + MLDSA_SIGNATURE_SIZE_OFFSET + mldsaSignatureSize + encryptedData.length
+                );
+                tokenBuffer.put((byte) VERSION);
+                tokenBuffer.put(rsaSignature);
+                tokenBuffer.putShort((short) mldsaSignatureSize);
+                tokenBuffer.put(mldsaSignature);
+                tokenBuffer.put(encryptedData);
+                
+                encryptedBytes = tokenBuffer.array();
+                
+                if (TraceComponent.isAnyTracingEnabled() && tc.isEventEnabled()) {
+                    Tr.event(this, tc, "Token encrypted with ML-KEM successfully, size=" + encryptedBytes.length);
+                }
+            } else {
+                // ML-KEM keys not available - create unencrypted token with signatures only
+                // Format: version + rsaSignature + mldsaSignatureSize + mldsaSignature + userData + expiration
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                    Tr.debug(tc, "ML-KEM keys not available, creating token without encryption");
+                }
+                
+                ByteBuffer plaintext = ByteBuffer.allocate(userDataBytes.length + EXPIRATION_SIZE);
+                plaintext.put(userDataBytes);
+                plaintext.putLong(expirationInMilliseconds);
+                byte[] plaintextBytes = plaintext.array();
+                
+                int mldsaSignatureSize = mldsaSignature.length;
+                ByteBuffer tokenBuffer = ByteBuffer.allocate(
+                    VERSION_SIZE + RSA_SIGNATURE_SIZE + MLDSA_SIGNATURE_SIZE_OFFSET + mldsaSignatureSize + plaintextBytes.length
+                );
+                tokenBuffer.put((byte) VERSION);
+                tokenBuffer.put(rsaSignature);
+                tokenBuffer.putShort((short) mldsaSignatureSize);
+                tokenBuffer.put(mldsaSignature);
+                tokenBuffer.put(plaintextBytes);
+                
+                encryptedBytes = tokenBuffer.array();
+                
+                if (TraceComponent.isAnyTracingEnabled() && tc.isEventEnabled()) {
+                    Tr.event(this, tc, "Token created without encryption (ML-KEM not available), size=" + encryptedBytes.length);
+                }
             }
             
         } catch (Exception e) {
@@ -323,9 +359,37 @@ public class LTPAToken3 implements Token, Serializable {
             signData.putLong(expirationInMilliseconds);
             byte[] dataToSign = signData.array();
             
+            // Get LTPAPrivateKey and extract raw key components
+            com.ibm.ws.crypto.ltpakeyutil.LTPAPrivateKey ltpaPrivKey = hybridKeys.getRsaPrivateKey();
+            byte[][] rawKey = com.ibm.ws.crypto.ltpakeyutil.LTPAKeyUtil.getRawKey(ltpaPrivKey);
+            
+            // Reconstruct standard RSA private key from raw components
+            // rawKey[1] = private exponent (d)
+            // rawKey[2] = public exponent (e)
+            // rawKey[3] = prime P
+            // rawKey[4] = prime Q
+            BigInteger privateExponent = new BigInteger(1, rawKey[1]);
+            BigInteger publicExponent = new BigInteger(1, rawKey[2]);
+            BigInteger primeP = new BigInteger(1, rawKey[3]);
+            BigInteger primeQ = new BigInteger(1, rawKey[4]);
+            BigInteger modulus = primeP.multiply(primeQ);
+            
+            // Calculate CRT parameters
+            BigInteger primeExponentP = privateExponent.mod(primeP.subtract(BigInteger.ONE));
+            BigInteger primeExponentQ = privateExponent.mod(primeQ.subtract(BigInteger.ONE));
+            BigInteger crtCoefficient = primeQ.modInverse(primeP);
+            
+            RSAPrivateCrtKeySpec rsaKeySpec = new RSAPrivateCrtKeySpec(
+                modulus, publicExponent, privateExponent,
+                primeP, primeQ, primeExponentP, primeExponentQ, crtCoefficient
+            );
+            
+            KeyFactory rsaKeyFactory = KeyFactory.getInstance("RSA");
+            PrivateKey rsaPrivateKey = rsaKeyFactory.generatePrivate(rsaKeySpec);
+            
             // Sign with RSA-2048
             Signature rsaSigner = Signature.getInstance("SHA256withRSA");
-            rsaSigner.initSign(hybridKeys.getRsaPrivateKey());
+            rsaSigner.initSign(rsaPrivateKey);
             rsaSigner.update(dataToSign);
             rsaSignature = rsaSigner.sign();
             

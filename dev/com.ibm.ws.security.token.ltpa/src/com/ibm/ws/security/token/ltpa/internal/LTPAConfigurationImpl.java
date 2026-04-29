@@ -111,6 +111,7 @@ public class LTPAConfigurationImpl implements LTPAConfiguration, FileBasedAction
     private static final Collection<File> allKeysFiles = new HashSet<File>();
 
     // ========== PQC Configuration Fields (Issue #35556 - Task 2.8) ==========
+    private String tokenVersion = "2"; // Default to Token Version 2 (RSA-only)
     private String cryptoMode = PQCConstants.DEFAULT_CRYPTO_MODE;
     private String pqcAlgorithm = PQCConstants.DEFAULT_PQC_ALGORITHM;
     private boolean enablePQC = PQCConstants.DEFAULT_ENABLE_PQC;
@@ -223,6 +224,14 @@ public class LTPAConfigurationImpl implements LTPAConfiguration, FileBasedAction
         monitorInterval = (Long) props.get(CFG_KEY_MONITOR_INTERVAL);
 
         // ========== PQC Configuration Loading (Issue #35556 - Task 2.8) ==========
+        Object tokenVersionObj = props.get(CFG_KEY_TOKEN_VERSION);
+        if (tokenVersionObj != null) {
+            tokenVersion = (String) tokenVersionObj;
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                Tr.debug(tc, "Token version: " + tokenVersion);
+            }
+        }
+        
         Object cryptoModeObj = props.get(CFG_KEY_CRYPTO_MODE);
         if (cryptoModeObj != null) {
             cryptoMode = (String) cryptoModeObj;
@@ -948,6 +957,11 @@ public class LTPAConfigurationImpl implements LTPAConfiguration, FileBasedAction
 
 
     // ========== PQC Configuration Getters (Issue #35556 - Task 2.8) ==========
+    
+    @Override
+    public String getTokenVersion() {
+        return tokenVersion;
+    }
     
     @Override
     public String getCryptoMode() {

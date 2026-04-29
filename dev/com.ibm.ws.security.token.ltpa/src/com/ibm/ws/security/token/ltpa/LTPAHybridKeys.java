@@ -106,15 +106,22 @@ public class LTPAHybridKeys implements Serializable {
             throw new IllegalArgumentException("ML-DSA algorithm cannot be null or empty");
         }
 
-        // Validate ML-KEM keys
-        if (mlkemPrivateKeyBytes == null || mlkemPrivateKeyBytes.length == 0) {
-            throw new IllegalArgumentException("ML-KEM private key cannot be null or empty");
-        }
-        if (mlkemPublicKeyBytes == null || mlkemPublicKeyBytes.length == 0) {
-            throw new IllegalArgumentException("ML-KEM public key cannot be null or empty");
-        }
-        if (mlkemAlgorithm == null || mlkemAlgorithm.isEmpty()) {
-            throw new IllegalArgumentException("ML-KEM algorithm cannot be null or empty");
+        // Validate ML-KEM keys (optional - may be null if not yet implemented)
+        // If ML-KEM keys are provided, they must be valid
+        boolean hasMLKEMKeys = (mlkemPrivateKeyBytes != null && mlkemPrivateKeyBytes.length > 0) ||
+                               (mlkemPublicKeyBytes != null && mlkemPublicKeyBytes.length > 0);
+        
+        if (hasMLKEMKeys) {
+            // If any ML-KEM key is provided, all must be provided
+            if (mlkemPrivateKeyBytes == null || mlkemPrivateKeyBytes.length == 0) {
+                throw new IllegalArgumentException("ML-KEM private key cannot be null or empty when ML-KEM is enabled");
+            }
+            if (mlkemPublicKeyBytes == null || mlkemPublicKeyBytes.length == 0) {
+                throw new IllegalArgumentException("ML-KEM public key cannot be null or empty when ML-KEM is enabled");
+            }
+            if (mlkemAlgorithm == null || mlkemAlgorithm.isEmpty()) {
+                throw new IllegalArgumentException("ML-KEM algorithm cannot be null or empty when ML-KEM is enabled");
+            }
         }
 
         // Store defensive copies
@@ -123,8 +130,10 @@ public class LTPAHybridKeys implements Serializable {
         this.mldsaPrivateKeyBytes = mldsaPrivateKeyBytes.clone();
         this.mldsaPublicKeyBytes = mldsaPublicKeyBytes.clone();
         this.mldsaAlgorithm = mldsaAlgorithm;
-        this.mlkemPrivateKeyBytes = mlkemPrivateKeyBytes.clone();
-        this.mlkemPublicKeyBytes = mlkemPublicKeyBytes.clone();
+        
+        // ML-KEM keys are optional - only clone if not null
+        this.mlkemPrivateKeyBytes = (mlkemPrivateKeyBytes != null) ? mlkemPrivateKeyBytes.clone() : null;
+        this.mlkemPublicKeyBytes = (mlkemPublicKeyBytes != null) ? mlkemPublicKeyBytes.clone() : null;
         this.mlkemAlgorithm = mlkemAlgorithm;
 
         this.creationTime = System.currentTimeMillis();
@@ -212,11 +221,11 @@ public class LTPAHybridKeys implements Serializable {
 
     /**
      * Get ML-KEM public key bytes.
-     * 
-     * @return defensive copy of ML-KEM public key bytes
+     *
+     * @return defensive copy of ML-KEM public key bytes, or null if not available
      */
     public byte[] getMlkemPublicKeyBytes() {
-        return mlkemPublicKeyBytes.clone();
+        return mlkemPublicKeyBytes != null ? mlkemPublicKeyBytes.clone() : null;
     }
 
     /**

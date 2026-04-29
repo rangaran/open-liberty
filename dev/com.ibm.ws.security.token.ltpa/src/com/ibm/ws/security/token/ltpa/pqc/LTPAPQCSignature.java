@@ -57,14 +57,15 @@ public class LTPAPQCSignature {
     static {
         boolean available = false;
         try {
-            // Check if ML-DSA is available (Java 26+)
-            Class.forName("java.security.spec.MLDSAParameterSpec");
+            // Check if ML-DSA KeyPairGenerator is available (Java 26+)
+            // Note: MLDSAParameterSpec class doesn't exist in Java 26 build 35,
+            // but the ML-DSA algorithms are available via KeyPairGenerator
             KeyPairGenerator.getInstance("ML-DSA");
             available = true;
             if (tc.isDebugEnabled()) {
                 Tr.debug(tc, "ML-DSA support detected (Java 26+)");
             }
-        } catch (ClassNotFoundException | NoSuchAlgorithmException e) {
+        } catch (NoSuchAlgorithmException e) {
             if (tc.isDebugEnabled()) {
                 Tr.debug(tc, "ML-DSA not available: " + e.getMessage());
             }

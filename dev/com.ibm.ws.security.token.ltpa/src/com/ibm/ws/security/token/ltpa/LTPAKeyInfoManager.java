@@ -268,9 +268,22 @@ public class LTPAKeyInfoManager {
         String privateKeyStr = props.getProperty(LTPAKeyFileUtility.KEYIMPORT_PRIVATEKEY);
         String publicKeyStr = props.getProperty(LTPAKeyFileUtility.KEYIMPORT_PUBLICKEY);
         // PQC: Load ML-DSA keys if present (Issue #35556 - Task 2.3)
-        String mldsaPrivateKeyStr = props.getProperty(LTPAKeyFileUtility.KEYIMPORT_MLDSA_PRIVATEKEY);
-        String mldsaPublicKeyStr = props.getProperty(LTPAKeyFileUtility.KEYIMPORT_MLDSA_PUBLICKEY);
-        String pqcAlgorithm = props.getProperty(LTPAKeyFileUtility.KEYIMPORT_PQC_ALGORITHM);
+        // Try new property names first, fall back to legacy names for backward compatibility
+        String mldsaPrivateKeyStr = props.getProperty("com.ibm.websphere.ltpa.pqc.PrivateKey");
+        if (mldsaPrivateKeyStr == null) {
+            mldsaPrivateKeyStr = props.getProperty(LTPAKeyFileUtility.KEYIMPORT_MLDSA_PRIVATEKEY);
+        }
+        
+        String mldsaPublicKeyStr = props.getProperty("com.ibm.websphere.ltpa.pqc.PublicKey");
+        if (mldsaPublicKeyStr == null) {
+            mldsaPublicKeyStr = props.getProperty(LTPAKeyFileUtility.KEYIMPORT_MLDSA_PUBLICKEY);
+        }
+        
+        String pqcAlgorithm = props.getProperty("com.ibm.websphere.ltpa.pqc.Algorithm");
+        if (pqcAlgorithm == null) {
+            pqcAlgorithm = props.getProperty(LTPAKeyFileUtility.KEYIMPORT_PQC_ALGORITHM);
+        }
+        
         String cryptoMode = props.getProperty(LTPAKeyFileUtility.KEYIMPORT_CRYPTO_MODE);
 
         if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
@@ -318,17 +331,20 @@ public class LTPAKeyInfoManager {
         // PQC: Decrypt and cache ML-DSA keys if present (Issue #35556 - Task 2.3)
         if (mldsaPrivateKeyStr != null && !mldsaPrivateKeyStr.isEmpty()) {
                 try {
-                         byte[] mldsaPrivateKey = Base64Coder.base64DecodeString(mldsaPrivateKeyStr);
-                         // TODO: Decrypt ML-DSA private key if encrypted (similar to RSA key decryption)
+                         KeyEncryptor encryptor = new KeyEncryptor(keyPassword);
+                         byte[] encryptedMldsaPrivateKey = Base64Coder.base64DecodeString(mldsaPrivateKeyStr);
+                         // Decrypt ML-DSA private key using the same password as RSA keys
+                         byte[] mldsaPrivateKey = encryptor.decrypt(encryptedMldsaPrivateKey);
                          this.keyCache.put(keyImportFile + MLDSA_PRIVATEKEY, mldsaPrivateKey);
 
                          if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-                                 Tr.debug(tc, "ML-DSA private key loaded and cached");
+                                 Tr.debug(tc, "ML-DSA private key decrypted and cached, size: " + mldsaPrivateKey.length + " bytes");
                          }
                  } catch (Exception e) {
                          if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
                                  Tr.debug(tc, "Error loading ML-DSA private key: " + e.getMessage());
                          }
+                         throw e;
                  }
          }
 

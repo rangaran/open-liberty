@@ -54,6 +54,12 @@ public interface LTPAConfiguration {
     public static final String CFG_KEY_UPDATE_TRIGGER = "updateTrigger";
 
     /**
+     * The LTPA token version.
+     * Valid values: "2" (LTPA Token Version 2 - RSA only), "3" (LTPA Token Version 3 - Hybrid PQC)
+     */
+    public static final String CFG_KEY_TOKEN_VERSION = "tokenVersion";
+
+    /**
      * The token validation keys.
      */
     static final String CFG_KEY_VALIDATION_KEYS = "validationKeys";
@@ -160,6 +166,13 @@ public interface LTPAConfiguration {
      * @return LTPA expiration
      */
     long getTokenExpiration();
+
+    /**
+     * Get the LTPA token version.
+     *
+     * @return The token version: "2" (LTPA Token Version 2 - RSA only) or "3" (LTPA Token Version 3 - Hybrid PQC)
+     */
+    String getTokenVersion();
 
     /**
      * @return authFiler reference
