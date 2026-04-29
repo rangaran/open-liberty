@@ -93,8 +93,8 @@ public class PQCConstants {
     /** Default crypto mode (classical for backward compatibility) */
     public static final String DEFAULT_CRYPTO_MODE = CRYPTO_MODE_CLASSICAL;
     
-    /** Default PQC algorithm (ML-DSA-65 for balanced security/performance) */
-    public static final String DEFAULT_PQC_ALGORITHM = ALGORITHM_ML_DSA_65;
+    /** Default PQC algorithm (ML-DSA-44 for optimal performance and smaller tokens) */
+    public static final String DEFAULT_PQC_ALGORITHM = ALGORITHM_ML_DSA_44;
     
     /** Default PQC enablement (disabled for backward compatibility) */
     public static final boolean DEFAULT_ENABLE_PQC = false;

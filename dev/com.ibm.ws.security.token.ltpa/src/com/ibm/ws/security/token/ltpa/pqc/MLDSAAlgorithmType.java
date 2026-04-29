@@ -35,8 +35,8 @@ package com.ibm.ws.security.token.ltpa.pqc;
  * - ML-DSA-87: Highest security, largest signatures (recommended for maximum security)
  * 
  * Recommended Pairings with ML-KEM:
- * - ML-DSA-44 + ML-KEM-512 (NIST Level 1)
- * - ML-DSA-65 + ML-KEM-768 (NIST Level 3) - DEFAULT
+ * - ML-DSA-44 + ML-KEM-512 (NIST Level 1) - DEFAULT
+ * - ML-DSA-65 + ML-KEM-768 (NIST Level 3)
  * - ML-DSA-87 + ML-KEM-1024 (NIST Level 5)
  * 
  * @since Liberty 26.0.0.1
@@ -185,12 +185,12 @@ public enum MLDSAAlgorithmType {
     }
 
     /**
-     * Get the default ML-DSA algorithm (Level 3).
-     * 
-     * @return ML-DSA-65 (recommended for most deployments)
+     * Get the default ML-DSA algorithm (Level 1).
+     *
+     * @return ML-DSA-44 (recommended for optimal performance and smaller tokens)
      */
     public static MLDSAAlgorithmType getDefault() {
-        return ML_DSA_65;
+        return ML_DSA_44;
     }
 
     /**

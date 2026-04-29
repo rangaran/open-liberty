@@ -172,12 +172,12 @@ public enum MLKEMAlgorithmType {
     }
     
     /**
-     * Get the default ML-KEM algorithm type (ML-KEM-768).
-     * 
+     * Get the default ML-KEM algorithm type (ML-KEM-512).
+     *
      * @return The default algorithm type
      */
     public static MLKEMAlgorithmType getDefault() {
-        return ML_KEM_768;
+        return ML_KEM_512;
     }
     
     @Override

@@ -52,8 +52,8 @@ public class LTPAPQCKeyGenerator {
     private static final String SUNJCE_PROVIDER = "SunJCE";
     
     /**
-     * Generate hybrid LTPA PQC keys with default ML-KEM-768 algorithm.
-     * 
+     * Generate hybrid LTPA PQC keys with default ML-KEM-512 algorithm.
+     *
      * @return LTPAPQCKeys containing both RSA and ML-KEM keys
      * @throws Exception if key generation fails
      */

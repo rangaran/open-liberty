@@ -12,6 +12,7 @@ package com.ibm.ws.security.token.ltpa.pqc;
 import java.lang.reflect.Method;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.spec.AlgorithmParameterSpec;
@@ -38,21 +39,20 @@ public class PQCRuntimeSupport {
     private static final TraceComponent tc = Tr.register(PQCRuntimeSupport.class);
     
     private static final boolean IS_JAVA_26_OR_LATER;
-    private static final Class<?> MLKEM_PARAMETER_SPEC_CLASS;
-    private static final Class<?> SECRET_KEY_WITH_ENCAPSULATION_CLASS;
-    private static final Class<?> KEM_SPI_CLASS;
+    private static final Class<?> KEM_CLASS;
     
     static {
         boolean java26Available = false;
-        Class<?> mlkemParamSpec = null;
-        Class<?> secretKeyWithEncap = null;
-        Class<?> kemSpi = null;
+        Class<?> kemClass = null;
         
         try {
-            // Check if Java 26 ML-KEM classes are available
-            mlkemParamSpec = Class.forName("java.security.spec.MLKEMParameterSpec");
-            secretKeyWithEncap = Class.forName("javax.crypto.SecretKeyWithEncapsulation");
-            kemSpi = Class.forName("javax.crypto.KEMSpi");
+            // Check if Java 26 ML-KEM support is available
+            // JEP 478: Key Encapsulation Mechanism API
+            kemClass = Class.forName("javax.crypto.KEM");
+            
+            // Verify ML-KEM algorithm is supported
+            KeyPairGenerator.getInstance("ML-KEM");
+            
             java26Available = true;
             
             if (tc.isDebugEnabled()) {
@@ -60,14 +60,16 @@ public class PQCRuntimeSupport {
             }
         } catch (ClassNotFoundException e) {
             if (tc.isDebugEnabled()) {
-                Tr.debug(tc, "Java 26+ ML-KEM support not available: " + e.getMessage());
+                Tr.debug(tc, "Java 26+ ML-KEM support not available (KEM class not found): " + e.getMessage());
+            }
+        } catch (NoSuchAlgorithmException e) {
+            if (tc.isDebugEnabled()) {
+                Tr.debug(tc, "Java 26+ ML-KEM support not available (ML-KEM algorithm not supported): " + e.getMessage());
             }
         }
         
         IS_JAVA_26_OR_LATER = java26Available;
-        MLKEM_PARAMETER_SPEC_CLASS = mlkemParamSpec;
-        SECRET_KEY_WITH_ENCAPSULATION_CLASS = secretKeyWithEncap;
-        KEM_SPI_CLASS = kemSpi;
+        KEM_CLASS = kemClass;
     }
     
     /**
@@ -118,7 +120,7 @@ public class PQCRuntimeSupport {
     
     /**
      * Get ML-KEM parameter spec for the specified algorithm.
-     * 
+     *
      * @param algorithm ML-KEM algorithm (ML-KEM-512, ML-KEM-768, ML-KEM-1024)
      * @return AlgorithmParameterSpec for ML-KEM
      * @throws UnsupportedOperationException if Java 26+ is not available
@@ -133,8 +135,9 @@ public class PQCRuntimeSupport {
         try {
             // Access MLKEMParameterSpec constants via reflection
             // MLKEMParameterSpec.ml_kem_512, ml_kem_768, ml_kem_1024
+            Class<?> paramSpecClass = Class.forName("java.security.spec.MLKEMParameterSpec");
             String fieldName = algorithm.toLowerCase().replace("-", "_");
-            Object paramSpec = MLKEM_PARAMETER_SPEC_CLASS.getField(fieldName).get(null);
+            Object paramSpec = paramSpecClass.getField(fieldName).get(null);
             return (AlgorithmParameterSpec) paramSpec;
         } catch (Exception e) {
             throw new IllegalArgumentException("Invalid ML-KEM algorithm: " + algorithm, e);
@@ -235,8 +238,10 @@ public class PQCRuntimeSupport {
                 "ML-KEM requires Java 26 or later. Current version: " + getJavaVersion());
         }
         
-        // Cast to SecretKey (SecretKeyWithEncapsulation extends SecretKey)
-        return (SecretKey) secretKeyWithEncap;
+        // KEM.Encapsulated is a record with key() and encapsulation() methods
+        // Use reflection to call key() method to get the SecretKey
+        Method keyMethod = secretKeyWithEncap.getClass().getMethod("key");
+        return (SecretKey) keyMethod.invoke(secretKeyWithEncap);
     }
     
     /**

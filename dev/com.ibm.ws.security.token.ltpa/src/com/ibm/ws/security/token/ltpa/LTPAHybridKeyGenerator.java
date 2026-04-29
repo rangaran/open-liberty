@@ -35,40 +35,40 @@ import com.ibm.ws.security.token.ltpa.pqc.PQCRuntimeSupport;
  * 3. ML-KEM: Post-quantum key encapsulation (FIPS 203)
  * 
  * Security Levels:
- * - Level 1 (128-bit): RSA-2048 + ML-DSA-44 + ML-KEM-512
- * - Level 3 (192-bit): RSA-2048 + ML-DSA-65 + ML-KEM-768 (DEFAULT)
+ * - Level 1 (128-bit): RSA-2048 + ML-DSA-44 + ML-KEM-512 (DEFAULT)
+ * - Level 3 (192-bit): RSA-2048 + ML-DSA-65 + ML-KEM-768
  * - Level 5 (256-bit): RSA-2048 + ML-DSA-87 + ML-KEM-1024
- * 
+ *
  * Key Generation Strategy:
  * - All keys generated independently (no key derivation)
  * - Cryptographically secure random number generation
  * - Keys validated before returning
  * - Consistent security levels across algorithms
- * 
+ *
  * Performance:
- * - Level 1: ~50ms total generation time
- * - Level 3: ~100ms total generation time (recommended)
+ * - Level 1: ~50ms total generation time (DEFAULT)
+ * - Level 3: ~100ms total generation time
  * - Level 5: ~200ms total generation time
- * 
+ *
  * Thread Safety: All methods are thread-safe
- * 
+ *
  * @since Liberty 26.0.0.1
  */
 public class LTPAHybridKeyGenerator {
     private static final TraceComponent tc = Tr.register(LTPAHybridKeyGenerator.class);
 
-    // Default security level (NIST Level 3 - 192-bit quantum security)
-    private static final MLDSAAlgorithmType DEFAULT_MLDSA = MLDSAAlgorithmType.ML_DSA_65;
-    private static final MLKEMAlgorithmType DEFAULT_MLKEM = MLKEMAlgorithmType.ML_KEM_768;
+    // Default security level (NIST Level 1 - 128-bit quantum security)
+    private static final MLDSAAlgorithmType DEFAULT_MLDSA = MLDSAAlgorithmType.ML_DSA_44;
+    private static final MLKEMAlgorithmType DEFAULT_MLKEM = MLKEMAlgorithmType.ML_KEM_512;
 
     /**
-     * Generate hybrid keys with default security level (Level 3).
-     * 
+     * Generate hybrid keys with default security level (Level 1).
+     *
      * Generates:
      * - RSA-2048 key pair
-     * - ML-DSA-65 key pair (192-bit quantum security)
-     * - ML-KEM-768 key pair (192-bit quantum security)
-     * 
+     * - ML-DSA-44 key pair (128-bit quantum security)
+     * - ML-KEM-512 key pair (128-bit quantum security)
+     *
      * @return hybrid keys with all three key pairs
      * @throws LTPAKeystoreException if key generation fails
      */
@@ -323,11 +323,11 @@ public class LTPAHybridKeyGenerator {
 
     /**
      * Get recommended security level for production use.
-     * 
-     * @return recommended security level (3 = 192-bit quantum security)
+     *
+     * @return recommended security level (1 = 128-bit quantum security)
      */
     public static int getRecommendedSecurityLevel() {
-        return 3; // NIST Level 3 (ML-DSA-65 + ML-KEM-768)
+        return 1; // NIST Level 1 (ML-DSA-44 + ML-KEM-512)
     }
 
     /**

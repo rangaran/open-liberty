@@ -97,17 +97,25 @@ class LTPAKeyCreateTask implements Runnable {
             }
             
             if (mldsaPrivateKey != null && mldsaPublicKey != null) {
-                // Create hybrid keys object with RSA + ML-DSA keys
-                // Note: ML-KEM keys are optional and will be null until ML-KEM support is implemented
+                // Retrieve ML-KEM keys (Phase 4)
+                byte[] mlkemPrivateKey = keyInfoManager.getMLKEMPrivateKey(primaryKeyFile);
+                byte[] mlkemPublicKey = keyInfoManager.getMLKEMPublicKey(primaryKeyFile);
+                
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                    Tr.debug(tc, "ML-KEM private key retrieved: " + (mlkemPrivateKey != null ? mlkemPrivateKey.length + " bytes" : "null"));
+                    Tr.debug(tc, "ML-KEM public key retrieved: " + (mlkemPublicKey != null ? mlkemPublicKey.length + " bytes" : "null"));
+                }
+                
+                // Create hybrid keys object with RSA + ML-DSA + ML-KEM keys
                 LTPAHybridKeys hybridKeys = new LTPAHybridKeys(
                     primaryPrivateKey.getEncoded(),  // RSA private key
                     primaryPublicKey.getEncoded(),   // RSA public key
                     mldsaPrivateKey,                 // ML-DSA private key
                     mldsaPublicKey,                  // ML-DSA public key
                     config.getMLDSAAlgorithm(),      // ML-DSA algorithm (e.g., "ML-DSA-65")
-                    null,                            // ML-KEM private key (not yet implemented)
-                    null,                            // ML-KEM public key (not yet implemented)
-                    null                             // ML-KEM algorithm (not yet implemented)
+                    mlkemPrivateKey,                 // ML-KEM private key (Phase 4)
+                    mlkemPublicKey,                  // ML-KEM public key (Phase 4)
+                    config.getMLKEMAlgorithm()       // ML-KEM algorithm (e.g., "ML-KEM-768")
                 );
                 
                 tokenFactoryMap.put(LTPAConstants.PRIMARY_HYBRID_KEYS, hybridKeys);
