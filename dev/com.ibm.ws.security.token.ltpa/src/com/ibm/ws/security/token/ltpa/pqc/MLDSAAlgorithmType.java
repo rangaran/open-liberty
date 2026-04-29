@@ -195,7 +195,7 @@ public enum MLDSAAlgorithmType {
 
     /**
      * Parse algorithm name to enum value.
-     * 
+     *
      * @param algorithmName algorithm name (e.g., "ML-DSA-65")
      * @return corresponding enum value
      * @throws IllegalArgumentException if algorithm name is invalid
@@ -212,6 +212,17 @@ public enum MLDSAAlgorithmType {
         }
 
         throw new IllegalArgumentException("Unknown ML-DSA algorithm: " + algorithmName);
+    }
+
+    /**
+     * Parse algorithm name to enum value (alias for fromString).
+     *
+     * @param algorithmName algorithm name (e.g., "ML-DSA-65")
+     * @return corresponding enum value
+     * @throws IllegalArgumentException if algorithm name is invalid
+     */
+    public static MLDSAAlgorithmType fromAlgorithmName(String algorithmName) {
+        return fromString(algorithmName);
     }
 
     /**
