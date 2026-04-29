@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Sample Liberty server configuration for PQC-enabled LTPA tokens
+    Issue: https://github.ibm.com/websphere/WS-CD-Open/issues/35556
+    
+    This configuration demonstrates how to enable Post-Quantum Cryptography
+    support for LTPA tokens in Liberty.
+-->
+<server description="PQC LTPA Sample Server">
+
+    <!-- Feature Manager -->
+    <featureManager>
+        <feature>appSecurity-5.0</feature>
+        <feature>transportSecurity-1.0</feature>
+        <feature>servlet-6.0</feature>
+    </featureManager>
+
+    <!-- ========== PQC-Enabled LTPA Configuration ========== -->
+    
+    <!-- Example 1: Hybrid Mode (Recommended for Migration) -->
+    <ltpa 
+        keysFileName="${server.config.dir}/resources/security/ltpa-hybrid.keys"
+        keysPassword="{xor}Lz4sLCgwLTs="
+        expiration="120"
+        cryptoMode="hybrid"
+        pqcAlgorithm="ML-DSA-65"
+        enablePQC="true"
+        monitorInterval="5m"
+        updateTrigger="polled">
+        
+        <!-- Optional: Validation keys for backward compatibility -->
+        <validationKeys 
+            fileName="${server.config.dir}/resources/security/ltpa-classical.keys"
+            password="{xor}Lz4sLCgwLTs="
+            validUntilDate="2027-12-31T23:59:59Z"/>
+    </ltpa>
+    
+    <!-- Example 2: PQC-Only Mode (For New Deployments) -->
+    <!--
+    <ltpa 
+        keysFileName="${server.config.dir}/resources/security/ltpa-pqc.keys"
+        keysPassword="{xor}Lz4sLCgwLTs="
+        expiration="120"
+        cryptoMode="pqc"
+        pqcAlgorithm="ML-DSA-65"
+        enablePQC="true"/>
+    -->
+    
+    <!-- Example 3: Classical Mode (Default - Backward Compatible) -->
+    <!--
+    <ltpa 
+        keysFileName="${server.config.dir}/resources/security/ltpa-classical.keys"
+        keysPassword="{xor}Lz4sLCgwLTs="
+        expiration="120"
+        cryptoMode="classical"
+        enablePQC="false"/>
+    -->
+
+    <!-- HTTP Endpoint -->
+    <httpEndpoint id="defaultHttpEndpoint"
+                  httpPort="9080"
+                  httpsPort="9443" />
+
+    <!-- Application Security -->
+    <application id="myApp" location="myApp.war" type="war">
+        <application-bnd>
+            <security-role name="AllAuthenticated">
+                <special-subject type="ALL_AUTHENTICATED_USERS"/>
+            </security-role>
+        </application-bnd>
+    </application>
+
+    <!-- Basic User Registry (for testing) -->
+    <basicRegistry id="basic" realm="BasicRealm">
+        <user name="user1" password="{xor}Lz4sLCgwLTs="/>
+        <user name="user2" password="{xor}Lz4sLCgwLTs="/>
+    </basicRegistry>
+
+    <!-- SSL Configuration -->
+    <ssl id="defaultSSLConfig" 
+         keyStoreRef="defaultKeyStore" 
+         trustStoreRef="defaultTrustStore"
+         sslProtocol="TLSv1.3"/>
+
+    <keyStore id="defaultKeyStore" 
+              location="${server.config.dir}/resources/security/key.p12" 
+              type="PKCS12" 
+              password="{xor}Lz4sLCgwLTs="/>
+
+    <keyStore id="defaultTrustStore" 
+              location="${server.config.dir}/resources/security/trust.p12" 
+              type="PKCS12" 
+              password="{xor}Lz4sLCgwLTs="/>
+
+</server>

@@ -27,8 +27,8 @@ import com.ibm.websphere.ras.annotation.Sensitive;
 import com.ibm.ws.crypto.ltpakeyutil.LTPAPrivateKey;
 import com.ibm.ws.crypto.ltpakeyutil.LTPAPublicKey;
 import com.ibm.ws.security.token.ltpa.LTPAConfiguration;
-import com.ibm.ws.security.token.ltpa.LTPAValidationKeysInfo;
 import com.ibm.ws.security.token.ltpa.LTPAKeyInfoManager;
+import com.ibm.ws.security.token.ltpa.LTPAValidationKeysInfo;
 import com.ibm.wsspi.kernel.service.location.WsLocationAdmin;
 import com.ibm.wsspi.kernel.service.utils.TimestampUtils;
 import com.ibm.wsspi.security.ltpa.TokenFactory;
@@ -84,6 +84,7 @@ class LTPAKeyCreateTask implements Runnable {
     private TokenFactory getTokenFactory() {
         Map<String, Object> tokenFactoryMap = createTokenFactoryMap();
         TokenFactory tokenFactory = new LTPAToken2Factory();
+//        TokenFactory tokenFactory = new LTPAToken3Factory();
         tokenFactory.initialize(tokenFactoryMap);
         return tokenFactory;
     }

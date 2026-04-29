@@ -242,7 +242,31 @@ public enum MLDSAAlgorithmType {
                 return 256;
             default:
                 return 0;
+    }
+
+    /**
+     * Get NIST security level (alias for getSecurityLevel).
+     * 
+     * @return NIST security level (1, 3, or 5)
+     */
+    public int getNistSecurityLevel() {
+        return securityLevel;
+    }
+
+    /**
+     * Get ML-DSA algorithm by NIST security level.
+     * 
+     * @param level NIST security level (1, 3, or 5)
+     * @return corresponding ML-DSA algorithm type
+     * @throws IllegalArgumentException if security level is invalid
+     */
+    public static MLDSAAlgorithmType fromSecurityLevel(int level) {
+        for (MLDSAAlgorithmType type : values()) {
+            if (type.securityLevel == level) {
+                return type;
+            }
         }
+        throw new IllegalArgumentException("No ML-DSA algorithm for security level: " + level);
     }
 
     /**

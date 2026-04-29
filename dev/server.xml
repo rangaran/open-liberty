@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<server description="Test server for LTPA keystore feature">
+
+    <!-- Enable features -->
+    <featureManager>
+        <feature>appSecurity-5.0</feature>
+        <feature>servlet-6.0</feature>
+    </featureManager>
+
+    <!-- HTTP endpoint -->
+    <httpEndpoint id="defaultHttpEndpoint"
+                  httpPort="9080"
+                  httpsPort="9443" />
+
+    <!-- Basic user registry for testing -->
+    <basicRegistry id="basic" realm="BasicRealm">
+        <user name="testuser" password="testpwd" />
+        <user name="admin" password="adminpwd" />
+    </basicRegistry>
+
+    <!-- LTPA configuration using PKCS12 keystore -->
+    
+    <!--
+    <ltpa keysFileName="${server.config.dir}/resources/security/ltpa.p12" 
+          keysPassword="{xor}Lz4sLCgwLTs=" 
+          expiration="120m" />
+    --> 
+    
+
+    <!-- Application Manager -->
+    <applicationManager autoExpand="true"/>
+
+    <!-- Logging -->
+    <logging traceSpecification="*=info:com.ibm.ws.security.token.ltpa.*=all" 
+             maxFileSize="20" 
+             maxFiles="10" />
+
+</server>
+
+<!-- Made with Bob -->

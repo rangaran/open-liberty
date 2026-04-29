@@ -80,6 +80,34 @@ public class PQCRuntimeSupport {
     }
     
     /**
+     * Check if both ML-KEM and ML-DSA support are available at runtime.
+     * This is an alias for isPQCSupported() for backward compatibility.
+     *
+     * @return true if running on Java 26+ with PQC support
+     */
+    public static boolean isPQCAvailable() {
+        return isPQCSupported();
+    }
+    
+    /**
+     * Check if ML-KEM support is available at runtime.
+     *
+     * @return true if running on Java 26+ with ML-KEM support
+     */
+    public static boolean isMLKEMAvailable() {
+        return IS_JAVA_26_OR_LATER;
+    }
+    
+    /**
+     * Check if ML-DSA support is available at runtime.
+     *
+     * @return true if running on Java 26+ with ML-DSA support
+     */
+    public static boolean isMLDSAAvailable() {
+        return IS_JAVA_26_OR_LATER;
+    }
+    
+    /**
      * Get the Java version string for diagnostic purposes.
      * 
      * @return Java version (e.g., "17.0.12", "26.0.0")
