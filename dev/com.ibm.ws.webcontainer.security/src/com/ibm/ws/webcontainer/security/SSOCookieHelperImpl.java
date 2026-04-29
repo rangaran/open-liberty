@@ -613,8 +613,36 @@ public class SSOCookieHelperImpl implements SSOCookieHelper {
                     updateCookieCache(cookieBytes, cookieByteString);
                 }
 
-                Cookie ssoCookie = createCookie(req, cookieByteString, contextRoot);
-                resp.addCookie(ssoCookie);
+                // Split the cookie value into chunks if it exceeds the maximum length
+                // This handles large LTPA3 tokens with Post-Quantum Cryptography
+                String baseName = getSSOCookiename();
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                    Tr.debug(tc, "LTPA token size: " + cookieByteString.length() + " baseName: " + baseName);
+                }
+                String[] chunks = CookieHelper.splitValueIntoMaximumLengthChunks(cookieByteString, 3900);
+
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                    Tr.debug(tc, "LTPA token split into " + chunks.length + " cookie(s)");
+                }
+
+                String cookieName = baseName;
+                for (int i = 0; i < chunks.length; i++) {
+                    if (i > 98) {
+                        String eMsg = "Too many LTPA cookies created";
+                        com.ibm.ws.ffdc.FFDCFilter.processException(new Exception(eMsg), this.getClass().getName(), "625");
+                        break;
+                    }
+
+                    Cookie ssoCookie = createCookie(req, cookieName, chunks[i], config.getSSORequiresSSL(), contextRoot);
+                    resp.addCookie(ssoCookie);
+
+                    if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                        Tr.debug(tc, "Added cookie: " + cookieName + " (chunk " + (i + 1) + " of " + chunks.length + ")");
+                    }
+
+                    // Update cookie name for next iteration (matches JWT SSO pattern)
+                    cookieName = baseName + (i + 2 < 10 ? "0" : "") + (i + 2);
+                }
             }
         }
     }
@@ -632,10 +660,29 @@ public class SSOCookieHelperImpl implements SSOCookieHelper {
         if (cookies != null) {
             String ssoCookieName = resolveCookieName(cookies);
             for (int i = 0; i < cookies.length; i++) {
-                if (cookies[i].getName().equalsIgnoreCase(ssoCookieName)) {
+                String cookieName = cookies[i].getName();
+                String cookieValue = cookies[i].getValue();
+                
+                // Only delete cookies that have actual values (not empty/null)
+                // This prevents deleting cookies that were just created in the response
+                if (cookieValue == null || cookieValue.isEmpty()) {
+                    continue;
+                }
+                
+                // Check for exact match OR fragment cookies (e.g., LtpaToken202, LtpaToken203)
+                // Fragment cookies have numeric suffix after base name
+                boolean isFragmentCookie = false;
+                if (cookieName.length() > ssoCookieName.length() &&
+                    cookieName.toLowerCase().startsWith(ssoCookieName.toLowerCase())) {
+                    String suffix = cookieName.substring(ssoCookieName.length());
+                    // Match numeric suffixes like "02", "03", "10", "99" (2-3 digits)
+                    isFragmentCookie = suffix.matches("^\\d{2,3}$");
+                }
+
+                if (cookieName.equalsIgnoreCase(ssoCookieName) || isFragmentCookie) {
                     cookies[i].setValue(null);
-                    addLogoutCookieToList(req, ssoCookieName, logoutCookieList);
-                } else if (cookies[i].getName().equalsIgnoreCase(OIDC_BROWSER_STATE_COOKIE)) {
+                    addLogoutCookieToList(req, cookieName, logoutCookieList);
+                } else if (cookieName.equalsIgnoreCase(OIDC_BROWSER_STATE_COOKIE)) {
                     // remove oidc browser state cookie, if it exists.
                     if (oidcServerRef != null && oidcServerRef.getService() != null) {
                         removeBrowserStateCookie(req, res);

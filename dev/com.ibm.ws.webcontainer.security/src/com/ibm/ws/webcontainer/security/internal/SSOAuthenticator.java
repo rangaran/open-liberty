@@ -157,6 +157,42 @@ public class SSOAuthenticator implements WebAuthenticator {
     private AuthenticationResult handleLtpaSSO(HttpServletRequest req, HttpServletResponse res, Cookie[] cookies) {
         AuthenticationResult authResult = null;
         String cookieName = ssoCookieHelper.getSSOCookiename();
+        
+        // First, check for fragmented LTPA3 cookies (e.g., LtpaToken2, LtpaToken202, LtpaToken203)
+        // This handles Post-Quantum Cryptography tokens that exceed single cookie size limits
+        java.util.Map<String, String> fragmentedCookies = CookieHelper.getFragmentedCookies(cookies, cookieName);
+        if (fragmentedCookies != null && fragmentedCookies.size() > 1) {
+            // Multiple cookies found - this is a fragmented LTPA3 token
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                Tr.debug(tc, "Found fragmented LTPA token with " + fragmentedCookies.size() + " fragments");
+            }
+            
+            // Reassemble the fragments in order (TreeMap maintains sorted order)
+            StringBuilder reassembledToken = new StringBuilder();
+            for (String fragmentValue : fragmentedCookies.values()) {
+                reassembledToken.append(fragmentValue);
+            }
+            
+            String completeToken = reassembledToken.toString();
+            if (completeToken.length() > 0) {
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                    Tr.debug(tc, "Reassembled LTPA token size: " + completeToken.length());
+                }
+                
+                AuthenticationData authenticationData = createAuthenticationData(req, res, completeToken, LTPA_OID);
+                try {
+                    Subject authenticatedSubject = authenticationService.authenticate(JaasLoginConfigConstants.SYSTEM_WEB_INBOUND, authenticationData, null);
+                    authResult = new AuthenticationResult(AuthResult.SUCCESS, authenticatedSubject, ssoCookieHelper.getSSOCookiename(), null, AuditEvent.OUTCOME_SUCCESS);
+                    return authResult;
+                } catch (AuthenticationException e) {
+                    if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                        Tr.debug(tc, "handleSSO Exception with fragmented token: ", new Object[] { e });
+                    }
+                }
+            }
+        }
+        
+        // Fall back to standard cookie handling for non-fragmented tokens
         String[] hdrVals = CookieHelper.getCookieValues(cookies, cookieName);
         boolean useOnlyCustomCookieName = webAppSecurityConfig != null && webAppSecurityConfig.isUseOnlyCustomCookieName();
         if (hdrVals == null && !DEFAULT_SSO_COOKIE_NAME.equalsIgnoreCase(cookieName) && !useOnlyCustomCookieName) {
