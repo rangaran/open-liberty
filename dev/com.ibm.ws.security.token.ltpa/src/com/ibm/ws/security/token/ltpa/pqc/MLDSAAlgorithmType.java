@@ -242,6 +242,7 @@ public enum MLDSAAlgorithmType {
                 return 256;
             default:
                 return 0;
+        }
     }
 
     /**
