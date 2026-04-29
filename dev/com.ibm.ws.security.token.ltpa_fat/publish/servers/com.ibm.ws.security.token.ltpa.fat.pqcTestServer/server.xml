@@ -26,15 +26,17 @@
         <user name="user2" password="user2pwd"/>
     </basicRegistry>
 
-    <!-- LTPA Configuration with Post-Quantum Cryptography (PQC) -->
-    <ltpa 
+    <!-- LTPA Configuration with Hybrid Post-Quantum Cryptography (PQC) -->
+    <!-- Combines RSA-2048 + ML-DSA-65 + ML-KEM-768 for defense-in-depth -->
+    <ltpa
         keysFileName="${server.output.dir}/resources/security/ltpa.keys"
         keysPassword="{xor}Lz4sLCgwLTs="
         expiration="30m"
         tokenVersion="3"
-        pqcEnabled="true"
-        pqcKeystoreFile="${server.output.dir}/resources/security/ltpa-pqc.p12"
-        pqcKeystorePassword="{xor}Lz4sLCgwLTs="
+        hybridPqcEnabled="true"
+        hybridKeystoreFile="${server.output.dir}/resources/security/ltpa-hybrid.p12"
+        hybridKeystorePassword="{xor}Lz4sLCgwLTs="
+        mldsaAlgorithm="ML-DSA-65"
         mlkemAlgorithm="ML-KEM-768"/>
 
     <!-- HTTP Endpoint -->
