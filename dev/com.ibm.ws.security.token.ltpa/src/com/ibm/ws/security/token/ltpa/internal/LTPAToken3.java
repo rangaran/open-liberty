@@ -737,7 +737,7 @@ public class LTPAToken3 implements Token, Serializable {
                 Tr.debug(tc, "Processing single-cookie token");
             }
             try {
-                tokenBytes = Base64Coder.base64Decode(mainCookie);
+                tokenBytes = Base64Coder.base64DecodeString(mainCookie);
             } catch (Exception e) {
                 throw new InvalidTokenException("Failed to decode token: " + e.getMessage());
             }

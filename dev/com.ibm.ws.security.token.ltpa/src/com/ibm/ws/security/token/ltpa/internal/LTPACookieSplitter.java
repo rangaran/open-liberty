@@ -186,7 +186,7 @@ public class LTPACookieSplitter {
         
         byte[] mainCookieBytes;
         try {
-            mainCookieBytes = Base64Coder.base64Decode(mainCookieValue);
+            mainCookieBytes = Base64Coder.base64DecodeString(mainCookieValue);
         } catch (Exception e) {
             throw new InvalidTokenException("Failed to decode main cookie: " + e.getMessage());
         }
@@ -242,7 +242,7 @@ public class LTPACookieSplitter {
                 }
                 
                 try {
-                    byte[] fragmentBytes = Base64Coder.base64Decode(fragmentValue);
+                    byte[] fragmentBytes = Base64Coder.base64DecodeString(fragmentValue);
                     fragments.put(i, fragmentBytes);
                     
                     if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {

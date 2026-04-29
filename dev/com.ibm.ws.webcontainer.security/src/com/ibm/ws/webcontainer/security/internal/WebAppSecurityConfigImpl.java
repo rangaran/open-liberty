@@ -39,7 +39,7 @@ public class WebAppSecurityConfigImpl implements WebAppSecurityConfig {
 
     public static final String WLP_USER_DIR = "${wlp.user.dir}";
     public static final String AUTO_GEN_COOKIE_NAME_PREFIX = "WAS_";
-    public static final String DEFAULT_SSO_COOKIE_NAME = "LtpaToken2";
+    public static final String DEFAULT_SSO_COOKIE_NAME = "LtpaToken3";
 
     static final String CFG_KEY_LOGOUT_ON_HTTP_SESSION_EXPIRE = "logoutOnHttpSessionExpire";
     public static final String CFG_KEY_SINGLE_SIGN_ON_ENABLED = "singleSignonEnabled";
