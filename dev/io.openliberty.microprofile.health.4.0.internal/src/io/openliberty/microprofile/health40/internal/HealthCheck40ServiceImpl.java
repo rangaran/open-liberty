@@ -320,7 +320,17 @@ public class HealthCheck40ServiceImpl implements HealthCheck40Service {
             if (enableEndpointsConfig == null) {
                 String envConfig = System.getenv(HealthCheckConstants.HEALTH_ENV_CONFIG_ENABLE_ENDPOINTS);
                 if (envConfig != null && !envConfig.trim().isEmpty()) {
-                    enableEndpointsConfig = Boolean.valueOf(envConfig.trim());
+                    String trimmedEnvConfig = envConfig.trim();
+                    // Only parse if it's a valid boolean string (case-insensitive)
+                    // Invalid values are ignored, allowing default (true) to be used
+                    if (trimmedEnvConfig.equalsIgnoreCase("true") || trimmedEnvConfig.equalsIgnoreCase("false")) {
+                        enableEndpointsConfig = Boolean.valueOf(trimmedEnvConfig);
+                    } else {
+                        if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                            Tr.debug(tc, "Invalid value for " + HealthCheckConstants.HEALTH_ENV_CONFIG_ENABLE_ENDPOINTS +
+                                    ": '" + trimmedEnvConfig + "'. Must be 'true' or 'false'. Using default value (true).");
+                        }
+                    }
                 }
             }
 
