@@ -59,7 +59,7 @@
     </dataSource>
     
     <!-- 
-        If no authData is provided, this is a valid configuration for Derby, but not for most databases. 
+        If no authData is provided, this is a valid configuration for H2, but not for most databases. 
         We will make no attempt to add auth data to this datasource's properties.
         Assume the application is using a Deployment Descriptor to provide auth data.
      -->

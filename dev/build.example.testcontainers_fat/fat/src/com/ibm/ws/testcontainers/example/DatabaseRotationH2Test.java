@@ -123,14 +123,14 @@ public class DatabaseRotationH2Test {
     @Test
     @SkipIfSysProp(DB_Postgres)
     public void testSkipForPostgreSQL() throws Exception {
-        assertTrue(System.getProperty("fat.bucket.db.type") != "Postgres");
+        assertFalse("Postgres".equals(System.getProperty("fat.bucket.db.type")));
     }
 
     /**
      * <pre>
      * Exclude test from DB rotation.
      * This test won't run when a different database is configured.
-     * Use: &#64;SkipIfSysProp(DB_Default)
+     * Use: &#64;SkipIfSysProp(DB_Not_Default)
      * </pre>
      */
     @Test
