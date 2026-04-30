@@ -910,11 +910,17 @@ public class BatchRestUtils {
         // Get step executions for this step
         HttpURLConnection con = HttpUtils.getHttpConnection(buildURL(baseUrl + "jobexecutions/" + jobExecutionId + "/stepexecutions/" + stepName),
                                                             HttpURLConnection.HTTP_OK,
-                                                            new int[0],
+                                                            new int[] { HttpURLConnection.HTTP_INTERNAL_ERROR },
                                                             10 * 1000,
                                                             HTTPRequestMethod.GET,
                                                             BatchRestUtils.buildHeaderMap(),
                                                             null);
+
+        // If we got a 500 error, the step execution doesn't exist yet - return empty array
+        if (con.getResponseCode() == HttpURLConnection.HTTP_INTERNAL_ERROR) {
+            log("getStepExecutionFromExecutionIdAndStepName", "Step execution not found (500 error), returning empty array");
+            return Json.createArrayBuilder().build();
+        }
 
         assertEquals(MEDIA_TYPE_APPLICATION_JSON, con.getHeaderField("Content-Type"));
 
@@ -1357,36 +1363,49 @@ public class BatchRestUtils {
     /**
      * Poll the partitions from the step execution for status until any one's batchStatus changes to STARTED.
      * Polls once a second. Times out after 30 seconds.
-     * 
-     * Assumes stepExecution already exists
-     * 
+     *
+     * Waits for any partition to start, retrying if stepExecution doesn't exist yet
+     *
      * @return the partition array record (JSON)
-     * 
+     *
      * @throws RuntimeException times out after 30 seconds
      */
-    public JsonArray waitForAnyPartitionToStart(long jobExecutionId, String stepName, String baseUrl) throws IOException, InterruptedException {
+    public JsonArray waitForAnyPartitionToStart(long jobExecutionId, String stepName, String baseUrl)
+            throws IOException, InterruptedException {
 
-    	JsonObject stepExecution = null;
-    	JsonArray partitions = null;
+        String methodName = "waitForAnyPartitionToStart";
+
+        JsonObject stepExecution = null;
+        JsonArray partitions = null;
 
         for (int i = 0; i < 30; ++i) {
 
-        	stepExecution = getStepExecutionFromExecutionIdAndStepName(jobExecutionId, stepName, baseUrl).getJsonObject(0);
-        	partitions = stepExecution.getJsonArray("partitions");
-        	
-            log("waitForAnyPartitionToStart", "Partitions = " + partitions);
-        	if (partitions != null) {
-        		for (int j = 0; j < partitions.size(); j++) {
-        			if (partitions.getJsonObject(j).getString("batchStatus").equals(BatchStatus.STARTED.toString())) {
-        				return partitions;
-        			}
-        		}
-        	}
+            JsonArray stepExecutions = getStepExecutionFromExecutionIdAndStepName(jobExecutionId, stepName, baseUrl);
+
+            // Check if stepExecution exists yet
+            if (stepExecutions.isEmpty()) {
+                log(methodName, "Step execution does not exist yet, retrying...");
+                Thread.sleep(1 * 1000);
+                continue;
+            }
+
+            stepExecution = stepExecutions.getJsonObject(0);
+            partitions = stepExecution.getJsonArray("partitions");
+
+            log(methodName, "Partitions = " + partitions);
+            if (partitions != null) {
+                for (int j = 0; j < partitions.size(); j++) {
+                    if (partitions.getJsonObject(j).getString("batchStatus").equals(BatchStatus.STARTED.toString())) {
+                        return partitions;
+                    }
+                }
+            }
             // Sleep a second then try again
             Thread.sleep(1 * 1000);
         }
 
-        throw new RuntimeException("Timed out waiting for a partition to start.  Last step execution: " + stepExecution.toString());
+        throw new RuntimeException("Timed out waiting for a partition to start.  Last step execution: "
+                + (stepExecution != null ? stepExecution.toString() : "null"));
     }
     
     /**
