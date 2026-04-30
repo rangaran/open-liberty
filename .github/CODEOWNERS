@@ -1,0 +1,3 @@
+/.github/CODEOWNERS	@OpenLiberty/release-architect
+
+/.bob/			@OpenLiberty/ai-enablement-reviewers
