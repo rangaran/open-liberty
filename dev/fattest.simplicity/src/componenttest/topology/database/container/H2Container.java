@@ -49,7 +49,7 @@ public class H2Container extends JdbcDatabaseContainer<H2Container> {
 
     //Embedding constants
     private static final Path IN_FILE_PATH = Paths.get("results", "h2", "test").toAbsolutePath().normalize();
-    private static final String IN_MEMORY = "memory:test";
+    private static final String IN_MEMORY = "mem:test";
     private static final String IN_FILE = "file:" + IN_FILE_PATH.toString();
 
     //Counter
@@ -117,6 +117,10 @@ public class H2Container extends JdbcDatabaseContainer<H2Container> {
             return;
         }
 
+        // If we want to test against multiple users then we'll need to use
+        // a file-based embedded database so that users can be created by the client
+        // jvm and be available to the server jvm.
+
         Log.info(c, "start", "Adding the following users to the database " + users);
         Log.info(c, "start", "Using the admin auth data " + this.getUsername() + ":" + this.getPassword());
 
@@ -145,6 +149,10 @@ public class H2Container extends JdbcDatabaseContainer<H2Container> {
         if (users.size() == 0) {
             return;
         }
+
+        // If a file-based embedded database was used during the start()
+        // method, then we need to clean it up in the stop() method
+        // so the database is gone when executing repeats.
 
         Path currentDir = IN_FILE_PATH.getParent();
         Path backupDir = currentDir.resolve("backup" + counter.getAndIncrement());
