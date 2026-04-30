@@ -573,7 +573,7 @@ public class ClientSSLHandshakeTest extends CommonTest {
      */
     private List<String> extractCipherListFromTrace() throws Exception {
 
-        // Use findStringsInCopiedTraceLogs to search for the trace pattern in ssl_trace.log
+        // Use findStringsInCopiedTraceLogs to search for the trace pattern in ssl_trace.log MD5 DES
         List<String> traceLines = testClient.findStringsInCopiedTraceLogs("adjustSupportedCiphers.*","logs/ssl_trace.log");
         
         Log.info(c, "extractCipherListFromTrace", "Found " + traceLines.size() + " trace lines in ssl_trace.log");
