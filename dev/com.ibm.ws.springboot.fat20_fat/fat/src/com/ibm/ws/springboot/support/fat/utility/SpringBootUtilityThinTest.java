@@ -385,10 +385,14 @@ public class SpringBootUtilityThinTest extends CommonWebServerTests {
 
             // Printing trace logs to understand why the application has not started
             if (line == null) {
-                String extractedTraceLogsLocation = extractedWLP + "/usr/servers/" + server.getServerName() + "/logs/trace.log";
-                Log.info(getClass(), method, "==============================================BELOW ARE THE WLP TRACE LOGS EXTRACTED FROM " + extractedTraceLogsLocation);
-                printTrace(extractedTraceLogsLocation, method);
-                Log.info(getClass(), method, "========================================================================================================================");
+                if (extractedWLP != null) {
+                    String extractedTraceLogsLocation = extractedWLP + "/usr/servers/" + server.getServerName() + "/logs/trace.log";
+                    Log.info(getClass(), method, "==============================================BELOW ARE THE WLP TRACE LOGS EXTRACTED FROM " + extractedTraceLogsLocation);
+                    printTrace(extractedTraceLogsLocation, method);
+                    Log.info(getClass(), method, "========================================================================================================================");
+                } else {
+                    Log.warning(getClass(), "Extraced WLP location not found in logs");
+                }
             }
 
             assertNotNull("The endpoint is not available", line);
