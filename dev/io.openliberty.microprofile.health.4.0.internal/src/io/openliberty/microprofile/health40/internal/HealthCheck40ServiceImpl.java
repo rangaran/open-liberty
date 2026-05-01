@@ -100,15 +100,11 @@ public class HealthCheck40ServiceImpl implements HealthCheck40Service {
     private volatile int startupCheckIntervalMilliseconds = HealthCheckConstants.CONFIG_NOT_SET;
 
     /**
-     * Beta edition flag - checks if Liberty is running in beta mode
-     */
-    private static final boolean IS_BETA_EDITION = ProductInfo.getBetaEdition();
-
-    /**
      * Controls whether health endpoints are enabled.
      * Default is true. Only effective when file-based health checks are enabled.
+     * Using AtomicBoolean to prevent race conditions during configuration updates.
      */
-    private volatile boolean enableEndpoints = true;
+    private final AtomicBoolean enableEndpoints = new AtomicBoolean(true);
 
     /**
      * WAB configuration manager for health endpoints
@@ -258,7 +254,7 @@ public class HealthCheck40ServiceImpl implements HealthCheck40Service {
         processEnableEndpointsWithWAB(cc);
 
         /*
-         * Handle special case durign activation.
+         * Handle special case during activation.
          * IF file-based HC enabled, but there are no apps, we need to explicitly
          * start file-based health check process. The invocation is kick-started
          * by applicationStarted(), but there are no apps!
@@ -312,7 +308,7 @@ public class HealthCheck40ServiceImpl implements HealthCheck40Service {
         }
 
         // Resolve enableEndpoints config (beta feature only)
-        if (IS_BETA_EDITION) {
+        if (ProductInfo.getBetaEdition()) {
             // Try server config first (Boolean), then fall back to env var (String)
             Boolean enableEndpointsConfig = (Boolean) properties.get(HealthCheckConstants.HEALTH_SERVER_CONFIG_ENABLE_ENDPOINTS);
 
@@ -467,21 +463,26 @@ public class HealthCheck40ServiceImpl implements HealthCheck40Service {
      * The value can come from either server.xml config or environment variable.
      *
      * @param configValue The resolved Boolean value for enableEndpoints
+     * @return true if the value changed, false otherwise
      */
-    protected void processEnableEndpointsConfig(Boolean configValue) {
+    protected boolean processEnableEndpointsConfig(Boolean configValue) {
         if (configValue != null) {
-            enableEndpoints = configValue.booleanValue();
+            boolean newValue = configValue.booleanValue();
+            boolean previousValue = enableEndpoints.getAndSet(newValue);
 
             // Only show warning if user tries to disable endpoints (false) without file-based health checks enabled
             // Don't log warning for enableEndpoints=true since that's the default behavior anyway
-            if (!isFileHealthCheckingEnabled() && !enableEndpoints) {
+            if (!isFileHealthCheckingEnabled() && !newValue) {
                 Tr.warning(tc, "enable.endpoints.config.without.file.health.check.CWMMH01013W");
             }
 
             if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-                Tr.debug(tc, "enableEndpoints configuration resolved to: " + enableEndpoints);
+                Tr.debug(tc, "enableEndpoints configuration resolved to: " + newValue);
             }
+
+            return previousValue != newValue;
         }
+        return false;
     }
 
     /**
@@ -491,9 +492,17 @@ public class HealthCheck40ServiceImpl implements HealthCheck40Service {
      * @param context The ComponentContext to use for WAB registration
      */
     protected void processEnableEndpointsWithWAB(ComponentContext context) {
+        // Null check to prevent NPE if called before activation or after deactivation
+        if (wabConfigManager == null) {
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                Tr.debug(tc, "wabConfigManager is null, skipping WAB configuration");
+            }
+            return;
+        }
+
         if (isFileHealthCheckingEnabled() && isValidSystemForFileHealthCheck) {
             // File-based health checks are enabled, respect enableEndpoints setting
-            wabConfigManager.processEnableEndpoints(context, enableEndpoints);
+            wabConfigManager.processEnableEndpoints(context, enableEndpoints.get());
         } else {
             // File-based health checks are not enabled, always enable endpoints
             wabConfigManager.processEnableEndpoints(context, true);
@@ -511,16 +520,15 @@ public class HealthCheck40ServiceImpl implements HealthCheck40Service {
          * not fit for file-based health checks.
          */
         if (isValidSystemForFileHealthCheck) {
-            // Store previous enableEndpoints value to detect changes
-            boolean previousEnableEndpoints = enableEndpoints;
-
             processCheckIntervalConfig((String) properties.get(HealthCheckConstants.HEALTH_SERVER_CONFIG_CHECK_INTERVAL));
             processStartupCheckIntervalConfig((String) properties.get(HealthCheckConstants.HEALTH_SERVER_CONFIG_STARTUP_CHECK_INTERVAL));
-            processEnableEndpointsConfig((Boolean) properties.get(HealthCheckConstants.HEALTH_SERVER_CONFIG_ENABLE_ENDPOINTS));
+            
+            // processEnableEndpointsConfig returns true if the value changed
+            boolean enableEndpointsChanged = processEnableEndpointsConfig((Boolean) properties.get(HealthCheckConstants.HEALTH_SERVER_CONFIG_ENABLE_ENDPOINTS));
 
             // Only execute WAB update if enableEndpoints actually changed
-            if (previousEnableEndpoints != enableEndpoints) {
-                // Execute WAB configuration update asynchronously to avoid FFDC of using invalid bundle context during component reconfiguration
+            if (enableEndpointsChanged) {
+                // Try to execute WAB configuration update asynchronously to avoid FFDC of using invalid bundle context during component reconfiguration
                 ExecutorService executor = executorServiceRef.get();
                 if (executor != null) {
                     executor.execute(new Runnable() {
@@ -536,8 +544,17 @@ public class HealthCheck40ServiceImpl implements HealthCheck40Service {
                         }
                     });
                 } else {
+                    // ExecutorService not available - fall back to synchronous execution
+                    // This ensures configuration changes take effect even if async execution isn't available
                     if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-                        Tr.debug(tc, "ExecutorService not available, skipping WAB update");
+                        Tr.debug(tc, "ExecutorService not available, executing WAB update synchronously");
+                    }
+                    try {
+                        processEnableEndpointsWithWAB(context);
+                    } catch (Exception e) {
+                        if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                            Tr.debug(tc, "Exception during synchronous WAB update", e);
+                        }
                     }
                 }
             }
