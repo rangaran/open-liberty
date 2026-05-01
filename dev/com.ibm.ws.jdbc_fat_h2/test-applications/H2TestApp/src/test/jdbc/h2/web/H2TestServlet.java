@@ -22,6 +22,7 @@ import static org.junit.Assert.fail;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.Driver;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -36,24 +37,52 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.transaction.UserTransaction;
 
+import javax.naming.Referenceable;
 import javax.sql.ConnectionPoolDataSource;
 import javax.sql.DataSource;
 import javax.sql.PooledConnection;
+import javax.sql.XAConnection;
+import javax.sql.XADataSource;
 
 import org.junit.Test;
 
 import componenttest.app.FATServlet;
 
-@DataSourceDefinition(name = "java:comp/jdbc/H2ConnectionPoolDataSource",
+@DataSourceDefinition(name = "java:app/jdbc/H2ConnectionPoolDataSource",
                       className = "javax.sql.ConnectionPoolDataSource",
+                      url = "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1",
+                      user = "dbuser1",
+                      password = "dbpwd1")
+@DataSourceDefinition(name = "java:comp/jdbc/H2DataSource",
+                      className = "javax.sql.DataSource",
+                      url = "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1",
+                      user = "dbuser1",
+                      password = "dbpwd1")
+@DataSourceDefinition(name = "java:global/jdbc/H2Driver",
+                      className = "java.sql.Driver",
+                      url = "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1",
+                      user = "dbuser1",
+                      password = "dbpwd1")
+@DataSourceDefinition(name = "java:module/jdbc/H2XADataSource",
+                      className = "javax.sql.XADataSource",
                       url = "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1",
                       user = "dbuser1",
                       password = "dbpwd1")
 @SuppressWarnings("serial")
 @WebServlet("/*")
 public class H2TestServlet extends FATServlet {
-    @Resource(lookup = "java:comp/jdbc/H2ConnectionPoolDataSource")
+    @Resource(lookup = "java:app/jdbc/H2ConnectionPoolDataSource")
     DataSource h2cpDataSource;
+
+    @Resource(lookup = "java:comp/jdbc/H2DataSource")
+    DataSource h2DataSource;
+
+    @Resource(lookup = "java:global/jdbc/H2Driver")
+    DataSource h2driverDataSource;
+
+    @Resource(lookup = "java:module/jdbc/H2XADataSource",
+              shareable = false)
+    DataSource h2xaDataSource;
 
     @Resource
     UserTransaction tx;
@@ -206,13 +235,218 @@ public class H2TestServlet extends FATServlet {
                             SELECT OXYGEN
                               FROM COMPOUNDS
                              WHERE FORMULA=?
-                               FOR UPDATE WAIT 30
                             """);
             pstmt.setString(1, "CO2");
             ResultSet result = pstmt.executeQuery();
             assertEquals(true, result.next());
             assertEquals(2, result.getInt(1));
             assertEquals(false, result.next());
+        }
+    }
+
+    /**
+     * Use a DataSource that accesses H2 via the
+     * javax.sql.DataSource interface.
+     */
+    @Test
+    public void testDataSource() throws Exception {
+        try (Connection con = h2DataSource.getConnection()) {
+            assertEquals(true, con.getAutoCommit());
+            assertEquals("TESTDB", con.getCatalog());
+            assertEquals("PUBLIC", con.getSchema());
+            assertEquals(TRANSACTION_READ_COMMITTED,
+                         con.getTransactionIsolation());
+
+            DatabaseMetaData mdata = con.getMetaData();
+            assertEquals("DBUSER1", mdata.getUserName());
+            assertEquals("H2", mdata.getDatabaseProductName());
+            assertEquals("H2 JDBC Driver", mdata.getDriverName());
+            assertEquals(4, mdata.getJDBCMajorVersion());
+            assertEquals(3, mdata.getJDBCMinorVersion());
+
+            assertEquals(TRANSACTION_READ_COMMITTED,
+                         mdata.getDefaultTransactionIsolation());
+            assertEquals(false,
+                         mdata.supportsTransactionIsolationLevel(TRANSACTION_NONE));
+            assertEquals(true,
+                         mdata.supportsTransactionIsolationLevel(TRANSACTION_READ_UNCOMMITTED));
+            assertEquals(true,
+                         mdata.supportsTransactionIsolationLevel(TRANSACTION_READ_COMMITTED));
+            assertEquals(true,
+                         mdata.supportsTransactionIsolationLevel(TRANSACTION_REPEATABLE_READ));
+            assertEquals(true,
+                         mdata.supportsTransactionIsolationLevel(TRANSACTION_SERIALIZABLE));
+
+            assertEquals(true,
+                         h2DataSource.isWrapperFor(Referenceable.class));
+            Referenceable r = h2DataSource.unwrap(Referenceable.class);
+            System.out.println("getReference: " + r.getReference());
+
+            // valid usage
+            PreparedStatement pstmt = con.prepareStatement("""
+                            SELECT COUNT(*)
+                              FROM COMPOUNDS
+                             WHERE HYDROGEN > ?
+                            """);
+            pstmt.setInt(1, 2);
+            ResultSet result = pstmt.executeQuery();
+            assertEquals(true, result.next());
+            assertEquals(4, result.getInt(1));
+            assertEquals(false, result.next());
+        }
+    }
+
+    /**
+     * Use a DataSource that accesses H2 via the
+     * java.sql.Driver interface.
+     */
+    @Test
+    public void testDriver() throws Exception {
+        try (Connection con = h2driverDataSource.getConnection()) {
+            assertEquals(true, con.getAutoCommit());
+            assertEquals("TESTDB", con.getCatalog());
+            assertEquals("PUBLIC", con.getSchema());
+            assertEquals(TRANSACTION_READ_COMMITTED,
+                         con.getTransactionIsolation());
+
+            DatabaseMetaData mdata = con.getMetaData();
+            assertEquals("DBUSER1", mdata.getUserName());
+            assertEquals("H2", mdata.getDatabaseProductName());
+            assertEquals("H2 JDBC Driver", mdata.getDriverName());
+            assertEquals(4, mdata.getJDBCMajorVersion());
+            assertEquals(3, mdata.getJDBCMinorVersion());
+
+            assertEquals(TRANSACTION_READ_COMMITTED,
+                         mdata.getDefaultTransactionIsolation());
+            assertEquals(false,
+                         mdata.supportsTransactionIsolationLevel(TRANSACTION_NONE));
+            assertEquals(true,
+                         mdata.supportsTransactionIsolationLevel(TRANSACTION_READ_UNCOMMITTED));
+            assertEquals(true,
+                         mdata.supportsTransactionIsolationLevel(TRANSACTION_READ_COMMITTED));
+            assertEquals(true,
+                         mdata.supportsTransactionIsolationLevel(TRANSACTION_REPEATABLE_READ));
+            assertEquals(true,
+                         mdata.supportsTransactionIsolationLevel(TRANSACTION_SERIALIZABLE));
+
+            PreparedStatement pstmt = con.prepareStatement("""
+                            SELECT FORMULA
+                              FROM COMPOUNDS
+                             WHERE HYDROGEN=?
+                             ORDER BY FORMULA DESC
+                            """);
+            pstmt.setInt(1, 4);
+            ResultSet result = pstmt.executeQuery();
+            assertEquals(true, result.next());
+            assertEquals("N2H4", result.getString(1));
+            assertEquals(true, result.next());
+            assertEquals("CH4", result.getString(1));
+            assertEquals(false, result.next());
+        }
+    }
+
+    /**
+     * Use a DataSource that accesses H2 via the
+     * javax.sql.XADataSource interface.
+     */
+    @Test
+    public void testXADataSource() throws Exception {
+        try (Connection con = h2xaDataSource.getConnection()) {
+            assertEquals(true, con.getAutoCommit());
+            assertEquals("TESTDB", con.getCatalog());
+            assertEquals("PUBLIC", con.getSchema());
+            assertEquals(TRANSACTION_READ_COMMITTED,
+                         con.getTransactionIsolation());
+
+            DatabaseMetaData mdata = con.getMetaData();
+            assertEquals("DBUSER1", mdata.getUserName());
+            assertEquals("H2", mdata.getDatabaseProductName());
+            assertEquals("H2 JDBC Driver", mdata.getDriverName());
+            assertEquals(4, mdata.getJDBCMajorVersion());
+            assertEquals(3, mdata.getJDBCMinorVersion());
+
+            assertEquals(TRANSACTION_READ_COMMITTED,
+                         mdata.getDefaultTransactionIsolation());
+            assertEquals(false,
+                         mdata.supportsTransactionIsolationLevel(TRANSACTION_NONE));
+            assertEquals(true,
+                         mdata.supportsTransactionIsolationLevel(TRANSACTION_READ_UNCOMMITTED));
+            assertEquals(true,
+                         mdata.supportsTransactionIsolationLevel(TRANSACTION_READ_COMMITTED));
+            assertEquals(true,
+                         mdata.supportsTransactionIsolationLevel(TRANSACTION_REPEATABLE_READ));
+            assertEquals(true,
+                         mdata.supportsTransactionIsolationLevel(TRANSACTION_SERIALIZABLE));
+
+            assertEquals(true,
+                         h2xaDataSource.isWrapperFor(XADataSource.class));
+            XADataSource xads = h2xaDataSource.unwrap(XADataSource.class);
+
+            // disallowed usage
+            try {
+                XAConnection xacon = xads.getXAConnection();
+                fail("Unsafe getXAConnection operation on unwrapped" +
+                     " instance should have been blocked. Instead: " + xacon);
+            } catch (SQLFeatureNotSupportedException x) {
+                if (x.getMessage() == null ||
+                    !x.getMessage().contains("DSRA9130E"))
+                    throw x;
+            }
+
+            // valid usage
+            boolean successful = false;
+            tx.begin();
+            try (Connection con2 = h2cpDataSource.getConnection()) {
+                PreparedStatement pstmt = con.prepareStatement("""
+                                UPDATE COMPOUNDS
+                                   SET NAME=?
+                                 WHERE FORMULA=?
+                                                """);
+                pstmt.setString(1, "Dihydrogen monoxide");
+                pstmt.setString(2, "H2O");
+                assertEquals(1, pstmt.executeUpdate());
+
+                ResultSet result = con2
+                                .createStatement(ResultSet.TYPE_FORWARD_ONLY,
+                                                 ResultSet.CONCUR_UPDATABLE)
+                                .executeQuery("""
+                                                SELECT *
+                                                  FROM COMPOUNDS
+                                                 WHERE FORMULA='NaCl'
+                                                   FOR UPDATE WAIT 30
+                                                """);
+                assertEquals(true, result.next());
+                assertEquals("NaCl", result.getString(1));
+                assertEquals("Sodium chloride", result.getString(2));
+                assertEquals(1, result.getInt(10)); // Na
+                assertEquals(1, result.getInt(5)); // Cl
+                result.updateString(2, "Salt");
+                result.updateRow();
+                assertEquals(false, result.next());
+                successful = true;
+            } finally {
+                if (successful)
+                    tx.commit();
+                else
+                    tx.rollback();
+            }
+
+            // restore values that were updated by the transaction
+            con.setAutoCommit(false);
+            PreparedStatement pstmt = con.prepareStatement("""
+                            UPDATE COMPOUNDS
+                               SET NAME=?
+                             WHERE NAME=?
+                                            """);
+            pstmt.setString(1, "Water");
+            pstmt.setString(2, "Dihydrogen monoxide");
+            assertEquals(1, pstmt.executeUpdate());
+            con.commit();
+
+            con.setAutoCommit(true);
+            pstmt.setString(1, "Sodium chloride");
+            pstmt.setString(2, "Salt");
+            assertEquals(1, pstmt.executeUpdate());
         }
     }
 }
