@@ -587,7 +587,7 @@ public class ClientSSLHandshakeTest extends CommonTest {
                 "< adjustSupportedCiphers -> \\(\\d+\\)\\s+(.*?)\\s+Exit");
 
         List<String> lastCipherList = new ArrayList<>();
-        String MD5_DES = "MD5 DES";
+        String MD5_DES = "MD5DESTLS";
         for (String line : traceLines) {
             if (!line.contains("Entry")) {  // Skip Entry lines
                 Matcher matcher = pattern.matcher(line);
