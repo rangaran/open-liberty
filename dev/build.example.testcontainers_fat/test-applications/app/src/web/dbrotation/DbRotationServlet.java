@@ -56,7 +56,7 @@ public class DbRotationServlet extends FATServlet {
     public void testDatabaseRotation() throws Exception {
         try (Connection con = ds_dbRotation.getConnection()) {
             try (Statement stmt = con.createStatement()) {
-                stmt.executeUpdate("CREATE TABLE test (id INTEGER PRIMARY KEY)");
+                stmt.executeUpdate("CREATE TABLE test (id INTEGER NOT NULL PRIMARY KEY)");
             }
             try (PreparedStatement stmt = con.prepareStatement("INSERT INTO test (id) VALUES (?)")) {
                 stmt.setInt(1, 10);

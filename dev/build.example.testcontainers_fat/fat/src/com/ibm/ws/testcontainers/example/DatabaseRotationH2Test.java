@@ -19,8 +19,11 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
+import java.util.Optional;
+
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.testcontainers.containers.JdbcDatabaseContainer;
@@ -32,10 +35,10 @@ import componenttest.annotation.Server;
 import componenttest.annotation.SkipIfSysProp;
 import componenttest.annotation.TestServlet;
 import componenttest.custom.junit.runner.FATRunner;
+import componenttest.topology.database.H2Database;
+import componenttest.topology.database.H2Database.TRACE_LEVEL;
 import componenttest.topology.database.container.DatabaseContainerFactory;
-import componenttest.topology.database.container.DatabaseContainerType;
 import componenttest.topology.database.container.DatabaseContainerUtil;
-import componenttest.topology.database.container.H2Container;
 import componenttest.topology.impl.LibertyServer;
 import web.dbrotation.DbRotationServlet;
 
@@ -70,19 +73,17 @@ public class DatabaseRotationH2Test {
      *
      * This is how our SOE builds run against each database.
      */
-    public static JdbcDatabaseContainer<?> jdbcContainer = DatabaseContainerFactory.createH2();
+    public static H2Database h2Database = H2Database.create("dbuser", "dbpass") // Admin user used for testing and to create additional users
+                    .withUser("user1", "password2") // Additional users in server.xml or used programmatically.
+                    .withDatabaseName("DatabaseRotationH2Test") //The database name (random UUID if unspecified)
+                    .withFileTrace(TRACE_LEVEL.DEBUG); // Enable trace on H2 database via URL
+
+    @ClassRule
+    public static JdbcDatabaseContainer<?> jdbcContainer = DatabaseContainerFactory.createH2(Optional.of(h2Database));
 
     @BeforeClass
     public static void setUp() throws Exception {
         ShrinkHelper.defaultApp(server, APP_NAME, "web.dbrotation");
-
-        if (DatabaseContainerType.H2.equals(jdbcContainer)) {
-            ((H2Container) jdbcContainer)//
-                            .withUser("user1", "password2") // Additional users in server.xml or used programmatically.
-                            .withOption("TRACE_LEVEL_SYSTEM_OUT=3");// Additional options we want to add to the URL
-        }
-
-        jdbcContainer.start();
 
         /*
          * This builder method will edit each <dataSource> element in your server.xml
@@ -106,11 +107,7 @@ public class DatabaseRotationH2Test {
 
     @AfterClass
     public static void tearDown() throws Exception {
-        try {
-            server.stopServer();
-        } finally {
-            jdbcContainer.stop();
-        }
+        server.stopServer();
     }
 
     /**

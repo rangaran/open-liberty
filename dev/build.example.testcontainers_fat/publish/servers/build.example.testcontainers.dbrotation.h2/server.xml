@@ -33,7 +33,7 @@
     -->
     <dataSource jndiName="jdbc/dbRotation" fat.modify="true">
       <jdbcDriver libraryRef="dbRotationLib"/>
-      <properties.h2 URL="${env.DB_URL}" user="dbuser1" password="{xor}Oz0vKDtu"/>
+      <properties.h2 URL="${env.DB_URL}" user="dbuser" password="dbpass"/>
     </dataSource>
     
     <!-- 
@@ -42,7 +42,7 @@
         fat.modify="true" on an authData element is used to change the attributes that
         correspond to the containers auth data at runtime. 
      -->
-    <authData id="databaseAuth" user="dbuser1" password="{xor}Oz0vKDtu" fat.modify="true"/>
+    <authData id="databaseAuth" user="dbuser" password="dbpass" fat.modify="true"/>
     
     <dataSource jndiName="jdbc/dbRotationContainerAuth"  containerAuthDataRef="databaseAuth" fat.modify="true">
       <jdbcDriver libraryRef="dbRotationLib"/>
@@ -54,7 +54,7 @@
      -->
     <dataSource jndiName="jdbc/dbRotationNestedContainerAuth" fat.modify="true">
       <jdbcDriver libraryRef="dbRotationLib"/>
-      <containerAuthData id="containerAuthData" user="dbuser1" password="{xor}Oz0vKDtu" fat.modify="true" />
+      <containerAuthData id="containerAuthData" user="dbuser" password="dbpass" fat.modify="true" />
       <properties.h2 URL="${env.DB_URL}"/>
     </dataSource>
     
