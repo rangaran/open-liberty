@@ -842,12 +842,10 @@ public class ZipFileContainer implements com.ibm.wsspi.artifact.ArtifactContaine
 
     private static class ZipFileDetails {
         final ZipEntryData[] zipEntryData;
-        final boolean isMultiRelease;
         final Map<String, ZipEntryData> zipEntryDataMap;
 
-        ZipFileDetails(ZipEntryData[] zipEntryData, boolean isMultiRelease, Map<String, ZipEntryData> zipEntryDataMap) {
+        ZipFileDetails(ZipEntryData[] zipEntryData, Map<String, ZipEntryData> zipEntryDataMap) {
             this.zipEntryData = zipEntryData;
-            this.isMultiRelease = isMultiRelease;
             this.zipEntryDataMap = zipEntryDataMap;
         }
     }
@@ -913,7 +911,7 @@ public class ZipFileContainer implements com.ibm.wsspi.artifact.ArtifactContaine
                         zipEntryDataMap = new HashMap<>(zipEntryDataMap);
                     }
 
-                    zipFileDetails = new ZipFileDetails(useZipEntryData, isMultiRelease, zipEntryDataMap);
+                    zipFileDetails = new ZipFileDetails(useZipEntryData, zipEntryDataMap);
                 }
             }
         }
@@ -942,13 +940,12 @@ public class ZipFileContainer implements com.ibm.wsspi.artifact.ArtifactContaine
         setZipFileDetails();
         ZipEntryData entryData = zipFileDetails.zipEntryDataMap.get(r_path);
         if ( entryData != null ) {
-            if (zipFileDetails.isMultiRelease && entryData instanceof MultiReleaseFileZipEntryData) {
-                // If this is an MRJAR, check the entry for /META-INF/versions/n/<r_path> location reference
-                MultiReleaseFileZipEntryData multiReleaseData = (MultiReleaseFileZipEntryData) entryData;
+            ZipEntryData multiReleaseData = entryData.getMultiReleaseEntry();
+            if (multiReleaseData != entryData) {
                 if ( TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled() ) {
-                    Tr.debug(tc, "Found MR path: META-INF/versions/" + multiReleaseData.multiReleaseJavaVersion + "/" + r_path);
+                    Tr.debug(tc, "Found MR path: META-INF/versions/" + ((MultiReleaseFileZipEntryData) entryData).multiReleaseJavaVersion + "/" + r_path);
                 }
-                return multiReleaseData.multiReleaseEntry;
+                entryData = multiReleaseData;
             }
         }
         return entryData;
@@ -1001,14 +998,14 @@ public class ZipFileContainer implements com.ibm.wsspi.artifact.ArtifactContaine
         int location = ZipFileContainerUtils.locatePath( getZipEntryData(), r_path );
 
         // If this is an MRJAR, check the entry for /META-INF/versions/n/<r_path> location reference
-        if (zipFileDetails.isMultiRelease && location >= 0) {
+        if (location >= 0) {
             ZipEntryData entryData = zipFileDetails.zipEntryData[location];
-            if (entryData instanceof MultiReleaseFileZipEntryData) {
-                MultiReleaseFileZipEntryData multiReleaseData = (MultiReleaseFileZipEntryData) entryData;
+            ZipEntryData multiReleaseData = entryData.getMultiReleaseEntry();
+            if (multiReleaseData != entryData) {
                 if ( TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled() ) {
-                    Tr.debug(tc, "Found MR path: META-INF/versions/" + multiReleaseData.multiReleaseJavaVersion + "/" + r_path);
+                    Tr.debug(tc, "Found MR path: META-INF/versions/" + ((MultiReleaseFileZipEntryData) entryData).multiReleaseJavaVersion + "/" + r_path);
                 }
-                location = multiReleaseData.multiReleaseEntry.getOffset();
+                location = multiReleaseData.getOffset();
             }
         }
         if ( COLLECT_TIMINGS ) {

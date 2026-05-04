@@ -917,7 +917,11 @@ public class ZipFileArtifactNotifier implements ArtifactNotifier, com.ibm.ws.ker
 
         if ( a_path.isEmpty() || ((a_path.length() == 1) && (a_path.charAt(0) == '/')) ) {
             for ( ZipEntryData entry : allEntryData ) {
-                // Do not include phantom entry data
+                // Do not include phantom entry data.
+                // Consumers of the entry paths are not expecting a nonexistent entry in the zip
+                // file that cannot be consumed.  Only real entries should be returned to external
+                // consumers of the notifier for that reason.  This change maintains 
+                // the previous behavior so as not to cause a consumer to cause an error.
                 if (entry.isPhantom()) {
                     continue;
                 }

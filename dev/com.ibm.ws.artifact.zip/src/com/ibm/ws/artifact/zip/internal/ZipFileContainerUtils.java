@@ -304,7 +304,11 @@ public class ZipFileContainerUtils {
         List<List<Integer>> offsetsStack = new ArrayList<List<Integer>>(32);
 
         for ( int nextOffset = 0; nextOffset < zipEntryData.length; nextOffset++ ) {
-            // Do not include phantom entry data in the iterator data
+            // Do not include phantom entry data in the iterator data.
+            // Consumers of the iterator are not expecting a nonexistent entry in the zip
+            // file that cannot be consumed.  Only real entries should be returned to external
+            // consumers of the Container iterator for that reason.  This change maintains 
+            // the previous behavior so as not to cause a consumer to cause an error.
             if (zipEntryData[nextOffset].isPhantom()) {
                 continue;
             }
@@ -451,6 +455,10 @@ public class ZipFileContainerUtils {
             return false;
         }
 
+        ZipEntryData getMultiReleaseEntry() {
+            return this;
+        }
+
         abstract String getPath();
 
         abstract boolean isDirectory();
@@ -559,13 +567,10 @@ public class ZipFileContainerUtils {
             // it just points to the multi-release version of the entry
             return size == -1;
         }
-        
+
+        @Override
         ZipEntryData getMultiReleaseEntry() {
             return multiReleaseEntry;
-        }
-
-        int getMultiReleaseJavaVersion() {
-            return multiReleaseJavaVersion;
         }
     }
 
