@@ -888,6 +888,9 @@ public class ZipFileContainer implements com.ibm.wsspi.artifact.ArtifactContaine
                             isMultiRelease = isMultiRelease(useZipFile);
                             // Using a LinkedHashMap to have it be in insert order to give the same
                             // sort characteristics as putting entries into a list.
+                            // The ZipFile Enumeration has things in a better order than random
+                            // hash order from a normal HashMap which makes the sort that is done
+                            // perform much faster.
                             zipEntryDataMap = new LinkedHashMap<String, ZipEntryData>();
                             useZipEntryData = ZipFileContainerUtils.collectZipEntries(useZipFile, zipEntryDataMap, isMultiRelease);
                         } finally {
@@ -1280,7 +1283,7 @@ public class ZipFileContainer implements com.ibm.wsspi.artifact.ArtifactContaine
                 return null; // There is no next entry; cannot match even partially.
             } else {
                 ZipEntryData nextEntryData = useEntryData[location];
-                if ( !isChildOf(r_entryPath, nextEntryData.r_getPath() ) ) {
+                if ( !isChildOf(r_entryPath, nextEntryData.r_path ) ) {
                      // There is a next entry, but it is not a child of the target.
                     return null;
                 } else {

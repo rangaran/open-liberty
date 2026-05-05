@@ -343,7 +343,7 @@ public class ZipFileEntry implements ExtractableArtifactEntry {
         if (zipEntryData != null) {
             // If the zip entry data is available always use its source of truth
             // for the relative path within the zip file.
-            String rPath = zipEntryData.r_getPath();
+            String rPath = zipEntryData.r_path;
             if (zipEntryData.isDirectory()) {
                 rPath += "/";
             }

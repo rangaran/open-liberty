@@ -119,7 +119,7 @@ public class ZipFileContainerUtils {
             int location = locations[index++];
 
             ZipEntryData nextEntryData = allEntryData[location];
-            String nextPath = nextEntryData.r_getPath();
+            String nextPath = nextEntryData.r_path;
 
             int parentLen;
             if ( parentPath.isEmpty() ) {
@@ -312,7 +312,7 @@ public class ZipFileContainerUtils {
             if (zipEntryData[nextOffset].isPhantom()) {
                 continue;
             }
-            String r_nextPath = zipEntryData[nextOffset].r_getPath();
+            String r_nextPath = zipEntryData[nextOffset].r_path;
             int r_nextPathLen = r_nextPath.length();
 
             // The next path may be on a different branch.
@@ -737,7 +737,7 @@ public class ZipFileContainerUtils {
     @Trivial
     public static void setLocations(ZipEntryData[] entryData) {
     	
-    	for ( int entryNo = 0; entryNo < entryData.length; entryNo++ ) {
+    	for ( int entryNo = 0, len = entryData.length; entryNo < len; entryNo++ ) {
     		ZipEntryData entry = entryData[entryNo];
     		entry.setOffset(entryNo);
     	}
