@@ -488,6 +488,52 @@ public class Data_1_1_Servlet extends FATServlet {
         }
     }
 
+    /**
+     * Tests a Find method with the First annotation specifying a value
+     * larger than 1.
+     */
+    @Test
+    public void testFindFirst10() {
+
+        Restriction<Fraction> notReduced = _Fraction.reduced.isFalse();
+
+        Order<Fraction> alphabetized = Order.by(_Fraction.name.ascIgnoreCase());
+
+        assertEquals(List.of(8, // Eight
+                             18, // Eighteen
+                             15, // Fifteen
+                             5, // Five
+                             4, // Four
+                             14, // Fourteen
+                             6, // Six
+                             16, // Sixteen
+                             10, // Ten
+                             12), // Twelve
+                     fractions.atMost10Numerators(20,
+                                                  notReduced,
+                                                  alphabetized));
+    }
+
+    /**
+     * Tests a Find method with the First annotation specifying a value
+     * but where there are less results available than requested.
+     */
+    @Test
+    public void testFindFirstReturnsLesserAmount() {
+
+        Restriction<Fraction> firstLetterIsF = _Fraction.name.startsWith("F");
+
+        Order<Fraction> reverseAlphabetized = Order.by(_Fraction.name.desc());
+
+        assertEquals(List.of(14, // Fourteen
+                             4, // Four
+                             5, // Five
+                             15), // Fifteen
+                     fractions.atMost10Numerators(18,
+                                                  firstLetterIsF,
+                                                  reverseAlphabetized));
+    }
+
     @Test
     public void testInheritanceFromAbstractEntity() {
         ads.removeBySponsorIn(List.of("Open Liberty",
@@ -1487,6 +1533,33 @@ public class Data_1_1_Servlet extends FATServlet {
                      fractions.where(restriction)
                                      .map(f -> f.name)
                                      .collect(Collectors.toList()));
+    }
+
+    /**
+     * Tests a Query method with the First annotation defaulting to a value
+     * of 1.
+     */
+    @Test
+    public void testQueryFirst1() {
+
+        assertEquals("Fifteen Sixteenths",
+                     fractions.greatestLessThan1(16).orElseThrow() //
+                                     .name);
+
+        assertEquals("Seven Eighths",
+                     fractions.greatestLessThan1(8).orElseThrow() //
+                                     .name);
+    }
+
+    /**
+     * Tests a Query method with the First annotation defaulting to a value
+     * of 1.
+     */
+    @Test
+    public void testQueryFirstNoneFound() {
+
+        assertEquals(false,
+                     fractions.greatestLessThan1(0).isPresent());
     }
 
     /**

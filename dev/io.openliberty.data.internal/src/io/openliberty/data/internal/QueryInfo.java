@@ -240,7 +240,8 @@ public abstract class QueryInfo {
     Set<String> jpqlParamNames = Collections.emptySet();
 
     /**
-     * Value from findFirst#By, or 1 for findFirstBy, otherwise 0.
+     * Value from the First annotation, or findFirst#By, or 1 for findFirstBy,
+     * otherwise 0.
      */
     int maxResults;
 
@@ -3242,6 +3243,22 @@ public abstract class QueryInfo {
         methodAnno = inspect.apply(compat.getCountAnnotation(method), methodAnno);
         methodAnno = inspect.apply(compat.getExistsAnnotation(method), methodAnno);
 
+        Integer first = compat.getFirstAnnotationValue(method);
+        if (first != null) {
+            if (first < 1) {
+                throw exc(UnsupportedOperationException.class,
+                          "CWWKD1029.first.neg.or.zero",
+                          method.getName(),
+                          repositoryInterface.getName(),
+                          first);
+            } else if (methodAnno == null) {
+                maxResults = first;
+            } else {
+                conflicts.add(methodAnno.annotationType().getSimpleName());
+                conflicts.add("First");
+            }
+        }
+
         OrderBy[] orderBy = method.getAnnotationsByType(OrderBy.class);
         if (orderBy.length > 0 &&
             methodAnno != null &&
@@ -4436,8 +4453,17 @@ public abstract class QueryInfo {
                       methodName,
                       repositoryInterface.getName(),
                       0);
-        else
+        else if (maxResults == 0)
             maxResults = num;
+        else
+            // TODO 1.1 NLS
+            throw new UnsupportedOperationException("The " + methodName +
+                                                    " method of the " +
+                                                    repositoryInterface.getName() +
+                                                    " repository interface cannot" +
+                                                    " be annotated with the First" +
+                                                    " annotation because its method" +
+                                                    " name contains the First keyword.");
 
         return i;
     }
