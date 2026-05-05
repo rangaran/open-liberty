@@ -61,6 +61,15 @@ public class LTPAPQCTests {
     private static final LibertyServer server = LibertyServerFactory.getLibertyServer("com.ibm.ws.security.token.ltpa.fat.pqcTestServer");
     private static final FormLoginClient formLoginClient = new FormLoginClient(server, FormLoginClient.DEFAULT_SERVLET_NAME, "/formlogin");
 
+    // Static initializer to configure Java 26 for the server
+    static {
+        String java26Home = System.getenv("JAVA_26_HOME");
+        if (java26Home != null && !java26Home.isEmpty()) {
+            Log.info(thisClass, "<clinit>", "Configuring server to use Java 26: " + java26Home);
+            server.addEnvVar("JAVA_HOME", java26Home);
+        }
+    }
+
     private static final String USER1 = "user1";
     private static final String USER1PWD = "user1pwd";
     private static final String TESTUSER = "testuser";
@@ -91,15 +100,21 @@ public class LTPAPQCTests {
     public static void beforeClass() throws Exception {
         Log.info(thisClass, "beforeClass()", "entering");
 
-        // Check Java version for PQC support
-        String javaVersion = System.getProperty("java.version");
-        Log.info(thisClass, "beforeClass()", "Java version: " + javaVersion);
+        // Determine if Java 26+ is available
+        String java26Home = System.getenv("JAVA_26_HOME");
+        if (java26Home != null && !java26Home.isEmpty()) {
+            isJava26OrLater = true;
+        } else {
+            // Check current JVM version
+            String javaVersion = System.getProperty("java.version");
+            Log.info(thisClass, "beforeClass()", "Java version: " + javaVersion);
+            
+            // Parse major version (handles formats like "26", "26.0.1", "1.8.0_292")
+            int majorVersion = parseMajorVersion(javaVersion);
+            isJava26OrLater = majorVersion >= 26;
+        }
         
-        // Parse major version (handles formats like "26", "26.0.1", "1.8.0_292")
-        int majorVersion = parseMajorVersion(javaVersion);
-        isJava26OrLater = majorVersion >= 26;
-        
-        Log.info(thisClass, "beforeClass()", "Java 26+ detected: " + isJava26OrLater);
+        Log.info(thisClass, "beforeClass()", "Java 26+ configured: " + isJava26OrLater);
         Log.info(thisClass, "beforeClass()", "PQC support available: " + isJava26OrLater);
 
         // Transform the application for EE9+ that was copied
@@ -157,7 +172,7 @@ public class LTPAPQCTests {
     @Test
     @Mode(TestMode.LITE)
     public void testPQC_BasicTokenCreationAndValidation() throws Exception {
-        Assume.assumeTrue("This test requires Java 26+ for PQC support", isJava26OrLater);
+        Assume.assumeTrue(isJava26OrLater);
 
         server.startServer(true);
 
@@ -190,7 +205,7 @@ public class LTPAPQCTests {
      */
     @Test
     public void testPQC_FallbackToRSAOnly() throws Exception {
-        Assume.assumeFalse("This test requires Java 17 (not Java 26+)", isJava26OrLater);
+        Assume.assumeTrue(!isJava26OrLater);
 
         server.startServer(true);
 
@@ -216,7 +231,7 @@ public class LTPAPQCTests {
      */
     @Test
     public void testPQC_MLDSAAlgorithms() throws Exception {
-        Assume.assumeTrue("This test requires Java 26+ for PQC support", isJava26OrLater);
+        Assume.assumeTrue(isJava26OrLater);
 
         // Test with ML-DSA-65 (default configuration)
         server.startServer(true);
@@ -236,7 +251,7 @@ public class LTPAPQCTests {
      */
     @Test
     public void testPQC_MLKEMAlgorithms() throws Exception {
-        Assume.assumeTrue("This test requires Java 26+ for PQC support", isJava26OrLater);
+        Assume.assumeTrue(isJava26OrLater);
 
         // Test with ML-KEM-768 (default configuration)
         server.startServer(true);
@@ -257,7 +272,7 @@ public class LTPAPQCTests {
      */
     @Test
     public void testPQC_HybridSignatureVerification() throws Exception {
-        Assume.assumeTrue("This test requires Java 26+ for PQC support", isJava26OrLater);
+        Assume.assumeTrue(isJava26OrLater);
 
         server.startServer(true);
         verifyLtpaConfigurationReadyMessageFound();
@@ -279,7 +294,7 @@ public class LTPAPQCTests {
      */
     @Test
     public void testPQC_TokenExpiration() throws Exception {
-        Assume.assumeTrue("This test requires Java 26+ for PQC support", isJava26OrLater);
+        Assume.assumeTrue(isJava26OrLater);
 
         server.startServer(true);
         verifyLtpaConfigurationReadyMessageFound();
@@ -303,7 +318,7 @@ public class LTPAPQCTests {
     @Test
     @ExpectedFFDC({ "java.io.IOException", "java.security.UnrecoverableKeyException" })
     public void testPQC_HybridKeystorePasswordProtection() throws Exception {
-        Assume.assumeTrue("This test requires Java 26+ for PQC support", isJava26OrLater);
+        Assume.assumeTrue(isJava26OrLater);
 
         // This test would require modifying the server configuration to use
         // an incorrect password, which is complex in the FAT framework.
@@ -325,7 +340,7 @@ public class LTPAPQCTests {
      */
     @Test
     public void testPQC_BackwardCompatibility() throws Exception {
-        Assume.assumeTrue("This test requires Java 26+ for PQC support", isJava26OrLater);
+        Assume.assumeTrue(isJava26OrLater);
 
         server.startServer(true);
         verifyLtpaConfigurationReadyMessageFound();
@@ -366,7 +381,7 @@ public class LTPAPQCTests {
                       server.waitForStringInLog("CWWKS4105I"));
     }
 
-    private void verifyHybridKeystoreCreated() {
+    private void verifyHybridKeystoreCreated() throws Exception {
         // Check that the hybrid keystore file exists
         assertTrue("Hybrid keystore file should exist",
                    server.fileExistsInLibertyServerRoot(HYBRID_KEYSTORE_LOCATION));
