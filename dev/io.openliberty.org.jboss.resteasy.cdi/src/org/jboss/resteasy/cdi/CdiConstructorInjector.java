@@ -10,10 +10,13 @@ import org.jboss.resteasy.spi.HttpRequest;
 import org.jboss.resteasy.spi.HttpResponse;
 
 import javax.enterprise.context.spi.CreationalContext;
+import javax.enterprise.inject.AmbiguousResolutionException;
+import javax.enterprise.inject.UnsatisfiedResolutionException;
 import javax.enterprise.inject.spi.Bean;
 import javax.enterprise.inject.spi.BeanManager;
 import javax.ws.rs.WebApplicationException;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,11 +37,13 @@ public class CdiConstructorInjector implements ConstructorInjector
    private BeanManager manager;
    // Liberty Change Start
    private Collection<Type> types;
+   private Constructor<?> constructor;
 
-   public CdiConstructorInjector(final Collection<Type> type, final BeanManager manager)
+   public CdiConstructorInjector(final Collection<Type> type, final BeanManager manager, final Constructor<?> constructor)
    {
       this.types = type;
       this.manager = manager;
+      this.constructor = constructor;
    }
    // Liberty Change End
 
@@ -122,19 +127,20 @@ public class CdiConstructorInjector implements ConstructorInjector
           Bean<?> bean = manager.resolve(beans);
           if (bean != null) {
               CreationalContext<?> context = manager.createCreationalContext(bean);
-              try {
-                  Object result = manager.getReference(bean, type, context);
-                  return result;
-              } catch (Exception e) {
-                  // Continue to next type if this one fails
-                  LogMessages.LOGGER.debug("Failed to get bean reference for type " + type + ": " + e.getMessage());
-              }
+              Object result = manager.getReference(bean, type, context);
+              return result;
           }
        }
        
-       // Log warning if no bean could be resolved from any type
-       LogMessages.LOGGER.warn("Unable to resolve CDI bean for any of the provided types");
-       return null;
+       // If no bean could be resolved from any type, fall back to regular constructor instantiation
+       // This allows non-CDI beans to work while still supporting CDI injection when available
+       try {
+           LogMessages.LOGGER.debug("CDI bean lookup failed for all types, falling back to regular constructor instantiation");
+           return constructor.newInstance();
+       } catch (Exception e) {
+           // Let exceptions from the constructor propagate to RESTEasy
+           throw new RuntimeException("Failed to instantiate class using constructor", e);
+       }
        // Liberty Change End
    }
 

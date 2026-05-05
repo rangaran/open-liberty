@@ -105,15 +105,26 @@ public class CdiInjectorFactory implements InjectorFactory {
     }
 
     protected ConstructorInjector cdiConstructor(Class<?> clazz) {
+        // Liberty Change Start - Get the no-arg constructor for fallback
+        Constructor<?> constructor;
+        try {
+            constructor = clazz.getDeclaredConstructor();
+            constructor.setAccessible(true);
+        } catch (NoSuchMethodException e) {
+            // No no-arg constructor available, CDI-only mode
+            constructor = null;
+        }
+        // Liberty Change End
+        
         if (!manager.getBeans(clazz).isEmpty()) {
             LogMessages.LOGGER.debug(Messages.MESSAGES.usingCdiConstructorInjector(clazz));
-            return new CdiConstructorInjector(Collections.singleton(clazz), manager); // Liberty Change
+            return new CdiConstructorInjector(Collections.singleton(clazz), manager, constructor); // Liberty Change
         }
 
         if (sessionBeanInterface.containsKey(clazz)) {
             // Liberty Change Start
             Collection<Type> intfc = sessionBeanInterface.get(clazz);
-            return new CdiConstructorInjector(intfc, manager);
+            return new CdiConstructorInjector(intfc, manager, constructor);
             // Liberty Change End
         }
 
