@@ -15,6 +15,7 @@ import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -180,11 +181,20 @@ public class H2Database extends ExternalResource {
      * @return          this
      */
     public H2Database withUser(String user, String password) {
-        // H2 requires file-based mode when additional users are configured
-        // because user creation requires persistent storage
-        mode = MODE.IN_FILE;
-
         additionalUsers.put(user, password);
+        return withFileMode();
+    }
+
+    /**
+     * Typically, file mode is reserved for when multiple users are required,
+     * but you can force file mode by calling this method.
+     *
+     * Useful, when you need to execute a DDL or create tables prior to running a test.
+     *
+     * @return this
+     */
+    public H2Database withFileMode() {
+        mode = MODE.IN_FILE;
         return this;
     }
 
@@ -269,17 +279,9 @@ public class H2Database extends ExternalResource {
         }
 
         Log.info(c, "before", "Adding the following users to the database " + additionalUsers);
-        Log.info(c, "before", "  Using URL " + getURL());
-        Log.info(c, "before", "  Using the admin auth data " + getAdminUser() + ":" + getAdminPassword());
 
-        Properties properties = new Properties();
-        properties.put("user", getAdminUser());
-        properties.put("password", getAdminPassword());
-
-        Driver driver = getDriverInstance();
-
-        try (Connection con = driver.connect(getURL(), properties);
-                        java.sql.Statement stmt = con.createStatement()) {
+        try (Connection con = createConnection("");
+                        Statement stmt = con.createStatement()) {
             for (Map.Entry<String, String> e : additionalUsers.entrySet()) {
                 stmt.executeUpdate("create user if not exists " + e.getKey() +
                                    " password '" + e.getValue() + "' admin;");
@@ -289,8 +291,8 @@ public class H2Database extends ExternalResource {
         }
 
         if (additionalConfig.containsKey("TRACE_LEVEL_SYSTEM_OUT")) {
-            try (Connection con = driver.connect(getURL(), properties);
-                            java.sql.Statement stmt = con.createStatement()) {
+            try (Connection con = createConnection("");
+                            Statement stmt = con.createStatement()) {
                 try (ResultSet rs = stmt.executeQuery("SELECT * FROM INFORMATION_SCHEMA.USERS;")) {
                     while (rs.next()) {
                         String userName = rs.getString("USER_NAME");
@@ -371,7 +373,10 @@ public class H2Database extends ExternalResource {
                 return existing;
             }
             try {
-                return (Driver) Class.forName(this.getDriverClassName()).getDeclaredConstructor().newInstance();
+                Class<?> c = Class.forName(this.getDriverClassName());
+                Driver d = (Driver) c.getDeclaredConstructor().newInstance();
+                Log.info(c, "getDriverInstance", "Driver loaded from: " + c.getProtectionDomain().getCodeSource().getLocation());
+                return d;
             } catch (Exception e) {
                 throw new RuntimeException("Could not get Driver", e);
             }
@@ -383,5 +388,22 @@ public class H2Database extends ExternalResource {
      */
     public String getTestQueryString() {
         return "SELECT 1";
+    }
+
+    public Connection createConnection(String queryString) throws SQLException {
+        return createConnection(queryString, null);
+    }
+
+    public Connection createConnection(String queryString, Properties info) throws SQLException {
+        String q = queryString.isEmpty() ? queryString : //
+                        queryString.startsWith(";") ? queryString : ";" + queryString;
+
+        Properties i = info == null ? new Properties() : info;
+        i.put("user", getAdminUser());
+        i.put("password", getAdminPassword());
+
+        Log.info(c, "createConnection", "Creating a connection using URL=" + getURL() + " queryString=" + q + " and properties=" + i);
+
+        return getDriverInstance().connect(getURL() + q, i);
     }
 }

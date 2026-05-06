@@ -12,6 +12,10 @@
  *******************************************************************************/
 package componenttest.topology.database.container;
 
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.Properties;
+
 import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.utility.DockerImageName;
 
@@ -87,6 +91,18 @@ public class H2Container extends JdbcDatabaseContainer<H2Container> {
     @Override
     public void close() {
         //DO NOTHING
+    }
+
+    //// Utility methods ///
+
+    @Override
+    public Connection createConnection(String queryString) throws SQLException, NoDriverFoundException {
+        return db.createConnection(queryString);
+    }
+
+    @Override
+    public Connection createConnection(String queryString, Properties info) throws SQLException, NoDriverFoundException {
+        return db.createConnection(queryString, info);
     }
 
     //// Getters ////
