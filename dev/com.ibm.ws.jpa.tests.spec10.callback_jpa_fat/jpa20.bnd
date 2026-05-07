@@ -11,7 +11,9 @@ fat.test.bucket: jpa20
 # Package for this bucket's test suite
 -privatepackage: com.ibm.ws.jpa.tests.spec10.callback.jpa20,\
                  com.ibm.ws.jpa.tests.spec10.callback.tests,\
-                 com.ibm.ws.jpa.fvt.callback.*
+                 com.ibm.ws.jpa.fvt.callback.*,\
+                 jpahelper.databasemanagement
+
 
 # Suite class that will be run
 suite.name=com.ibm.ws.jpa.tests.spec10.callback.jpa20.FATSuite

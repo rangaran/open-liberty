@@ -7,7 +7,8 @@ fat.test.bucket: jpa21
 
 -privatepackage: com.ibm.ws.jpa.tests.spec10.callback.jpa21,\
                  com.ibm.ws.jpa.tests.spec10.callback.tests,\
-                 com.ibm.ws.jpa.fvt.callback.*
+                 com.ibm.ws.jpa.fvt.callback.*,\
+                 jpahelper.databasemanagement
 
 suite.name=com.ibm.ws.jpa.tests.spec10.callback.jpa21.FATSuite
 
