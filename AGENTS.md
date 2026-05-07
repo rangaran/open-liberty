@@ -99,3 +99,30 @@ Co-authored-by-AI: GitHub Copilot (GPT-5.4)
 2. **Blank Line**: Include a blank line before the co-authorship attribution if your commit message has a body.
 
 3. **Version Accuracy**: Always use the actual version numbers of the AI tool and the model at the time of code generation.
+
+## Creating and updating source code
+
+### Copyright Header
+
+All source code and configuration files must have and maintain a copyright header at the top of the file.
+
+- License Type: Eclipse Public License - v 2.0
+- Format: Use the appropriate comment block for the file type (e.g., `/* ... */` for Java/Gradle, `<!-- ... -->` for XML/HTML, or `# ... #` for bnd/properties).
+- Copyright dates: Include the year of creation and the current year, if different than the current year, delimited by a comma (,).
+- Example:
+
+```java
+/*******************************************************************************
+ * Copyright (c) 2017, 2026 IBM Corporation and others.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License 2.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-2.0/
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ *
+ * Contributors:
+ *     IBM Corporation - initial API and implementation
+ *******************************************************************************/
+```
+
