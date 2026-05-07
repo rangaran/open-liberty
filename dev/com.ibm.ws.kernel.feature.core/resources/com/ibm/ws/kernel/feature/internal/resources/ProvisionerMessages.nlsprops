@@ -31,7 +31,7 @@
 #   Messages in the range CWWKF1000 are reserved for the FeatureToolMessages.
 # -------------------------------------------------------------------------------------------------
 
-UPDATE_MISSING_FEATURE_ERROR=CWWKF0001E: A feature definition could not be found for {0}
+UPDATE_MISSING_FEATURE_ERROR=CWWKF0001E: A feature definition could not be found for {0}. Try running the command, bin/featureUtility installFeature {0}, or this command, bin/featureUtility installServerFeatures <serverName>, to install the feature.
 UPDATE_MISSING_FEATURE_ERROR.explanation=The feature manager could not find a definition for the specified feature.
 UPDATE_MISSING_FEATURE_ERROR.useraction=Check that the name of the specified feature is spelled correctly, \
 and that the feature definition exists and is readable in the lib/features directory.
