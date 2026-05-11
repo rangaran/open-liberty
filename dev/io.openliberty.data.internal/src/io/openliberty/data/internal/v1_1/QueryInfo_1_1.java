@@ -103,6 +103,7 @@ import jakarta.data.spi.expression.function.TextFunctionExpression;
 import jakarta.data.spi.expression.literal.Literal;
 import jakarta.data.spi.expression.path.NavigablePath;
 import jakarta.data.spi.expression.path.Path;
+import jakarta.persistence.Entity;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 
@@ -416,7 +417,9 @@ public class QueryInfo_1_1 extends QueryInfo {
             manager.remove(entity);
         else
             try {
-                entityHandler.getClass().getMethod("delete").invoke(entity);
+                entityHandler.getClass() //
+                                .getMethod("delete", Entity.class) //
+                                .invoke(entityHandler, entity);
             } catch (IllegalAccessException | NoSuchMethodException x) {
                 throw new RuntimeException(x); // should be impossible
             } catch (InvocationTargetException x) {
@@ -437,7 +440,9 @@ public class QueryInfo_1_1 extends QueryInfo {
             manager.persist(entity);
         else
             try {
-                entityHandler.getClass().getMethod("insert").invoke(entity);
+                entityHandler.getClass() //
+                                .getMethod("insert", Entity.class) //
+                                .invoke(entityHandler, entity);
             } catch (IllegalAccessException | NoSuchMethodException x) {
                 throw new RuntimeException(x); // should be impossible
             } catch (InvocationTargetException x) {
@@ -459,8 +464,9 @@ public class QueryInfo_1_1 extends QueryInfo {
             updated = manager.merge(entity);
         else
             try {
-                updated = entityHandler.getClass().getMethod("update") //
-                                .invoke(entity);
+                updated = entityHandler.getClass() //
+                                .getMethod("update", Entity.class) //
+                                .invoke(entityHandler, entity);
             } catch (IllegalAccessException | NoSuchMethodException x) {
                 throw new RuntimeException(x); // should be impossible
             } catch (InvocationTargetException x) {
@@ -483,8 +489,9 @@ public class QueryInfo_1_1 extends QueryInfo {
             upserted = manager.merge(entity);
         else
             try {
-                upserted = entityHandler.getClass().getMethod("upsert") //
-                                .invoke(entity);
+                upserted = entityHandler.getClass() //
+                                .getMethod("upsert", Entity.class) //
+                                .invoke(entityHandler, entity);
             } catch (IllegalAccessException | NoSuchMethodException x) {
                 throw new RuntimeException(x); // should be impossible
             } catch (InvocationTargetException x) {
