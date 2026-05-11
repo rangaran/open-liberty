@@ -39,7 +39,6 @@ import com.ibm.websphere.ras.Tr;
 import com.ibm.websphere.ras.TraceComponent;
 import com.ibm.websphere.ras.annotation.Trivial;
 import com.ibm.ws.LocalTransaction.LocalTransactionCoordinator;
-import com.ibm.ws.ffdc.FFDCFilter;
 import com.ibm.ws.ffdc.annotation.FFDCIgnore;
 
 import io.openliberty.data.internal.cdi.DataExtension;
@@ -316,7 +315,9 @@ public class RepositoryImpl<R> implements InvocationHandler {
             if (x == null) {
                 if (original instanceof OptimisticLockException)
                     x = new OptimisticLockingFailureException(original);
-                else if (original instanceof jakarta.persistence.EntityExistsException)
+                else if (original instanceof jakarta.persistence.EntityExistsException ||
+                         "org.hibernate.exception.ConstraintViolationException" //
+                                         .equals(original.getClass().getName()))
                     x = new EntityExistsException(original);
                 else if (original instanceof NoResultException)
                     x = new EmptyResultException(original);
@@ -515,43 +516,15 @@ public class RepositoryImpl<R> implements InvocationHandler {
         AutoCloseable eh = null;
         try {
             if (isDisposed.get())
-                throw exc(IllegalStateException.class,
-                          "CWWKD1076.repo.disposed",
-                          method.getName(),
-                          repositoryInterface.getName(),
-                          new StringBuilder("RepositoryImpl@") //
-                                          .append(Integer.toHexString(hashCode())) //
-                                          .append("/(proxy)@") //
-                                          .append(Integer.toHexString(System.identityHashCode(proxy))));
+                throw Fail.disposed(this, proxy, method);
 
             if (isDefaultMethod) {
-                Deque<AutoCloseable> resourceStack = defaultMethodResources.get();
-                boolean added;
-                if (added = (resourceStack == null))
-                    defaultMethodResources.set(resourceStack = new LinkedList<>());
-                else
-                    resourceStack.add(null); // indicator of nested default method
-                try {
-                    Object returnValue = InvocationHandler.invokeDefault(proxy, method, args);
-                    if (trace && tc.isEntryEnabled())
-                        Tr.exit(this, tc, "invoke " + repositoryInterface.getSimpleName() +
-                                          '.' + method.getName(),
-                                returnValue);
-                    return returnValue;
-                } finally {
-                    for (AutoCloseable resource; (resource = resourceStack.pollLast()) != null;)
-                        if (!(resource instanceof EntityManager) ||
-                            ((EntityManager) resource).isOpen())
-                            try {
-                                if (trace && tc.isDebugEnabled())
-                                    Tr.debug(this, tc, "close " + resource);
-                                resource.close();
-                            } catch (Throwable x) {
-                                FFDCFilter.processException(x, getClass().getName(), "1827", this);
-                            }
-                    if (added)
-                        defaultMethodResources.remove();
-                }
+                Object returnValue = invokeDefaultMethod(proxy, method, args);
+                if (trace && tc.isEntryEnabled())
+                    Tr.exit(this, tc, "invoke " + repositoryInterface.getSimpleName() +
+                                      '.' + method.getName(),
+                            provider.loggable(repositoryInterface, method, returnValue));
+                return returnValue;
             }
 
             Object returnValue;
@@ -688,4 +661,39 @@ public class RepositoryImpl<R> implements InvocationHandler {
         }
     }
 
+    /**
+     * Invokes a default method on a repository.
+     *
+     * @param proxy  instance upon which the application invoked the default method
+     * @param method the default method
+     * @param args   arguments to the default method
+     * @return the result of the default method
+     * @throws Throwable if thrown by the default method
+     */
+    @Trivial // avoid tracing customer data
+    private Object invokeDefaultMethod(Object proxy, Method method, Object... args) //
+                    throws Throwable {
+        Deque<AutoCloseable> resourceStack = defaultMethodResources.get();
+        boolean added;
+        if (added = (resourceStack == null))
+            defaultMethodResources.set(resourceStack = new LinkedList<>());
+        else
+            resourceStack.add(null); // indicator of nested default method
+        try {
+            return InvocationHandler.invokeDefault(proxy, method, args);
+        } finally {
+            for (AutoCloseable resource; (resource = resourceStack.pollLast()) != null;)
+                if (!(resource instanceof EntityManager) ||
+                    ((EntityManager) resource).isOpen())
+                    try {
+                        if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
+                            Tr.debug(this, tc, "close " + resource);
+                        resource.close();
+                    } catch (Throwable x) {
+                        // auto FFDC
+                    }
+            if (added)
+                defaultMethodResources.remove();
+        }
+    }
 }

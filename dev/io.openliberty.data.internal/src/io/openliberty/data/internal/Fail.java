@@ -125,6 +125,27 @@ public class Fail {
     }
 
     /**
+     * Raises IllegalStateException because the repository bean was disposed.
+     *
+     * @param impl   repository implementation
+     * @param proxy  proxy instance upon which the repository method is invoked
+     * @param method repository method that the application invoked
+     * @throws IllegalStateException
+     */
+    static IllegalStateException disposed(RepositoryImpl<?> impl,
+                                          Object proxy,
+                                          Method method) {
+        throw exc(IllegalStateException.class,
+                  "CWWKD1076.repo.disposed",
+                  method.getName(),
+                  impl.repositoryInterface.getName(),
+                  new StringBuilder("RepositoryImpl@") //
+                                  .append(Integer.toHexString(impl.hashCode())) //
+                                  .append("/(proxy)@") //
+                                  .append(Integer.toHexString(System.identityHashCode(proxy))));
+    }
+
+    /**
      * Raises a new UnsupportedOperationException for a repository method that
      * has two or more of the same special parameter type.
      *
