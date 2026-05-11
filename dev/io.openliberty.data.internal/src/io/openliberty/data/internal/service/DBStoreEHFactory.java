@@ -464,6 +464,15 @@ public class DBStoreEHFactory extends EntityHandlerFactory implements DDLGenerat
 
     @Override
     @Trivial
+    public AutoCloseable createEntityAgent() {
+        throw new UnsupportedOperationException("createEntityAgent");
+
+        // TODO Persistence 4.0 API
+        // agent = persistenceServiceUnit.getEntityAgent();
+    }
+
+    @Override
+    @Trivial
     public EntityManager createEntityManager() {
         EntityManager em = persistenceServiceUnit.createEntityManager();
         em.setCacheRetrieveMode(CacheRetrieveMode.BYPASS);

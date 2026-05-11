@@ -412,6 +412,16 @@ public abstract class EntityHandlerFactory {
     }
 
     /**
+     * Creates a new EntityAgent instance.
+     * Requires Jakarta Persistence 4.0+, which corresponds to Jakarta EE 12+.
+     * Use the getEntityAgent method instead to ensure the same EntityAgent
+     * is reused within a transaction.
+     *
+     * @return a new EntityAgent instance.
+     */
+    public abstract AutoCloseable createEntityAgent();
+
+    /**
      * Creates a new EntityManager instance.
      * Use the getEntityManager method instead to ensure the same EntityManager
      * and its persistence context are reused within a transaction.
@@ -460,6 +470,7 @@ public abstract class EntityHandlerFactory {
 
     /**
      * Obtains an EntityAgent from the Jakarta Persistence provider.
+     * Requires Jakarta Persistence 4.0+, which corresponds to Jakarta EE 12+.
      *
      * @return the EntityAgent.
      * @throws Exception if an error occurs.
@@ -467,7 +478,7 @@ public abstract class EntityHandlerFactory {
     AutoCloseable getEntityAgent() throws Exception {
         // TODO EntityAgent, which can be reused within a transaction, but
         // otherwise should be a new instance
-        return getEntityManager(false);
+        return createEntityAgent();
     }
 
     /**

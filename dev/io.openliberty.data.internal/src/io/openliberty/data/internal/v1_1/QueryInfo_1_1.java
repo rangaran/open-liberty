@@ -37,6 +37,7 @@ import java.util.stream.Stream;
 import com.ibm.websphere.ras.Tr;
 import com.ibm.websphere.ras.TraceComponent;
 import com.ibm.websphere.ras.annotation.Trivial;
+import com.ibm.ws.ffdc.annotation.FFDCIgnore;
 
 import io.openliberty.data.internal.AttributeConstraint;
 import io.openliberty.data.internal.QueryInfo;
@@ -103,7 +104,6 @@ import jakarta.data.spi.expression.function.TextFunctionExpression;
 import jakarta.data.spi.expression.literal.Literal;
 import jakarta.data.spi.expression.path.NavigablePath;
 import jakarta.data.spi.expression.path.Path;
-import jakarta.persistence.Entity;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 
@@ -377,10 +377,12 @@ public class QueryInfo_1_1 extends QueryInfo {
             return (jakarta.persistence.Query) entityHandler.getClass() //
                             .getMethod("createQuery", String.class) //
                             .invoke(entityHandler, jpql);
-        } catch (IllegalAccessException | //
-                        InvocationTargetException | //
-                        NoSuchMethodException x) {
+        } catch (IllegalAccessException | NoSuchMethodException x) {
             throw new RuntimeException(x); // should be impossible
+        } catch (InvocationTargetException x) {
+            if (x.getCause() instanceof RuntimeException rx)
+                throw rx;
+            throw new DataException(x.getCause());
         }
     }
 
@@ -398,13 +400,16 @@ public class QueryInfo_1_1 extends QueryInfo {
             return (TypedQuery<T>) entityHandler.getClass() //
                             .getMethod("createQuery", String.class, Class.class) //
                             .invoke(entityHandler, jpql, resultType);
-        } catch (IllegalAccessException | //
-                        InvocationTargetException | //
-                        NoSuchMethodException x) {
+        } catch (IllegalAccessException | NoSuchMethodException x) {
             throw new RuntimeException(x); // should be impossible
+        } catch (InvocationTargetException x) {
+            if (x.getCause() instanceof RuntimeException rx)
+                throw rx;
+            throw new DataException(x.getCause());
         }
     }
 
+    @FFDCIgnore(InvocationTargetException.class)
     @Override
     @Trivial
     protected void ehDelete(AutoCloseable entityHandler, Object entity) {
@@ -418,16 +423,19 @@ public class QueryInfo_1_1 extends QueryInfo {
         else
             try {
                 entityHandler.getClass() //
-                                .getMethod("delete", Entity.class) //
+                                .getMethod("delete", Object.class) //
                                 .invoke(entityHandler, entity);
             } catch (IllegalAccessException | NoSuchMethodException x) {
                 throw new RuntimeException(x); // should be impossible
             } catch (InvocationTargetException x) {
+                if (x.getCause() instanceof RuntimeException rx)
+                    throw rx;
                 throw new DataException(x.getCause());
             }
         // TODO deleteMultiple
     }
 
+    @FFDCIgnore(InvocationTargetException.class)
     @Override
     @Trivial
     protected void ehInsert(AutoCloseable entityHandler, Object entity) {
@@ -441,16 +449,19 @@ public class QueryInfo_1_1 extends QueryInfo {
         else
             try {
                 entityHandler.getClass() //
-                                .getMethod("insert", Entity.class) //
+                                .getMethod("insert", Object.class) //
                                 .invoke(entityHandler, entity);
             } catch (IllegalAccessException | NoSuchMethodException x) {
                 throw new RuntimeException(x); // should be impossible
             } catch (InvocationTargetException x) {
+                if (x.getCause() instanceof RuntimeException rx)
+                    throw rx;
                 throw new DataException(x.getCause());
             }
         // TODO insertMultiple
     }
 
+    @FFDCIgnore(InvocationTargetException.class)
     @Override
     @Trivial
     protected Object ehUpdate(AutoCloseable entityHandler, Object entity) {
@@ -464,18 +475,22 @@ public class QueryInfo_1_1 extends QueryInfo {
             updated = manager.merge(entity);
         else
             try {
-                updated = entityHandler.getClass() //
-                                .getMethod("update", Entity.class) //
+                entityHandler.getClass() //
+                                .getMethod("update", Object.class) //
                                 .invoke(entityHandler, entity);
+                updated = entity;
             } catch (IllegalAccessException | NoSuchMethodException x) {
                 throw new RuntimeException(x); // should be impossible
             } catch (InvocationTargetException x) {
+                if (x.getCause() instanceof RuntimeException rx)
+                    throw rx;
                 throw new DataException(x.getCause());
             }
         // TODO updateMultiple
         return updated;
     }
 
+    @FFDCIgnore(InvocationTargetException.class)
     @Override
     @Trivial
     protected Object ehUpsert(AutoCloseable entityHandler, Object entity) {
@@ -489,12 +504,15 @@ public class QueryInfo_1_1 extends QueryInfo {
             upserted = manager.merge(entity);
         else
             try {
-                upserted = entityHandler.getClass() //
-                                .getMethod("upsert", Entity.class) //
+                entityHandler.getClass() //
+                                .getMethod("upsert", Object.class) //
                                 .invoke(entityHandler, entity);
+                upserted = entity;
             } catch (IllegalAccessException | NoSuchMethodException x) {
                 throw new RuntimeException(x); // should be impossible
             } catch (InvocationTargetException x) {
+                if (x.getCause() instanceof RuntimeException rx)
+                    throw rx;
                 throw new DataException(x.getCause());
             }
         // TODO upsertMultiple
