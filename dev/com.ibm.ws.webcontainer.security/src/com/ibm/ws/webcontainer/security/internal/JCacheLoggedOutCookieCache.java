@@ -79,7 +79,6 @@ public class JCacheLoggedOutCookieCache implements LoggedOutCookieCache {
 
             // Collect entries to migrate and build the batch update map
             Map<Object, Object> entriesToMigrate = new HashMap<>();
-            int skippedCount = 0;
 
             for (Cache.Entry<Object, Object> entry : cache) {
                 try {
@@ -110,10 +109,10 @@ public class JCacheLoggedOutCookieCache implements LoggedOutCookieCache {
                             migrationWarningPrinted = true;
                         }
                     } else {
-                        skippedCount++;
                         if (tc.isDebugEnabled()) {
-                            Tr.debug(tc, "Hashed token exists in cache: " + keyStr);
+                            Tr.debug(tc, "Exiting migration due to hashed token in cache: " + keyStr);
                         }
+                        break;
                     }
                 } catch (Exception e) {
                     // Log error and continue with next entry
@@ -133,7 +132,7 @@ public class JCacheLoggedOutCookieCache implements LoggedOutCookieCache {
             migrationCompleted = true;
 
             if (tc.isDebugEnabled()) {
-                Tr.debug(tc, "Token migration completed. Migrated: " + migratedCount + ", Skipped: " + skippedCount);
+                Tr.debug(tc, "Token migration completed. Migrated: " + migratedCount);
             }
 
         } catch (Exception e) {
