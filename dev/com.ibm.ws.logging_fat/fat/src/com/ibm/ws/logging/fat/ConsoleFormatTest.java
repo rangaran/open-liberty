@@ -120,6 +120,9 @@ public class ConsoleFormatTest {
         // Retrieve the consoleLogFile RemoteFile
         RemoteFile consoleLogFile = server.getConsoleLogFile();
 
+        // Set to dev format first to ensure the change occurs.
+        setServerConfiguration(server, DEV_FORMAT, false, false, consoleLogFile);
+
         // Verify if the console logging format is in the default dev format
         List<String> lines = server.findStringsInLogs(DEV_FORMAT_REGEX_PATTERN, consoleLogFile);
         assertTrue("The console log is not in dev format.", lines.size() > 0);
@@ -205,6 +208,9 @@ public class ConsoleFormatTest {
     public void testTBasicConsoleFormat() throws Exception {
         // Retrieve the consoleLogFile RemoteFile
         RemoteFile consoleLogFile = server.getConsoleLogFile();
+
+        // Set to dev format first to ensure the change occurs.
+        setServerConfiguration(server, SIMPLE_FORMAT, false, false, consoleLogFile);
 
         // Set the consoleFormat="tbasic" and traceSpec=off in server.xml
         setServerConfiguration(server, TBASIC_FORMAT, false, false, consoleLogFile);
