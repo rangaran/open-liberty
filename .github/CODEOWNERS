@@ -1,4 +1,5 @@
 /.github/CODEOWNERS     @OpenLiberty/admin
+/cla/                   @OpenLiberty/admin
 /LICENSE                @OpenLiberty/admin
 /SECURITY.md            @OpenLiberty/admin
 
