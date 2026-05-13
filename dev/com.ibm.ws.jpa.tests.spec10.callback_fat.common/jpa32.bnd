@@ -11,9 +11,6 @@
 #     IBM Corporation - initial API and implementation
 #*******************************************************************************
 
-# Include common test packages
--include= test.bnd
-
 # Version-specific packages only
 -privatepackage: com.ibm.ws.jpa.tests.spec10.callback.jpa32
 
@@ -21,6 +18,8 @@ javac.source: 17
 javac.target: 17
 fat.minimum.java.level: 17
 
+# Suite class that will be runnig
 suite.name=com.ibm.ws.jpa.tests.spec10.callback.jpa32.FATSuite
 
+# Features tested by this bucket
 tested.features: persistence-3.2, persistenceContainer-3.2, enterpriseBeansLite-4.0, servlet-6.1, jdbc-4.3, jndi-1.0, databaserotation

@@ -11,12 +11,11 @@
 #     IBM Corporation - initial API and implementation
 #*******************************************************************************
 
-# Include common test packages
--include= test.bnd
-
 # Version-specific packages only
 -privatepackage: com.ibm.ws.jpa.tests.spec10.callback.jpa30
 
+# Suite class that will be runnig
 suite.name=com.ibm.ws.jpa.tests.spec10.callback.jpa30.FATSuite
 
+# Features tested by this bucket
 tested.features: persistence-3.0, persistenceContainer-3.0, enterpriseBeansLite-4.0, servlet-5.0, jdbc-4.2, jndi-1.0, databaserotation
