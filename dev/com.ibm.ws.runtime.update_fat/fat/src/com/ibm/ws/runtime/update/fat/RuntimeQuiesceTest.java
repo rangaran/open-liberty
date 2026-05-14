@@ -12,6 +12,8 @@
  *******************************************************************************/
 package com.ibm.ws.runtime.update.fat;
 
+import static org.junit.Assert.assertNotNull;
+
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -50,6 +52,7 @@ public class RuntimeQuiesceTest {
     private static final String QUIESCE_LISTENER_HUNG_WARNING = "CWWKE1106W";
     private static final String QUIESCE_FAILURE_WARNING = "CWWKE1102W";
     private static final String QUIESCE_SUCCESS_MESSAGE = "CWWKE1101I";
+    private static final String QUIESCE_LISTENER_ORDER_MESSAGE_PREFIX = "QuiesceListenerOrderRecordingService:";
     private static final String QUIESCE_LISTENER_ORDER_MESSAGE = "QuiesceListenerOrderRecordingService: called type=PRE: 0 called type=PRE: 1 called type=PRE: 2 called type=DEFAULT: 3";
 
     private static final Class<?> c = RuntimeQuiesceTest.class;
@@ -314,8 +317,13 @@ public class RuntimeQuiesceTest {
                              server.waitForStringInLog(QUIESCE_LISTENER_CALLED_MESSAGE, 0));
 
         // Check we called the PRE listeners before the default ones
-        Assert.assertNotNull("FAIL for " + method.getMethodName() + ": " + server.getServerName() + " listeners not called in correct order",
-                             server.waitForStringInLog(QUIESCE_LISTENER_ORDER_MESSAGE, 0));
+        String listenerCallOrder = server.waitForStringInLog(QUIESCE_LISTENER_ORDER_MESSAGE_PREFIX, 0);
+        assertNotNull("Did not find message: " + QUIESCE_LISTENER_ORDER_MESSAGE_PREFIX, listenerCallOrder);
+        listenerCallOrder = listenerCallOrder.substring(listenerCallOrder.indexOf(QUIESCE_LISTENER_ORDER_MESSAGE_PREFIX));
+        Assert.assertEquals("FAIL for " + method.getMethodName() + ": " + server.getServerName() + " listeners not called in correct order",
+                            QUIESCE_LISTENER_ORDER_MESSAGE,
+                            listenerCallOrder);
+
         if (type == TestType.EXCEPTION) {
             Assert.assertNotNull("FAIL for " + method.getMethodName() + ": " + server.getServerName()
                                  + " should contain WOOPS! because the test quiesce listener threw an exception",

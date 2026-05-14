@@ -51,6 +51,11 @@ public class TestQuiesceListener {
                 @Override
                 public void run() {
                     while (true) {
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
                     }
 
                 }
@@ -87,6 +92,11 @@ public class TestQuiesceListener {
                 @Override
                 public void run() {
                     while (true) {
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
                     }
 
                 }

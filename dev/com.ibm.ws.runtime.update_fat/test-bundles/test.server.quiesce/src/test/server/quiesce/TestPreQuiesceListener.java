@@ -98,6 +98,11 @@ public class TestPreQuiesceListener {
                 @Override
                 public void run() {
                     while (true) {
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
                     }
 
                 }
@@ -153,6 +158,11 @@ public class TestPreQuiesceListener {
                 @Override
                 public void run() {
                     while (true) {
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
                     }
 
                 }
