@@ -194,6 +194,10 @@ public class StackProperties {
 	public static final String TIMER_B_DEPRECATED = "javax.sip.transaction.timerb";
 	public static final int TIMER_B_DEFAULT = 64*TIMER_T1_DEFAULT;
 	
+	/** Timer C - INVITE client transaction timeout timer */
+	public static final String TIMER_C = "javax.sip.transaction.timer.c";
+	public static final int TIMER_C_DEFAULT = 180000;
+	
 	/** Timer D - Wait time for INVITE response retransmits */
 	public static final String TIMER_D = "timerD";
 	public static final int TIMER_D_DEFAULT = 32000;

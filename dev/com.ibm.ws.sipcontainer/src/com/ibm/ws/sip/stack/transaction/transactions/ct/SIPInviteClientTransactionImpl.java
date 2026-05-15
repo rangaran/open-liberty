@@ -27,6 +27,7 @@ import com.ibm.ws.sip.stack.transaction.transactions.SIPTransactionHelper;
 import com.ibm.ws.sip.stack.transaction.transport.SIPTransportException;
 import com.ibm.ws.sip.stack.transaction.util.ApplicationProperties;
 import com.ibm.ws.sip.stack.util.SipStackUtil;
+import com.ibm.ws.sip.container.tu.TransactionUserImpl;
 
 import jain.protocol.ip.sip.SipParseException;
 import jain.protocol.ip.sip.SipProvider;
@@ -53,6 +54,11 @@ public class SIPInviteClientTransactionImpl
 	private TimerB m_timerB;
 	
 	/**
+	 * Timer C for all transport types, controls client INVITE transaction timeouts
+	 */
+	private TimerC m_timerC;
+
+	/**
 	 * Timer D reflects the amount of time that the server transaction can remain in the "Completed" 
 	 * state when unreliable transports are used
 	 */
@@ -63,6 +69,9 @@ public class SIPInviteClientTransactionImpl
 	
 	/** value of timer B for this transaction, in milliseconds */
 	private final int m_timerBvalue;
+	
+	/** value of timer C for this transaction, in milliseconds */
+	private final int m_timerCvalue;
 	
 	/**
 	 * the last response that was receives ( could be provisionning like RINGING )
@@ -103,6 +112,7 @@ public class SIPInviteClientTransactionImpl
 		super(transactionStack, provider, req, key, transactionId);
 		m_timerAvalue = getTimerA(req);
 		m_timerBvalue = getTimerB(req);
+		m_timerCvalue = getTimerC(req);
 		SIPNonInviteClientTransactionImpl.getTimerT2(req); // just remove this header if it exists
 
 		try {
@@ -147,6 +157,9 @@ public class SIPInviteClientTransactionImpl
 							
 							m_timerB = new TimerB(this, getCallId());
 							addTimerTask(m_timerB, m_timerBvalue);
+							
+							m_timerC = new TimerC(this, getCallId());
+							addTimerTask(m_timerC, m_timerCvalue);
 							break;
 		
 					case STATE_CALLING:					
@@ -210,6 +223,7 @@ public class SIPInviteClientTransactionImpl
 							setFinalResponse(sipResponse);
 							sendAutomaticAckRequest();
 							notCalling();
+							cancelTimerC();
 							setCompletedState();
 							sendResponseToUA( sipResponse );				
 						}												
@@ -346,6 +360,20 @@ public class SIPInviteClientTransactionImpl
 	}
 
 	/**
+	 * gets the value of timer C for the given message:
+	 *
+	 * If a timer value is specified in configuration, its value is used, otherwise..
+	 * The default timer value is used.
+	 *
+	 * @param request the request to send
+	 * @return the value of timer C to use in this transaction
+	 */
+	private static int getTimerC(Request request) {
+		SIPStackConfiguration config = SIPTransactionStack.instance().getConfiguration();
+		return config.getTimerC();
+	}
+
+	/**
 	 * timer A fired , try to send again
 	 */
 	synchronized void timerAfired()
@@ -401,6 +429,26 @@ public class SIPInviteClientTransactionImpl
 		}
 	}
 
+	/**
+	 * called when TimerC fires
+	 */
+	void timerCfired() {
+		if (c_logger.isTraceDebugEnabled()) {
+			c_logger.traceDebug(this, "timerCfired",
+				"Timer C fired on transaction " + toString());
+		}
+		updateSipTimersInvocationsPMICounter();
+		if (getState() == STATE_CALLING) {
+			notifyTransactionTimeoutToUA();
+			destroyTransaction();
+		}
+		if (getState() == STATE_PROCEEDING) {
+			//terminateUndelyingClientTransactions();
+                        notifyTransactionTimeoutToUA();
+                        destroyTransaction();
+                }
+	}
+	
 	/**
 	 * called when TimerD fires
 	 */
@@ -472,6 +520,33 @@ public class SIPInviteClientTransactionImpl
 					return super.cancel();
 				}
 			}	
+			
+			/**
+			 *  timer C for this transaction
+			 */
+			static class TimerC extends TimerEvent
+			{
+				SIPInviteClientTransactionImpl m_ct;
+				
+				TimerC(SIPInviteClientTransactionImpl ct, String callId)
+				{
+					super(callId);
+					m_ct = ct;
+				}
+				
+				public void onExecute()
+				{
+					//timer C
+					if (m_ct != null) {
+						m_ct.timerCfired();
+					}
+				}
+				
+				public boolean cancel()
+				{
+					return super.cancel();
+				}
+			}
 			
 			/**
 			 *  timer D for this transaction
@@ -624,6 +699,10 @@ public class SIPInviteClientTransactionImpl
 		{
 			m_timerB.cancel();
 		}
+		if( m_timerC!=null)
+		{
+			m_timerC.cancel();
+		}
 		if( m_timerD!=null)
 		{
 			m_timerD.cancel();
@@ -644,6 +723,15 @@ public class SIPInviteClientTransactionImpl
 			m_timerB.cancel();
 		}
 	}
+
+    /** cancel timerC  */
+	private void cancelTimerC() {
+    	if (m_timerC != null) {
+			m_timerC.cancel();
+		}
+
+	}
+
 
 	/** return the most recent response */
 	public Response getMostRecentResponse()
