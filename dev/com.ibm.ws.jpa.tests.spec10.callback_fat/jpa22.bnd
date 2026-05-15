@@ -6,16 +6,13 @@
 # http://www.eclipse.org/legal/epl-2.0/
 # 
 # SPDX-License-Identifier: EPL-2.0
-#
-# Contributors:
-#     IBM Corporation - initial API and implementation
 #*******************************************************************************
 
-# Package for this bucket's test suite
--privatepackage: com.ibm.ws.jpa.tests.spec10.callback.jpa20
+# Version-specific packages only
+-privatepackage: com.ibm.ws.jpa.tests.spec10.callback.jpa22
 
 # Suite class that will be runnig
-suite.name=com.ibm.ws.jpa.tests.spec10.callback.jpa20.FATSuite
+suite.name=com.ibm.ws.jpa.tests.spec10.callback.jpa22.FATSuite
 
 # Features tested by this bucket
-tested.features: jpa-2.0, ejbLite-3.1, servlet-3.0, jdbc-4.0, jndi-1.0, databaserotation
+tested.features: jpa-2.2, jpaContainer-2.2, ejb-3.2, servlet-4.0, jdbc-4.2, jndi-1.0, databaserotation
