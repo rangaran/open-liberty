@@ -131,7 +131,7 @@ public class LoggingServletTest {
      * Ensures that a trace message from a Liberty application are bridged over to the otlp container.
      */
     @Test
-    public void testTraceLogs() throws Exception {
+    public void testTraceLogs() throws Exception {  
 
         assertTrue("The server was not started successfully.", server.isStarted());
 
