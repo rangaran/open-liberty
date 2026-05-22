@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2003, 2021 IBM Corporation and others.
+ * Copyright (c) 2003, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -3192,7 +3192,7 @@ public class TransactionUserImpl  extends ReplicatableImpl {
 			c_logger.traceEntry(this, " processTimeout", params);
 		}
 		if( isInitialState(_tuWrapper.getState()) && SipUtil.isDialogInitialRequest(req.getMethod())){
-			//        	If the request that was timedOut is on the dialog that is in initial 
+			//        	If the request that was timedOut is on the dialog that is in initial
 			//        	state it should be removed from transactionUsers table.
 			SipTransactionUserTable.getInstance().removeTransactionUserForOutgoingRequest(req);
 		}
@@ -3201,6 +3201,7 @@ public class TransactionUserImpl  extends ReplicatableImpl {
 
 		_tuWrapper.logToContext(SipSessionSeqLog.PROCESS_TIMEOUT, req.getCallId(), req);
 
+		// Generate and send 408 response
 		IncomingSipServletResponse response = null;
 		try {
 			response = SipUtil.createResponse(SipServletResponse.SC_REQUEST_TIMEOUT, req);
