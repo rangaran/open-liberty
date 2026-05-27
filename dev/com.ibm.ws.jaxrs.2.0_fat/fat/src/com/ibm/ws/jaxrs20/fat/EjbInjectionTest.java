@@ -20,14 +20,12 @@ import com.ibm.websphere.simplicity.ShrinkHelper;
 import com.ibm.ws.jaxrs.fat.ejbinjection.servlet.EjbInjectionClientTestServlet;
 
 import componenttest.annotation.Server;
-import componenttest.annotation.SkipForRepeat;
 import componenttest.annotation.TestServlet;
 import componenttest.custom.junit.runner.FATRunner;
 import componenttest.topology.impl.LibertyServer;
 import componenttest.topology.utils.FATServletClient;
 
 @RunWith(FATRunner.class)
-@SkipForRepeat({SkipForRepeat.NO_MODIFICATION, "JAXRS-2.1"}) // Skip EE7 and EE8 - requires RESTEasy (EE9+) for EJB @Local interface resolution
 public class EjbInjectionTest extends FATServletClient {
 
     private static final String appName = "EjbInjection";
@@ -58,8 +56,7 @@ public class EjbInjectionTest extends FATServletClient {
     @AfterClass
     public static void teardown() throws Exception {
         if (server != null) {
-            server.stopServer("CWWKE1102W",  //ignore server quiesce timeouts due to slow test machines
-                             "CWWKE0912W", "CWWKE0921W");  //ignore Java 2 Security warnings in EE11
+            server.stopServer("CWWKE1102W");  //ignore server quiesce timeouts due to slow test machines
         }
     }
 }

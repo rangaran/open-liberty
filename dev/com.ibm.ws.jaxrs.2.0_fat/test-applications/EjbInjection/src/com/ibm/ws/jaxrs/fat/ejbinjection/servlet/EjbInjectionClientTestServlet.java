@@ -25,6 +25,7 @@ import javax.ws.rs.core.Response;
 
 import org.junit.Test;
 
+import componenttest.annotation.SkipForRepeat;
 import componenttest.app.FATServlet;
 
 @SuppressWarnings("serial")
@@ -95,6 +96,7 @@ public class EjbInjectionClientTestServlet extends FATServlet {
     }
 
     @Test
+    @SkipForRepeat({SkipForRepeat.NO_MODIFICATION, "JAXRS-2.1"}) // Skip EE7 and EE8 - requires RESTEasy (EE9+) for EJB @Local interface resolution
     public void testSingleNonImplementedAnnotatedInterfaceInjection() {
         String message = "Hello, World!";
         Response response = client.target(URI_CONTEXT_ROOT)
@@ -123,6 +125,7 @@ public class EjbInjectionClientTestServlet extends FATServlet {
     }
 
     @Test
+    @SkipForRepeat({SkipForRepeat.NO_MODIFICATION, "JAXRS-2.1"}) // Skip EE7 and EE8 - requires RESTEasy (EE9+) for EJB @Local interface resolution
     public void testMultipleNonImplementedAnnotatedInterfacesInjection() {
         Response response = client.target(URI_CONTEXT_ROOT)
                         .path("multiplenonimplementedannotatedinterfaces/greet")
@@ -159,6 +162,7 @@ public class EjbInjectionClientTestServlet extends FATServlet {
     }
 
     @Test
+    @SkipForRepeat({SkipForRepeat.NO_MODIFICATION, "JAXRS-2.1"}) // Skip EE7 and EE8 - requires RESTEasy (EE9+) for EJB @Local interface resolution
     public void testSingleNonImplementedMixedAnnotationInjection() {
         // Test method with annotations from interface
         Response response = client.target(URI_CONTEXT_ROOT)
@@ -178,6 +182,7 @@ public class EjbInjectionClientTestServlet extends FATServlet {
     }
 
     @Test
+    @SkipForRepeat({SkipForRepeat.NO_MODIFICATION, "JAXRS-2.1"}) // Skip EE7 and EE8 - requires RESTEasy (EE9+) for EJB @Local interface resolution
     public void testMultipleImplementedMixedAnnotationInjection() {
         // Test method with annotations from interface
         Response response = client.target(URI_CONTEXT_ROOT)
@@ -197,6 +202,7 @@ public class EjbInjectionClientTestServlet extends FATServlet {
     }
 
     @Test
+    @SkipForRepeat({SkipForRepeat.NO_MODIFICATION, "JAXRS-2.1"}) // Skip EE7 and EE8 - requires RESTEasy (EE9+) for EJB @Local interface resolution
     public void testMultipleNonImplementedMixedAnnotationInjection() {
         // Test method with annotations from interface
         Response response = client.target(URI_CONTEXT_ROOT)
