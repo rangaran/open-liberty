@@ -42,6 +42,7 @@ import jakarta.data.repository.Is;
 import jakarta.data.repository.JakartaQuery; // TODO replace with Persistence 4.0 anno once available
 import jakarta.data.repository.OrderBy;
 import jakarta.data.repository.Query;
+import jakarta.data.repository.QueryOptions; // TODO replace with Persistence 4.0 anno once available
 import jakarta.data.repository.Repository;
 import jakarta.data.repository.Select;
 import jakarta.data.restrict.Restriction;
@@ -103,6 +104,10 @@ public interface Fractions {
     List<String> named(@By(_Fraction.NAME) Like pattern,
                        Order<Fraction> order,
                        Limit limit);
+
+    @Find
+    @QueryOptions(entityGraph = "EagerlyLoadRoundedValues")
+    Optional<Fraction> of(int numerator, int denominator);
 
     @Query("SELECT numerator, denominator - numerator" +
            " ORDER BY denominator - numerator DESC, numerator ASC")

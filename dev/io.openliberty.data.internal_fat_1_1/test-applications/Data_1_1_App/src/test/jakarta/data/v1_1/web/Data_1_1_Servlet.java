@@ -489,6 +489,29 @@ public class Data_1_1_Servlet extends FATServlet {
     }
 
     /**
+     * Use the QueryOptions annotation on a Find method to supply a load graph
+     * that overrides loading of an ElementCollection to make it eager rather
+     * than lazily loaded.
+     */
+    @Test
+    public void testEntityGraphAsQueryOption() {
+        assertEquals(List.of(BigDecimal.valueOf(300, 3), // nearest tenth
+                             BigDecimal.valueOf(310, 3), // nearest hundreth
+                             BigDecimal.valueOf(313, 3)), // nearest thousandth
+                     fractions.of(5, 16).orElseThrow().rounded);
+
+        assertEquals(List.of(BigDecimal.valueOf(900, 3), // nearest tenth
+                             BigDecimal.valueOf(860, 3), // nearest hundreth
+                             BigDecimal.valueOf(857, 3)), // nearest thousandth
+                     fractions.of(6, 7).orElseThrow().rounded);
+
+        assertEquals(List.of(BigDecimal.valueOf(600, 3), // nearest tenth
+                             BigDecimal.valueOf(620, 3), // nearest hundreth
+                             BigDecimal.valueOf(615, 3)), // nearest thousandth
+                     fractions.of(8, 13).orElseThrow().rounded);
+    }
+
+    /**
      * Tests a Find method with the First annotation specifying a value
      * larger than 1.
      */

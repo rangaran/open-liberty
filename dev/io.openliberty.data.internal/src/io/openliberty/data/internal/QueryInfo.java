@@ -338,7 +338,7 @@ public abstract class QueryInfo {
     /**
      * Categorization of query type.
      */
-    QueryType type;
+    protected QueryType type;
 
     /**
      * Indicates whether or not to validate method parameters, if Jakarta Validation is available.
@@ -1098,7 +1098,7 @@ public abstract class QueryInfo {
                         : this;
 
         jakarta.persistence.Query query = typeOfTypedQuery == null //
-                        ? ehCreateQuery(entityHandler, queryInfo.jpql) //
+                        ? ehCreateStatement(entityHandler, queryInfo.jpql) //
                         : ehCreateTypedQuery(entityHandler,
                                              queryInfo.jpql,
                                              typeOfTypedQuery);
@@ -1152,8 +1152,8 @@ public abstract class QueryInfo {
             } else if (entityInfo.entityClass.isInstance(result)) {
                 ehDelete(entityHandler, result);
             } else if (entityInfo.idClassAttributeAccessors != null) {
-                jakarta.persistence.Query delete = ehCreateQuery(entityHandler,
-                                                                 jpqlDelete);
+                jakarta.persistence.Query delete = ehCreateStatement(entityHandler,
+                                                                     jpqlDelete);
                 int numParams = 0;
                 for (Member accessor : entityInfo.idClassAttributeAccessors.values()) {
                     Object value = accessor instanceof Method //
@@ -1188,8 +1188,8 @@ public abstract class QueryInfo {
                         throw Fail.returnTypeInvalidForDelete(this);
                 }
 
-                jakarta.persistence.Query delete = ehCreateQuery(entityHandler,
-                                                                 jpqlDelete);
+                jakarta.persistence.Query delete = ehCreateStatement(entityHandler,
+                                                                     jpqlDelete);
                 if (trace && tc.isDebugEnabled())
                     Tr.debug(this, tc, jpqlDelete,
                              "set ?1 " + loggable(value));
@@ -1300,7 +1300,7 @@ public abstract class QueryInfo {
             && jpql != this.jpql)
             Tr.debug(this, tc, "JPQL adjusted for NULL id or version", jpql);
 
-        jakarta.persistence.Query delete = ehCreateQuery(entityHandler, jpql);
+        jakarta.persistence.Query delete = ehCreateStatement(entityHandler, jpql);
 
         if (entityInfo.idClassAttributeAccessors == null) {
             int p = 1;
@@ -1376,16 +1376,15 @@ public abstract class QueryInfo {
 
     /**
      * Delegates to the EntityAgent or EntityManager to create a
-     * Jakarta Persistence Query, typically used for DELETE and
-     * UPDATE.
+     * Jakarta Persistence Query that peforms a DELETE or UPDATE.
      *
      * @param entityHandler EntityAgent or EntityManager
-     * @param jpql          the query represented as JPQL
+     * @param jpql          a JPQL DELETE or UPDATE statement
      * @return the query, ready to execute
      */
     protected abstract jakarta.persistence.Query //
-                    ehCreateQuery(AutoCloseable entityHandler,
-                                  String jpql);
+                    ehCreateStatement(AutoCloseable entityHandler,
+                                      String jpql);
 
     /**
      * Delegates to the EntityAgent or EntityManager to create a TypedQuery.
@@ -6009,7 +6008,7 @@ public abstract class QueryInfo {
         if (TraceComponent.isAnyTracingEnabled() && jpql != this.jpql)
             Tr.debug(this, tc, "JPQL adjusted for NULL id", jpql);
 
-        jakarta.persistence.Query update = ehCreateQuery(entityHandler, jpql);
+        jakarta.persistence.Query update = ehCreateStatement(entityHandler, jpql);
 
         // parameters for entity attributes to update:
         int p = 1;

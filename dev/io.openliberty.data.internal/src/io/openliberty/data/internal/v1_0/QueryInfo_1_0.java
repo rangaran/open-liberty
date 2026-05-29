@@ -130,8 +130,8 @@ public class QueryInfo_1_0 extends QueryInfo {
 
     @Override
     @Trivial
-    protected jakarta.persistence.Query ehCreateQuery(AutoCloseable entityHandler,
-                                                      String jpql) {
+    protected jakarta.persistence.Query ehCreateStatement(AutoCloseable entityHandler,
+                                                          String jpql) {
         return ((EntityManager) entityHandler).createQuery(jpql);
     }
 
