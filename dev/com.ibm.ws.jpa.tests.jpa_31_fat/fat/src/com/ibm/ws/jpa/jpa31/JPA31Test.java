@@ -30,7 +30,7 @@ import com.ibm.websphere.simplicity.config.Application;
 import com.ibm.websphere.simplicity.config.ClassloaderElement;
 import com.ibm.websphere.simplicity.config.ConfigElementList;
 import com.ibm.websphere.simplicity.config.ServerConfiguration;
-import com.ibm.ws.jpa.FATSuite;
+import com.ibm.ws.jpa.jpa31.AbstractFATSuite;
 import com.ibm.ws.testtooling.vehicle.web.JPAFATServletClient;
 
 import componenttest.annotation.MinimumJavaLevel;
@@ -68,7 +68,7 @@ public class JPA31Test extends JPAFATServletClient {
     private final static Set<String> populateSet = new HashSet<String>();
     private static long timestart = 0;
 
-    public static final JdbcDatabaseContainer<?> testContainer = FATSuite.testContainer;
+    public static final JdbcDatabaseContainer<?> testContainer = AbstractFATSuite.testContainer;
 
     static {
         // DDL file names will be populated in setUp() based on the active Jakarta EE version
@@ -87,7 +87,7 @@ public class JPA31Test extends JPAFATServletClient {
 
     @BeforeClass
     public static void setUp() throws Exception {
-        PrivHelper.generateCustomPolicy(server, FATSuite.JAXB_PERMS);
+        PrivHelper.generateCustomPolicy(server, AbstractFATSuite.JAXB_PERMS);
         bannerStart(JPA31Test.class);
         timestart = System.currentTimeMillis();
 
@@ -101,12 +101,14 @@ public class JPA31Test extends JPAFATServletClient {
             server.setConfigUpdateTimeout(120 * 1000);
         }
 
+        server.addEnvVar("repeat_phase", AbstractFATSuite.repeatPhase);
+
         //Get driver name
         server.addEnvVar("DB_DRIVER", DatabaseContainerType.valueOf(testContainer).getDriverName());
 
         //Setup server DataSource properties
         DatabaseContainerUtil.setupDataSourceProperties(server, testContainer);
-
+        
         server.startServer();
 
         // Determine DDL file prefix based on Jakarta EE version
@@ -177,11 +179,19 @@ public class JPA31Test extends JPAFATServletClient {
         Application appRecord = new Application();
         appRecord.setLocation(appNameEar);
         appRecord.setName(appName);
-        ConfigElementList<ClassloaderElement> cel = appRecord.getClassloaders();
-        ClassloaderElement loader = new ClassloaderElement();
-//        loader.setApiTypeVisibility("+third-party");
-        loader.getCommonLibraryRefs().add("global");
-        cel.add(loader);
+        
+        // setup the thirdparty classloader for Hibernate
+        if (AbstractFATSuite.repeatPhase != null && AbstractFATSuite.repeatPhase.contains("hibernate")) {
+            ConfigElementList<ClassloaderElement> cel = appRecord.getClassloaders();
+            ClassloaderElement loader = new ClassloaderElement();
+            loader.getCommonLibraryRefs().add("HibernateLib");
+            cel.add(loader);
+        } else {
+            ConfigElementList<ClassloaderElement> cel = appRecord.getClassloaders();
+            ClassloaderElement loader = new ClassloaderElement();
+            loader.getCommonLibraryRefs().add("global");
+            cel.add(loader);
+        }
 
         server.setMarkToEndOfLog();
         ServerConfiguration sc = server.getServerConfiguration();
