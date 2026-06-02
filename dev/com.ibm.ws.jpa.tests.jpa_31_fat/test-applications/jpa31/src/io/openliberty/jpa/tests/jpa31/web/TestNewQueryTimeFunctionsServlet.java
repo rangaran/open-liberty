@@ -590,7 +590,7 @@ public class TestNewQueryTimeFunctionsServlet extends JPADBTestServlet {
         q = em.createQuery("SELECT EXTRACT(SECOND FROM qdte.localDateTimeData) FROM QueryDateTimeEntity qdte WHERE qdte.id = 1");
         result = q.getSingleResult();
         Assert.assertNotNull(result);
-        Assert.assertEquals(0.0d, result);
+        Assert.assertEquals(0.0d, ((Number) result).doubleValue());
     }
 
     @Test
