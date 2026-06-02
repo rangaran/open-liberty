@@ -60,5 +60,9 @@
    	  <class-name>java.security.SecurityPermission</class-name>
    	  <name>getPolicy</name>
    </permission>	  
+   <permission>
+        <class-name>java.lang.RuntimePermission</class-name>
+        <name>getenv.repeat_phase</name>
+    </permission>
 
 </permissions>
