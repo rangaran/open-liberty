@@ -27,6 +27,7 @@ import io.netty.util.internal.logging.InternalLoggerFactory;
  * of control frames but will not consume our responses to these.
  * This encoder will tear-down the connection once we reached the configured limit to reduce the risk of DDOS.
  */
+// Liberty change to give public access to build HTTP2 connection builder
 public final class Http2ControlFrameLimitEncoder extends DecoratingHttp2ConnectionEncoder {
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(Http2ControlFrameLimitEncoder.class);
     private int outstandingControlFrames;
@@ -36,6 +37,7 @@ public final class Http2ControlFrameLimitEncoder extends DecoratingHttp2Connecti
     private Http2LifecycleManager lifecycleManager;
     private boolean limitReached;
 
+    // Liberty change to give public access to build HTTP2 connection builder
     public Http2ControlFrameLimitEncoder(Http2ConnectionEncoder delegate, int maxOutstandingControlFrames) {
         super(delegate);
         this.maxOutstandingControlFrames = ObjectUtil.checkPositive(maxOutstandingControlFrames,
