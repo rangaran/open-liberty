@@ -12,9 +12,9 @@
  *******************************************************************************/
 package com.ibm.ws.runtime.update.internal;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Consumer;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.ConfigurationPolicy;
@@ -26,7 +26,6 @@ import org.osgi.service.component.annotations.ReferencePolicy;
 import com.ibm.websphere.ras.Tr;
 import com.ibm.websphere.ras.TraceComponent;
 import com.ibm.ws.kernel.launch.service.PauseableComponent;
-import com.ibm.ws.kernel.launch.service.PauseableComponentException;
 import com.ibm.wsspi.kernel.service.utils.ServerQuiesceListener;
 
 /**
@@ -45,7 +44,7 @@ public class PauseableComponentQuiesceListener implements ServerQuiesceListener 
     @Reference(cardinality = ReferenceCardinality.MULTIPLE,
                policy = ReferencePolicy.DYNAMIC,
                fieldOption = FieldOption.UPDATE)
-    private final List<PauseableComponent> pauseableComponents = Collections.synchronizedList(new ArrayList<>());
+    private final List<PauseableComponent> pauseableComponents = new CopyOnWriteArrayList<>();
 
     /*
      * (non-Javadoc)
@@ -54,15 +53,16 @@ public class PauseableComponentQuiesceListener implements ServerQuiesceListener 
      */
     @Override
     public void serverStopping() {
-        pauseableComponents.forEach(pc -> {
-            if (!pc.isPaused()) {
-                try {
-                    pc.pause();
-                } catch (PauseableComponentException ex) {
-                    Tr.warning(tc, "warn.did.not.pause.on.shutdown", ex.getMessage());
-                } catch (Throwable t) {
-                    // auto-ffdc but still call the rest of the pauseable components
-                    Tr.error(tc, "error.unexpected.pause.failure", pc.getClass().getName(), t);
+        // using anonymous class to get proper ffdc processing
+        pauseableComponents.forEach(new Consumer<PauseableComponent>() {
+            @Override
+            public void accept(PauseableComponent pc) {
+                if (!pc.isPaused()) {
+                    try {
+                        pc.pause();
+                    } catch (Throwable t) {
+                        // auto-ffdc
+                    }
                 }
             }
         });

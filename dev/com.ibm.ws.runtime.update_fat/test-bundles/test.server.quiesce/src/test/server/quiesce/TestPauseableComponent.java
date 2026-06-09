@@ -75,7 +75,7 @@ public class TestPauseableComponent implements PauseableComponent {
         System.out.println("WHEE! THE COMPONENT IS PAUSING AND I GOT TOLD!");
 
         if (throwException) {
-            throw new PauseableComponentException("WOOPS! I was told to do this, honest.");
+            throw new RuntimeException("WOOPS! I was told to do this, honest.");
         }
 
         if (takeForever) {
@@ -86,33 +86,14 @@ public class TestPauseableComponent implements PauseableComponent {
             // without having to worry about failures that aren't really failures
             // This now relies on the pause thread pool to hit the timeout and shutdown
             // Make the loop interruptible so the server can forcefully terminate if needed
-
-            long startTime = System.currentTimeMillis();
-            long maxWaitTime = 90000; // 90 seconds maximum wait
-
             try {
                 while (!Thread.currentThread().isInterrupted()) {
-                    // Check if we've exceeded the maximum wait time
-                    long elapsedTime = System.currentTimeMillis() - startTime;
-                    if (elapsedTime > maxWaitTime) {
-                        System.out.println("TestPauseableComponent: Timeout reached after " + elapsedTime + "ms, allowing shutdown to continue");
-                        break;
-                    }
-
-                    // Sleep in short intervals to allow for interruption
                     Thread.sleep(1000);
-
-                    // Log progress every 10 seconds
-                    if (elapsedTime % 10000 < 1000) {
-                        System.out.println("TestPauseableComponent: Still pausing... (" + (elapsedTime / 1000) + "s elapsed)");
-                    }
                 }
             } catch (InterruptedException e) {
                 System.out.println("TestPauseableComponent: Pause operation interrupted during takeForever");
                 Thread.currentThread().interrupt(); // Restore interrupt status
             }
-
-            System.out.println("TestPauseableComponent: Exiting takeForever loop, allowing shutdown to continue");
         }
 
         if (startThreadsAfterPause) {
@@ -153,7 +134,7 @@ public class TestPauseableComponent implements PauseableComponent {
         System.out.println("WHEE! THE COMPONENT IS RESUMING AND I GOT TOLD!");
 
         if (throwException) {
-            throw new PauseableComponentException("WOOPS! I was told to throw on resume too!");
+            throw new RuntimeException("WOOPS! I was told to throw on resume too!");
         }
 
         isPaused = false;

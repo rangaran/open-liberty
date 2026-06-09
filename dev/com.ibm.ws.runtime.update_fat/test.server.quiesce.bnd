@@ -32,9 +32,6 @@ Private-Package: \
 -dsannotations: \
   test.server.quiesce.TestQuiesceListener, \
   test.server.quiesce.TestPreQuiesceListener, \
-  test.server.quiesce.QuiesceListenerOrderRecordingService
-  test.server.quiesce.TestQuiesceListener,\
+  test.server.quiesce.QuiesceListenerOrderRecordingService, \
   test.server.quiesce.TestPauseableComponent
-
-
- 
+  
