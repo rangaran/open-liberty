@@ -190,7 +190,7 @@ public abstract class QueryInfo {
     /**
      * JPQL for the query. Null if a save operation.
      */
-    String jpql;
+    protected String jpql;
 
     /**
      * JPQL for a find query after a cursor. Otherwise null.
@@ -1040,7 +1040,7 @@ public abstract class QueryInfo {
     }
 
     /**
-     * Creates and prepares a query, including setting parameters basd on the
+     * Creates and prepares a query, including setting parameters based on the
      * repository method arguments and any Constraints and Restrictions.
      *
      * @param entityHandler    the EntityAgent or EntityManager
@@ -1374,6 +1374,28 @@ public abstract class QueryInfo {
             Tr.exit(this, tc, "detach");
         return null;
     }
+
+    /**
+     * Delegates to the EntityAgent or EntityManager to create a Jakarta
+     * Persistence Native Query that peforms a SQL SELECT operation or other
+     * native SQL query that returns query results.
+     *
+     * @param entityHandler EntityAgent or EntityManager
+     * @return the query
+     */
+    protected abstract jakarta.persistence.Query //
+                    ehCreateNativeQuery(AutoCloseable entityHandler);
+
+    /**
+     * Delegates to the EntityAgent or EntityManager to create a Jakarta
+     * Persistence Native Query that peforms a SQL DELETE, INSERT, UPDATE,
+     * or other native SQL statement that is not return query results.
+     *
+     * @param entityHandler EntityAgent or EntityManager
+     * @return the statement/query
+     */
+    protected abstract jakarta.persistence.Query //
+                    ehCreateNativeStatement(AutoCloseable entityHandler);
 
     /**
      * Delegates to the EntityAgent or EntityManager to create a
@@ -3153,7 +3175,7 @@ public abstract class QueryInfo {
             !(methodAnno instanceof Delete))
             conflicts.add(OrderBy.class.getName());
 
-        for (Class<? extends Annotation> annoClass : compat.jpqlQueryAnnoTypes())
+        for (Class<? extends Annotation> annoClass : compat.queryLanguageAnnoTypes())
             methodAnno = inspect.apply(method.getAnnotation(annoClass), methodAnno);
 
         methodAnno = inspect.apply(method.getAnnotation(Find.class), methodAnno);
@@ -4500,11 +4522,13 @@ public abstract class QueryInfo {
 
             jakarta.persistence.Query query;
             if (mightHaveUpdateCount) {
-                // TODO UPDATE
-                query = ((EntityManager) entityHandler).createNativeQuery(jpql);
+                query = ehCreateNativeStatement(entityHandler);
+
+                setParameters(query, args, Collections.emptyMap(), null);
+
+                returnValue = query.executeUpdate();
             } else {
-                // TODO QUERY
-                query = ((EntityManager) entityHandler).createNativeQuery(jpql, singleType);
+                query = ehCreateNativeQuery(entityHandler);
 
                 Limit limit = qc.limit();
                 int startAt = limit != null //
@@ -4523,14 +4547,11 @@ public abstract class QueryInfo {
                         Tr.debug(tc, "start at (0-based) position " + startAt);
                     query.setFirstResult(startAt);
                 }
-            }
 
-            setParameters(query, args, Collections.emptyMap(), null);
+                setParameters(query, args, Collections.emptyMap(), null);
 
-            if (mightHaveUpdateCount)
-                returnValue = query.executeUpdate();
-            else
                 returnValue = getQueryResults(entityHandler, qc, query, txStatus);
+            }
         }
 
         if (isOptional) {
