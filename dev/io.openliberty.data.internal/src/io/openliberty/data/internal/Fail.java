@@ -329,7 +329,7 @@ public class Fail {
                   info.repositoryInterface.getName(),
                   info.specialParamsStartAt,
                   info.method.getParameterTypes()[index].getName(),
-                  info.jpql);
+                  info.ql);
     }
 
     /**
@@ -351,7 +351,7 @@ public class Fail {
                   info.repositoryInterface.getName(),
                   numRequired,
                   numFound,
-                  info.jpql);
+                  info.ql);
     }
 
     /**
@@ -625,7 +625,7 @@ public class Fail {
                   "CWWKD1019.mixed.positional.named",
                   info.method.getName(),
                   info.repositoryInterface.getName(),
-                  info.jpqlParamCount - methodNPCount,
+                  info.qlParamCount - methodNPCount,
                   methodNPCount,
                   allNamedParams,
                   info.getQueryAnnoValue(),

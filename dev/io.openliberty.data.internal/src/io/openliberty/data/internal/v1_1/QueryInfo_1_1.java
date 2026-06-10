@@ -380,7 +380,7 @@ public class QueryInfo_1_1 extends QueryInfo {
 
         jakarta.persistence.Query query;
         if (entityHandler instanceof EntityManager em) {
-            query = em.createNativeQuery(jpql);
+            query = em.createNativeQuery(ql);
         } else {
             try {
                 query = (jakarta.persistence.Query) entityHandler.getClass() //
@@ -388,7 +388,7 @@ public class QueryInfo_1_1 extends QueryInfo {
                                            String.class,
                                            Class.class) //
                                 .invoke(entityHandler,
-                                        jpql,
+                                        ql,
                                         Object.class);
             } catch (IllegalAccessException | NoSuchMethodException x) {
                 throw new RuntimeException(x); // should be impossible
@@ -425,12 +425,12 @@ public class QueryInfo_1_1 extends QueryInfo {
         //if (entityHandler instanceof EntityHandler handler) ...
 
         if (entityHandler instanceof EntityManager em) {
-            query = em.createNativeQuery(jpql);
+            query = em.createNativeQuery(ql);
         } else {
             try {
                 query = (jakarta.persistence.Query) entityHandler.getClass() //
                                 .getMethod("createNativeStatement", String.class) //
-                                .invoke(entityHandler, jpql);
+                                .invoke(entityHandler, ql);
             } catch (IllegalAccessException | NoSuchMethodException x) {
                 throw new RuntimeException(x); // should be impossible
             } catch (InvocationTargetException x) {
