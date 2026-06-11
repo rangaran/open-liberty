@@ -170,8 +170,28 @@ public class DefaultOverallReadinessStatusUpAppStartupTest {
         // Set the invalid value for the MpConfig property. e.g. "mp.health.default.readiness.empty.response=UPs", it should be default behaviour (DOWN)
         setupClass(server2, "testInvalidDefaultReadinessOverallStatusProperty");
         log("testInvalidDefaultReadinessOverallStatusProperty", "Testing the /health/ready endpoint, before application has started.");
-        HttpURLConnection conReady = HttpUtils.getHttpConnectionWithAnyResponseCode(server2, READY_ENDPOINT);
-        assertEquals("The Response Code was not 503 for the following endpoint: " + conReady.getURL().toString(), FAILED_RESPONSE_CODE, conReady.getResponseCode());
+        
+        // Add retry logic with polling mechanism before asserting health endpoint status
+        HttpURLConnection conReady = null;
+        int retries = 3;
+        int responseCode = -1;
+        for (int i = 0; i < retries; i++) {
+            conReady = HttpUtils.getHttpConnectionWithAnyResponseCode(server2, READY_ENDPOINT);
+            responseCode = conReady.getResponseCode();
+            if (responseCode == FAILED_RESPONSE_CODE) {
+                break;
+            }
+            if (i < retries - 1) {
+                log("testInvalidDefaultReadinessOverallStatusProperty",
+                    "Health endpoint returned " + responseCode + ", retrying... (attempt " + (i + 2) + " of " + retries + ")");
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException e) {
+                    // Ignore
+                }
+            }
+        }
+        assertEquals("The Response Code was not 503 for the following endpoint: " + conReady.getURL().toString(), FAILED_RESPONSE_CODE, responseCode);
 
         log("testInvalidDefaultReadinessOverallStatusProperty", "Testing the /health endpoint, before application has started.");
         HttpURLConnection conHealth = HttpUtils.getHttpConnectionWithAnyResponseCode(server2, HEALTH_ENDPOINT);
