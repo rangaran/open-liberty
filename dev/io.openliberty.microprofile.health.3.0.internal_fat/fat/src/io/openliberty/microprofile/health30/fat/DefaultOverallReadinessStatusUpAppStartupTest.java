@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2020, 2023 IBM Corporation and others.
+ * Copyright (c) 2020, 2023, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -72,29 +72,6 @@ public class DefaultOverallReadinessStatusUpAppStartupTest {
 
         if (!server.isStarted())
             server.startServer(false, false);
-
-        // Wait for CWWKT0016I to ensure web application is available
-        // Add retry logic to handle timing issues
-        String cwwkt0016i = null;
-        int retries = 5;
-        for (int i = 0; i < retries && cwwkt0016i == null; i++) {
-            cwwkt0016i = server.waitForStringInLog("CWWKT0016I: Web application available.*DelayedHealthCheckApp*", 15000);
-            if (cwwkt0016i == null && i < retries - 1) {
-                log("setupClass", "CWWKT0016I not found, retrying... (attempt " + (i + 2) + " of " + retries + ")");
-                try {
-                    Thread.sleep(2000);
-                } catch (InterruptedException e) {
-                    // Ignore
-                }
-            }
-        }
-        
-        // Add small delay to allow AppTracker state synchronization
-        try {
-            Thread.sleep(2000);
-        } catch (InterruptedException e) {
-            // Ignore
-        }
     }
 
     @After
@@ -109,31 +86,22 @@ public class DefaultOverallReadinessStatusUpAppStartupTest {
     }
 
     @Test
+    public void dummyTestStartServer() throws Exception {
+        setupClass(server1, "dummyTestStartServer");
+        log("dummyTestStartServer", "Dummy test to start server1 and wait for application to start.");
+        
+        String line = server1.waitForStringInLog("CWWKZ0001I: Application DelayedHealthCheckApp", 90000);
+        log("dummyTestStartServer", "Application Started message found: " + line);
+        assertNotNull("The CWWKZ0001I Application started message did not appear in messages.log", line);
+    }
+
+    @Test
     public void testDefaultReadinessOverallStatusUpAtStartUpSingleApp() throws Exception {
         setupClass(server1, "testDefaultReadinessOverallStatusUpAtStartUpSingleApp");
         log("testDefaultReadinessOverallStatusUpAtStartUpSingleApp", "Testing the /health/ready endpoint, before application has started.");
         
-        // Add retry logic with polling mechanism before asserting health endpoint status
-        HttpURLConnection conReady = null;
-        int retries = 3;
-        int responseCode = -1;
-        for (int i = 0; i < retries; i++) {
-            conReady = HttpUtils.getHttpConnectionWithAnyResponseCode(server1, READY_ENDPOINT);
-            responseCode = conReady.getResponseCode();
-            if (responseCode == SUCCESS_RESPONSE_CODE) {
-                break;
-            }
-            if (i < retries - 1) {
-                log("testDefaultReadinessOverallStatusUpAtStartUpSingleApp",
-                    "Health endpoint returned " + responseCode + ", retrying... (attempt " + (i + 2) + " of " + retries + ")");
-                try {
-                    Thread.sleep(2000);
-                } catch (InterruptedException e) {
-                    // Ignore
-                }
-            }
-        }
-        assertEquals("The Response Code was not 200 for the following endpoint: " + conReady.getURL().toString(), SUCCESS_RESPONSE_CODE, responseCode);
+        HttpURLConnection conReady = HttpUtils.getHttpConnectionWithAnyResponseCode(server1, READY_ENDPOINT);
+        assertEquals("The Response Code was not 200 for the following endpoint: " + conReady.getURL().toString(), SUCCESS_RESPONSE_CODE, conReady.getResponseCode());
 
         log("testDefaultReadinessOverallStatusUpAtStartUpSingleApp", "Testing the /health endpoint, before application has started.");
         HttpURLConnection conHealth = HttpUtils.getHttpConnectionWithAnyResponseCode(server1, HEALTH_ENDPOINT);
@@ -171,27 +139,8 @@ public class DefaultOverallReadinessStatusUpAppStartupTest {
         setupClass(server2, "testInvalidDefaultReadinessOverallStatusProperty");
         log("testInvalidDefaultReadinessOverallStatusProperty", "Testing the /health/ready endpoint, before application has started.");
         
-        // Add retry logic with polling mechanism before asserting health endpoint status
-        HttpURLConnection conReady = null;
-        int retries = 3;
-        int responseCode = -1;
-        for (int i = 0; i < retries; i++) {
-            conReady = HttpUtils.getHttpConnectionWithAnyResponseCode(server2, READY_ENDPOINT);
-            responseCode = conReady.getResponseCode();
-            if (responseCode == FAILED_RESPONSE_CODE) {
-                break;
-            }
-            if (i < retries - 1) {
-                log("testInvalidDefaultReadinessOverallStatusProperty",
-                    "Health endpoint returned " + responseCode + ", retrying... (attempt " + (i + 2) + " of " + retries + ")");
-                try {
-                    Thread.sleep(2000);
-                } catch (InterruptedException e) {
-                    // Ignore
-                }
-            }
-        }
-        assertEquals("The Response Code was not 503 for the following endpoint: " + conReady.getURL().toString(), FAILED_RESPONSE_CODE, responseCode);
+        HttpURLConnection conReady = HttpUtils.getHttpConnectionWithAnyResponseCode(server2, READY_ENDPOINT);
+        assertEquals("The Response Code was not 503 for the following endpoint: " + conReady.getURL().toString(), FAILED_RESPONSE_CODE, conReady.getResponseCode());
 
         log("testInvalidDefaultReadinessOverallStatusProperty", "Testing the /health endpoint, before application has started.");
         HttpURLConnection conHealth = HttpUtils.getHttpConnectionWithAnyResponseCode(server2, HEALTH_ENDPOINT);
