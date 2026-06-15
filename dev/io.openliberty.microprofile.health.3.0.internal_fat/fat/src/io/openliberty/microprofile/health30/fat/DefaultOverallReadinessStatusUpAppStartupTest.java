@@ -85,6 +85,9 @@ public class DefaultOverallReadinessStatusUpAppStartupTest {
             server2.stopServer(EXPECTED_FAILURES);
     }
 
+    /* This dummy test is used to ensure server1 starts and wait for the application to start to try to prevent immediately failing.
+        All it does it start a server and waits for CWWKZ0001I: Application DelayedHealthCheckApp message */ 
+
     @Test
     public void dummyTestStartServer() throws Exception {
         setupClass(server1, "dummyTestStartServer");
