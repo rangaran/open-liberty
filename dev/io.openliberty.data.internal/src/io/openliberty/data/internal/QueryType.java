@@ -117,6 +117,15 @@ public enum QueryType {
           Require.STATEFUL, //
           !Supports.QUERY_OPTIONS),
 
+    // repository native query method @NativeQuery
+    NATIVE("NativeQuery", //
+           !Is.LIFE_CYCLE_METHOD, //
+           Require.AUTO_START_TX, // TODO ? needed for updates, not for finds
+           null, // detach depends on stateless vs stateful repository // TODO ? and whether entities are returned
+           Require.RETURN_HIDDEN, //
+           null, // stateful or stateless
+           Supports.QUERY_OPTIONS),
+
     // stateful repository life cycle method @Persist
     PERSIST("Persist", //
             Is.LIFE_CYCLE_METHOD, //

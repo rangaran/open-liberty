@@ -18,6 +18,7 @@ import static io.openliberty.data.internal.QueryType.LC_DELETE;
 import static io.openliberty.data.internal.QueryType.LC_UPDATE;
 import static io.openliberty.data.internal.QueryType.LC_UPDATE_MERGE;
 import static io.openliberty.data.internal.QueryType.MERGE;
+import static io.openliberty.data.internal.QueryType.NATIVE;
 import static io.openliberty.data.internal.QueryType.PERSIST;
 import static io.openliberty.data.internal.QueryType.REFRESH;
 import static io.openliberty.data.internal.QueryType.REMOVE;
@@ -83,6 +84,7 @@ import jakarta.data.repository.Delete;
 import jakarta.data.repository.Insert;
 import jakarta.data.repository.Is;
 import jakarta.data.repository.JakartaQuery;
+import jakarta.data.repository.NativeQuery;
 import jakarta.data.repository.OrderBy;
 import jakarta.data.repository.Query;
 import jakarta.data.repository.QueryOptions;
@@ -371,6 +373,93 @@ public class QueryInfo_1_1 extends QueryInfo {
     }
 
     @Override
+    protected jakarta.persistence.Query //
+                    ehCreateNativeQuery(AutoCloseable entityHandler) {
+        // If the repository method return type is the entity class or multiple
+        // entities, consider the entity class to be the result type. Otherwise
+        // the result could be a count or single entity attribute.
+        Class<?> resultClass = singleType != null &&
+                               entityInfo.entityClass.isAssignableFrom(singleType) //
+                                               ? entityInfo.entityClass //
+                                               : entityInfo.isHibernate //
+                                                               ? Object.class //
+                                                               : null;
+
+        // TODO Persistence 4.0 API
+        //if (entityHandler instanceof EntityHandler handler) ...
+
+        jakarta.persistence.Query query;
+        if (entityHandler instanceof EntityManager em) {
+            if (resultClass == null)
+                query = em.createNativeQuery(ql);
+            else
+                query = em.createNativeQuery(ql, resultClass);
+        } else {
+            try {
+                query = (jakarta.persistence.Query) entityHandler.getClass() //
+                                .getMethod("createNativeQuery",
+                                           String.class,
+                                           Class.class) //
+                                .invoke(entityHandler,
+                                        ql,
+                                        resultClass);
+            } catch (IllegalAccessException | NoSuchMethodException x) {
+                throw new RuntimeException(x); // should be impossible
+            } catch (InvocationTargetException x) {
+                if (x.getCause() instanceof RuntimeException rx)
+                    throw rx;
+                throw new DataException(x.getCause());
+            }
+        }
+
+        QueryOptions options = method.getAnnotation(QueryOptions.class);
+        if (options != null)
+            try {
+                setReadOptions(options, query, entityHandler);
+            } catch (IllegalAccessException | NoSuchMethodException x) {
+                throw new RuntimeException(x); // should be impossible
+            } catch (InvocationTargetException x) {
+                if (x.getCause() instanceof RuntimeException rx)
+                    throw rx;
+                throw new DataException(x.getCause());
+            }
+
+        return query;
+    }
+
+    @Override
+    protected jakarta.persistence.Query //
+                    ehCreateNativeStatement(AutoCloseable entityHandler) {
+        jakarta.persistence.Query query;
+
+        QueryOptions options = method.getAnnotation(QueryOptions.class);
+
+        // TODO Persistence 4.0 API
+        //if (entityHandler instanceof EntityHandler handler) ...
+
+        if (entityHandler instanceof EntityManager em) {
+            query = em.createNativeQuery(ql);
+        } else {
+            try {
+                query = (jakarta.persistence.Query) entityHandler.getClass() //
+                                .getMethod("createNativeStatement", String.class) //
+                                .invoke(entityHandler, ql);
+            } catch (IllegalAccessException | NoSuchMethodException x) {
+                throw new RuntimeException(x); // should be impossible
+            } catch (InvocationTargetException x) {
+                if (x.getCause() instanceof RuntimeException rx)
+                    throw rx;
+                throw new DataException(x.getCause());
+            }
+        }
+
+        if (options != null)
+            setWriteOptions(options, query);
+
+        return query;
+    }
+
+    @Override
     @Trivial
     protected jakarta.persistence.Query ehCreateStatement(AutoCloseable entityHandler,
                                                           String jpql) {
@@ -378,15 +467,15 @@ public class QueryInfo_1_1 extends QueryInfo {
                         ? method.getAnnotation(QueryOptions.class) //
                         : null;
 
+        jakarta.persistence.Query query;
         // TODO Persistence 4.0 API
-        //return entityHandler instanceof EntityHandler handler //
+        //query = entityHandler instanceof EntityHandler handler //
         //                ? handler.createStatement(jpql) //
         //                : ((EntityManager) entityHandler).createQuery(jpql);
         try {
-            jakarta.persistence.Query query = //
-                            (jakarta.persistence.Query) entityHandler.getClass() //
-                                            .getMethod("createQuery", String.class) //
-                                            .invoke(entityHandler, jpql);
+            query = (jakarta.persistence.Query) entityHandler.getClass() //
+                            .getMethod("createQuery", String.class) //
+                            .invoke(entityHandler, jpql);
             if (options != null)
                 setWriteOptions(options, query);
             return query;
@@ -957,13 +1046,16 @@ public class QueryInfo_1_1 extends QueryInfo {
     @Override
     @Trivial
     protected String getQueryAnnoValue() {
-        if (methodTypeAnno instanceof Query query)
+        if (methodTypeAnno instanceof Query query) {
             return query.value();
-        else if (methodTypeAnno instanceof JakartaQuery query)
+        } else if (methodTypeAnno instanceof JakartaQuery query) {
             return query.value();
-        // TODO NativeQuery?
-        else
+        } else if (methodTypeAnno instanceof NativeQuery query) {
+            type = NATIVE;
+            return query.value();
+        } else {
             return null;
+        }
     }
 
     /**
@@ -1102,7 +1194,7 @@ public class QueryInfo_1_1 extends QueryInfo {
      * @param entityHandler EntityAgent or EntityManager
      */
     private <T> void setReadOptions(QueryOptions options,
-                                    TypedQuery<T> query,
+                                    jakarta.persistence.Query query,
                                     AutoCloseable entityHandler) //
                     throws // TODO remove once using Persistence 4.0 API
                     IllegalAccessException, //

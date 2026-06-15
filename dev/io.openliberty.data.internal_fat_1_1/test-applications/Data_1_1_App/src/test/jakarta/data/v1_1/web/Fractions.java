@@ -43,6 +43,7 @@ import jakarta.data.repository.First;
 import jakarta.data.repository.Insert;
 import jakarta.data.repository.Is;
 import jakarta.data.repository.JakartaQuery; // TODO replace with Persistence 4.0 anno once available
+import jakarta.data.repository.NativeQuery; // TODO replace with Persistence 4.0 anno once available
 import jakarta.data.repository.OrderBy;
 import jakarta.data.repository.Query;
 import jakarta.data.repository.QueryOptions; // TODO replace with Persistence 4.0 anno once available
@@ -93,6 +94,15 @@ public interface Fractions {
      int exclusiveMax,
      Restriction<Fraction> filter);
 
+    @First
+    @NativeQuery("""
+                    SELECT *
+                      FROM Fraction
+                     WHERE val >= ? AND val <= ?
+                     ORDER BY val
+                    """)
+    Optional<Fraction> firstValueWithin(double minValue, double maxValue);
+
     @Query("WHERE denominator = ?1 AND numerator < denominator")
     @First
     @OrderBy(value = _Fraction.NUMERATOR, descending = true)
@@ -118,6 +128,22 @@ public interface Fractions {
      Order<Fraction> additionalSorting,
      PageRequest pageReq);
 
+    @NativeQuery("""
+                    SELECT *
+                      FROM Fraction
+                     WHERE numerator <= CAST(FLOOR(SQRT(denominator)) AS INT)
+                     ORDER BY denominator, numerator
+                    """)
+    List<Fraction> numeratorLTESquareRootOfDenominator(Limit limit);
+
+    @NativeQuery("""
+                    SELECT COUNT(*)
+                      FROM Fraction
+                     WHERE denominator = ? AND reduced = ?
+                    """)
+    long numReducedWithDenominatorOf(int denominator,
+                                     boolean isReduced);
+
     @Find
     @QueryOptions(entityGraph = "EagerlyLoadRoundedValues")
     Optional<Fraction> of(int numerator, int denominator);
@@ -125,6 +151,39 @@ public interface Fractions {
     @Query("SELECT numerator, denominator - numerator" +
            " ORDER BY denominator - numerator DESC, numerator ASC")
     Page<Ratio> pageOfRatios(PageRequest pageReq);
+
+    @NativeQuery("""
+                    SELECT numerator, denominator - numerator
+                      FROM Fraction
+                     WHERE denominator = ?
+                     ORDER BY numerator
+                    """)
+    // TODO Java record results?
+    default Ratio[] ratioArrayWithDenominator(int sum) {
+        return new Ratio[0];
+    }
+
+    @NativeQuery("""
+                    SELECT numerator, denominator
+                      FROM Fraction
+                     WHERE ABS(numerator - denominator) = ?
+                     ORDER BY numerator
+                    """)
+    // TODO Java record results?
+    default List<Ratio> ratioListWithDifferenceOfTerms(int difference) {
+        return List.of();
+    }
+
+    @NativeQuery("""
+                    SELECT numerator, denominator
+                      FROM Fraction
+                     WHERE numerator + denominator = ?
+                     ORDER BY numerator
+                    """)
+    // TODO Java record results?
+    default Stream<Ratio> ratioStreamWithSumOfTerms(int sum) {
+        return Stream.of();
+    }
 
     @Delete
     List<Fraction> remove(Like name,
