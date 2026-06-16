@@ -65,6 +65,7 @@ import org.junit.Test;
 import componenttest.annotation.AllowedFFDC;
 import componenttest.app.FATServlet;
 import test.jakarta.data.v1_1.web.Fraction.Decimal;
+import test.jakarta.data.v1_1.web.Fraction.Decimal.Type;
 
 @SuppressWarnings("serial")
 @WebServlet("/*")
@@ -1508,6 +1509,47 @@ public class Data_1_1_Servlet extends FATServlet {
                                             Order.by(_Fraction.numerator.desc())) //
                                      .map(f -> f.name)
                                      .collect(Collectors.toList()));
+    }
+
+    /**
+     * Use a NativeQuery method that performs SQL INSERT, UPDATE, and DELETE
+     * statements.
+     */
+    @Test
+    public void testNativeQueryExecutesStatements() {
+        // Populate with 14/23.
+        // Ensure deletion in the finally block.
+        fractions.create(14,
+                         23,
+                         "Fourteen Twenty-Thirds",
+                         true,
+                         14.0 / 23.0,
+                         23.0 / 14.0,
+                         BigDecimal.valueOf(6090L, 4),
+                         BigDecimal.valueOf(6080L, 4),
+                         Type.REPEATING.ordinal(),
+                         "",
+                         "60869565");
+        try {
+            assertEquals(BigDecimal.valueOf(6090L, 4),
+                         fractions.roundedUp(14, 23)
+                                         .orElseThrow());
+
+            System.out.println("Update 14/23");
+
+            assertEquals(true, fractions.change(BigDecimal.valueOf(6087L, 4),
+                                                BigDecimal.valueOf(6086L, 4),
+                                                14,
+                                                23));
+
+            assertEquals(BigDecimal.valueOf(6087L, 4),
+                         fractions.roundedUp(14, 23)
+                                         .orElseThrow());
+        } finally {
+            // Ensure no fractions with denominator of 23 or more are left around
+            assertEquals(1L,
+                         fractions.destroy(14, "Twenty-Thirds"));
+        }
     }
 
     /**
