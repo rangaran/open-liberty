@@ -53,8 +53,8 @@ import com.ibm.wsspi.ssl.SSLSupport;
  */
 
 @Component(name = LogstashCollector.COMPONENT_NAME, service = { Handler.class, ServerQuiesceListener.class },
-           configurationPolicy = ConfigurationPolicy.OPTIONAL,
-           immediate = true, property = { "service.vendor=IBM" })
+           configurationPolicy = ConfigurationPolicy.REQUIRE,
+           property = { "service.vendor=IBM" })
 public class LogstashCollector extends Collector implements ServerQuiesceListener {
 
     private static final TraceComponent tc = Tr.register(LogstashCollector.class, "logstashCollector",
@@ -215,7 +215,7 @@ public class LogstashCollector extends Collector implements ServerQuiesceListene
         String serverDefaultHostName = (String) configuration.get(SERVER_DEFAULT_HOST_NAME_KEY);
         String serverUserDir = variableRegistryServiceRef.getService().resolveString(VAR_WLPUSERDIR);
 
-        if (serverName.trim().isEmpty()) {
+        if (serverName == null || serverName.trim().isEmpty()) {
             serverName = variableRegistryServiceRef.getService().resolveString(ENV_VAR_CONTAINERNAME);
             if (ENV_VAR_CONTAINERNAME.equals(serverName)) {
                 serverName = variableRegistryServiceRef.getService().resolveString(VAR_WLPSERVERNAME);
@@ -232,13 +232,13 @@ public class LogstashCollector extends Collector implements ServerQuiesceListene
         }
         this.serverUserDir = serverUserDir;
 
-        if (serverHostName.trim().isEmpty()) {
+        if (serverHostName == null || serverHostName.trim().isEmpty()) {
             serverHostName = variableRegistryServiceRef.getService().resolveString(ENV_VAR_CONTAINERHOST);
             if (ENV_VAR_CONTAINERHOST.equals(serverHostName)) {
                 serverHostName = serverDefaultHostName;
             }
             //defaultHostName variable did not resolve or has resolved to "localhost"
-            if (VAR_DEFAULTHOSTNAME.equals(serverHostName) || serverHostName.equals("localhost")) {
+            if (VAR_DEFAULTHOSTNAME.equals(serverHostName) || (serverHostName != null && serverHostName.equals("localhost"))) {
                 try {
                     serverHostName = AccessController.doPrivileged(new PrivilegedExceptionAction<String>() {
                         @Override

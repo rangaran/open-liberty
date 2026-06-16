@@ -17,8 +17,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.ConfigurationPolicy;
 
-import com.ibm.websphere.ras.Tr;
-import com.ibm.websphere.ras.TraceComponent;
 import com.ibm.ws.container.service.app.deploy.ApplicationInfo;
 import com.ibm.ws.container.service.state.ApplicationStateListener;
 import com.ibm.wsspi.kernel.service.utils.ServerQuiesceListener;
@@ -35,11 +33,6 @@ import com.ibm.wsspi.kernel.service.utils.ServerQuiesceListener;
 public class LogstashCollectorASL implements ApplicationStateListener, ServerQuiesceListener {
 
     public static final String COMPONENT_NAME = "com.ibm.ws.logstash.collector.internal.LogstashCollectorASL";
-    private static final String WEBAPP_REMOVAL_MESSAGE_ID = "CWWKT0017I";
-
-    private static final TraceComponent tc = Tr.register(LogstashCollectorASL.class, "logstashCollectorASL",
-                                                         "com.ibm.ws.logstash.collector.internal.resources.LoggingMessages");
-
     private final static AtomicInteger runningApplicationCount = new AtomicInteger(0);
 
     public static int getRunningApplicationCount() {
