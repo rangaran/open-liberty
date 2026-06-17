@@ -39,6 +39,7 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.transaction.UserTransaction;
 
 import javax.naming.InitialContext;
+import javax.naming.NamingException;
 import javax.naming.Referenceable;
 import javax.sql.ConnectionPoolDataSource;
 import javax.sql.DataSource;
@@ -481,8 +482,10 @@ public class H2TestServlet extends FATServlet {
         try {
             DataSource ds = (DataSource) new InitialContext().lookup("jdbc/h2ds-invalid-password");
             fail("Expected exception for PASSWORD in URL, but datasource was created: " + ds);
-        } catch (Exception e) {
-            // Pass. The DSRA8070E error message will be in the server logs (checked by FAT test)
+        } catch (NamingException e) {
+            String msg = e.getMessage();
+            assertTrue("Expected CWWKN0008E in exception message but got: " + msg, msg.contains("CWWKN0008E"));
+            assertTrue("Expected datasource name 'jdbc/h2ds-invalid-password' in exception message but got: " + msg, msg.contains("jdbc/h2ds-invalid-password"));
         }
     }
 
@@ -495,8 +498,10 @@ public class H2TestServlet extends FATServlet {
         try {
             DataSource ds = (DataSource) new InitialContext().lookup("jdbc/h2ds-invalid-password-mixed");
             fail("Expected exception for password in URL, but datasource was created: " + ds);
-        } catch (Exception e) {
-			//pass
+        } catch (NamingException e) {
+            String msg = e.getMessage();
+            assertTrue("Expected CWWKN0008E in exception message but got: " + msg, msg.contains("CWWKN0008E"));
+            assertTrue("Expected datasource name 'jdbc/h2ds-invalid-password-mixed' in exception message but got: " + msg, msg.contains("jdbc/h2ds-invalid-password-mixed"));
         }
     }
 }
