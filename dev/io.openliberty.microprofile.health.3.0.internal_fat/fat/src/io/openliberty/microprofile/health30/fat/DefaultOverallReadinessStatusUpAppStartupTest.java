@@ -86,13 +86,13 @@ public class DefaultOverallReadinessStatusUpAppStartupTest {
     }
 
     /**
-     * This dummy test is used to ensure server1 starts and waits for the application to start before running
+     * This dummy test is used to ensure test server starts and waits for the application to start before running
      * subsequent tests, preventing immediate test failures due to timing issues.
-     *
+     * 
      * When running FAT tests, the FAT infrastructure may need to generate the FAT feature list
-     * during server startup. This generation process may introduce a delay between when the test
-     * framework begins starting the server and when the server actually starts processing the configuration, causing timing issues, which 
-     * then the tests may attempt to verify conditions before the server has fully initialized.
+     * during server startup. This generation introduces a delay on the test process causing a delay from when the test logic is invoked.
+     * However, the test server continues to start-up as usual. This can cause issues for tests that test against early/start-up behaviour 
+     * as this delay can lead to the test logic to execute after the server has passed the startup-phase.
      */
     @Test
     public void dummyTestStartServer() throws Exception {
