@@ -85,9 +85,15 @@ public class DefaultOverallReadinessStatusUpAppStartupTest {
             server2.stopServer(EXPECTED_FAILURES);
     }
 
-    /* This dummy test is used to ensure server1 starts and wait for the application to start to try to prevent immediately failing.
-        All it does it start a server and waits for CWWKZ0001I: Application DelayedHealthCheckApp message */ 
-
+    /**
+     * This dummy test is used to ensure server1 starts and waits for the application to start before running
+     * subsequent tests, preventing immediate test failures due to timing issues.
+     *
+     * When running FAT tests, the FAT infrastructure may need to generate the FAT feature list
+     * during server startup. This generation process may introduce a delay between when the test
+     * framework begins starting the server and when the server actually starts processing the configuration, causing timing issues, which 
+     * then the tests may attempt to verify conditions before the server has fully initialized.
+     */
     @Test
     public void dummyTestStartServer() throws Exception {
         setupClass(server1, "dummyTestStartServer");
