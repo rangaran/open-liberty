@@ -42,7 +42,7 @@ public class PQCRuntimeSupport {
     private static final Class<?> KEM_CLASS;
     
     static {
-        boolean java26Available = false;
+        boolean java26Available = true;
         Class<?> kemClass = null;
         
         try {

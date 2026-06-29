@@ -1,0 +1,94 @@
+/*******************************************************************************
+ * Copyright (c) 2026 IBM Corporation and others.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License 2.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-2.0/
+ * 
+ * SPDX-License-Identifier: EPL-2.0
+ *
+ * Contributors:
+ *     IBM Corporation - initial API and implementation
+ *******************************************************************************/
+
+configurations {
+  requiredLibs {
+    transitive = false
+  }
+}
+
+dependencies {
+  requiredLibs 'org.apache.httpcomponents:httpclient:4.1.2',
+               'org.apache.httpcomponents:httpcore:4.1.2',
+               project(':io.openliberty.org.apache.commons.codec'),
+               project(':com.ibm.websphere.javaee.servlet.3.0'),
+               project(':com.ibm.ws.security.fat.common')
+}
+
+addRequiredLibraries.dependsOn addJakartaTransformer
+
+/* 
+ * This is where all application will be built.
+ */
+def appBuildDir = "${buildDir}/test-application"
+
+
+/******************************************************************
+ ******************************************************************
+ **
+ ** pqcAuditTest.zip
+ **
+ ******************************************************************
+ ******************************************************************/
+task pqcAuditTest(type: Zip, dependsOn: classes) {
+  destinationDirectory = file("${appBuildDir}")
+  archiveFileName = "pqcAuditTest.zip"
+  
+  from('test-applications/pqcAuditTest/resources') {
+    include '**/*'
+  }
+  from ('build/classes/java/main') {
+    include 'com/ibm/ws/security/audit/pqc/servlet/*.class'
+    into 'WEB-INF/classes'
+  }
+}
+
+assemble.dependsOn pqcAuditTest
+
+/******************************************************************
+ ******************************************************************
+ **
+ ** Copy feature bundles and applications to specific servers.
+ **
+ ******************************************************************
+ ******************************************************************/
+autoFVT {
+  doLast {
+    
+  /*
+   * Copy pqcAuditTest.war into test server.
+   */
+  def servers = [
+    'com.ibm.ws.security.audit.pqc.fat'
+  ]
+  
+  servers.each { server ->
+    copy {
+      from new File(buildDir, 'test-application/pqcAuditTest.zip')
+      into new File(autoFvtDir, 'publish/servers/' + server + '/apps')
+      rename 'pqcAuditTest.zip', 'pqcAuditTest.war'
+    }
+  
+    /*
+     * Copy server.xml file from server directory.
+     */
+    copy { 
+      from new File(projectDir, 'publish/servers/com.ibm.ws.security.audit.pqc.fat/server.xml')
+      into new File(autoFvtDir, 'lib/LibertyFATTestFiles')
+      rename 'server.xml', 'pqcAudit.server.orig.xml'
+    }
+  }
+  }
+}
+
+// Made with Bob

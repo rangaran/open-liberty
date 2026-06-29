@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee 
+         http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd"
+         version="3.1">
+    
+    <display-name>PQC Audit Test Application</display-name>
+    
+    <description>
+        Test application for PQC Audit encryption functionality.
+        Tests ML-KEM key generation, encryption, decryption, and forward secrecy.
+    </description>
+    
+    <servlet>
+        <servlet-name>PQCAuditTestServlet</servlet-name>
+        <servlet-class>com.ibm.ws.security.audit.pqc.servlet.PQCAuditTestServlet</servlet-class>
+    </servlet>
+    
+    <servlet-mapping>
+        <servlet-name>PQCAuditTestServlet</servlet-name>
+        <url-pattern>/PQCAuditTestServlet</url-pattern>
+    </servlet-mapping>
+    
+    <welcome-file-list>
+        <welcome-file>index.html</welcome-file>
+    </welcome-file-list>
+</web-app>
+
+<!-- Made with Bob -->

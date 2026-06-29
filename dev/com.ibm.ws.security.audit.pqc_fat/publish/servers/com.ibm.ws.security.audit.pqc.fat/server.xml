@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<server description="PQC Audit Test Server">
+    <include location="../fatTestPorts.xml"/>
+
+    <!-- Enable features -->
+    <featureManager>
+        <feature>servlet-4.0</feature>
+        <feature>audit-1.0</feature>
+    </featureManager>
+
+    <!-- HTTP endpoint -->
+    <httpEndpoint id="defaultHttpEndpoint"
+                  httpPort="${bvt.prop.HTTP_default}"
+                  httpsPort="${bvt.prop.HTTP_default.secure}">
+        <tcpOptions soReuseAddr="true"/>
+    </httpEndpoint>
+
+    <!-- Application -->
+    <webApplication id="pqcAuditTest" 
+                    location="pqcAuditTest.war" 
+                    name="pqcAuditTest">
+        <classloader delegation="parentLast"/>
+    </webApplication>
+
+    <!-- Audit configuration -->
+    <audit maxFiles="5" maxFileSize="20" compact="false">
+        <events name="AuditEvent_1"/>
+    </audit>
+
+    <!-- Logging -->
+    <logging traceSpecification="*=info:com.ibm.ws.security.audit.*=all"/>
+
+</server>
+
+<!-- Made with Bob -->
