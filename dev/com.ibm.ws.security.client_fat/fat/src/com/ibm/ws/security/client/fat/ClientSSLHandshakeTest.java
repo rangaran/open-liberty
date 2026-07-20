@@ -1001,9 +1001,3 @@ public class ClientSSLHandshakeTest extends CommonTest {
             fail("Exception was thrown: " + e);
         }
     }
-
-    
-    }
-
-    
-    }
