@@ -15,12 +15,13 @@ package com.ibm.ws.security.audit.encryption;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
+import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 
 import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -31,7 +32,15 @@ import com.ibm.ws.common.crypto.CryptoUtils;
 final class AuditCrypto {
 
     private static TraceComponent tc = Tr.register(AuditCrypto.class, null, "com.ibm.ejs.resources.security");
-    private static IvParameterSpec ivs16 = null;
+
+    /** Version marker prepended to all GCM-encrypted output. */
+    private static final byte GCM_VERSION_MARKER = 0x01;
+    /** GCM recommended IV length in bytes (96 bits). */
+    private static final int GCM_IV_LENGTH = 12;
+    /** GCM authentication tag length in bits (128 bits = 16 bytes). */
+    private static final int GCM_TAG_LENGTH_BITS = 128;
+    /** Legacy CBC IV length in bytes. */
+    private static final int CBC_IV_LENGTH = 16;
 
     public AuditCrypto() {}
 
@@ -39,10 +48,20 @@ final class AuditCrypto {
         return CryptoUtils.generateRandomBytes(CryptoUtils.AES_256_KEY_LENGTH_BYTES);
     }
 
+    /**
+     * Encrypt {@code data} with AES-256-GCM.
+     * Output format: {@code [0x01][12-byte random IV][GCM ciphertext+tag]}
+     */
     static final byte[] encrypt(byte[] data, byte[] key) {
-        return encrypt(data, key, CryptoUtils.AES_CBC_CIPHER);
+        return encrypt(data, key, CryptoUtils.AES_GCM_CIPHER);
     }
 
+    /**
+     * Encrypt {@code data} with the given AES cipher.
+     * When {@code cipher} is {@code AES/GCM/NoPadding} the output is prefixed with
+     * the version marker {@code 0x01} followed by a freshly generated 12-byte IV,
+     * so the decryptor can recover it: {@code [0x01][IV][GCM ciphertext+tag]}.
+     */
     static final byte[] encrypt(byte[] data, byte[] key, String cipher) {
         long start_time = 0;
 
@@ -59,15 +78,25 @@ final class AuditCrypto {
             return null;
         }
 
-        byte[] mesg = null;
+        byte[] result = null;
         try {
+            SecretKey sKey = constructSecretKey(key);
 
-            SecretKey sKey = constructSecretKey(key, cipher);
+            byte[] iv = new byte[GCM_IV_LENGTH];
+            new SecureRandom().nextBytes(iv);
 
-            Cipher ci = createCipher(Cipher.ENCRYPT_MODE, key, cipher, sKey);
+            Cipher ci = Cipher.getInstance(cipher);
+            ci.init(Cipher.ENCRYPT_MODE, sKey, new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv));
+
             if (tc.isDebugEnabled())
                 Tr.debug(tc, "encrypt() Cipher.doFinal()\n   data: " + new String(data));
-            mesg = ci.doFinal(data);
+            byte[] ciphertext = ci.doFinal(data);
+
+            // Prepend version marker and IV: [0x01][IV][ciphertext+tag]
+            result = new byte[1 + GCM_IV_LENGTH + ciphertext.length];
+            result[0] = GCM_VERSION_MARKER;
+            System.arraycopy(iv, 0, result, 1, GCM_IV_LENGTH);
+            System.arraycopy(ciphertext, 0, result, 1 + GCM_IV_LENGTH, ciphertext.length);
 
         } catch (java.security.NoSuchAlgorithmException e) {
             Tr.error(tc, "security.ltpa.noalgorithm", new Object[] { e });
@@ -91,9 +120,6 @@ final class AuditCrypto {
         } catch (java.security.InvalidAlgorithmParameterException e) {
             Tr.error(tc, "security.ltpa.noalgorithm", new Object[] { e });
             com.ibm.ws.ffdc.FFDCFilter.processException(e, "com.ibm.ws.security.audit.AuditCrypto", "2279");
-        } catch (NoSuchProviderException e) {
-            Tr.error(tc, "security.ltpa.noprovider", new Object[] { e });
-            com.ibm.ws.ffdc.FFDCFilter.processException(e, "com.ibm.ws.security.audit.AuditCrypto", "2282");
         }
 
         if (tc.isDebugEnabled()) {
@@ -101,34 +127,66 @@ final class AuditCrypto {
             Tr.debug(tc, "Total encryption time: " + (end_time - start_time));
         }
 
-        return mesg;
+        return result;
     }
 
+    /**
+     * Decrypt {@code mesg} previously encrypted by {@link #encrypt(byte[], byte[])}.
+     * Auto-detects format from the version marker in byte 0:
+     * {@code 0x01} → AES/GCM/NoPadding; otherwise → legacy AES/CBC/PKCS5Padding.
+     */
     static final byte[] decrypt(byte[] mesg, byte[] key) {
-        return decrypt(mesg, key, CryptoUtils.AES_CBC_CIPHER);
+        return decrypt(mesg, key, CryptoUtils.AES_GCM_CIPHER);
     }
 
+    /**
+     * Decrypt {@code mesg} using format auto-detection:
+     * <ul>
+     *   <li>If {@code mesg[0] == 0x01}: GCM path — extract 12-byte IV from bytes 1–12,
+     *       ciphertext from bytes 13+, decrypt with {@code AES/GCM/NoPadding}.</li>
+     *   <li>Otherwise: legacy CBC path — derive 16-byte IV from the first 16 bytes of
+     *       {@code key}, decrypt with {@code AES/CBC/PKCS5Padding}.</li>
+     * </ul>
+     * The {@code cipher} parameter is ignored; it is retained for API compatibility only.
+     */
     static final byte[] decrypt(byte[] mesg, byte[] key, String cipher) {
-
         long start_time = 0;
 
         if (tc.isDebugEnabled()) {
             start_time = System.currentTimeMillis();
-            Tr.debug(tc, "Cipher used to decrypt: " + cipher);
             Tr.debug(tc, "key size: " + key.length);
         }
 
-        byte[] tmpMesg = null;
+        byte[] plaintext = null;
         try {
+            SecretKey sKey = constructSecretKey(key);
 
-            SecretKey sKey = constructSecretKey(key, cipher);
+            if (mesg.length > 0 && mesg[0] == GCM_VERSION_MARKER) {
+                // --- GCM path ---
+                if (tc.isDebugEnabled())
+                    Tr.debug(tc, "decrypt() using AES/GCM path");
+                byte[] iv = new byte[GCM_IV_LENGTH];
+                System.arraycopy(mesg, 1, iv, 0, GCM_IV_LENGTH);
+                byte[] ciphertext = new byte[mesg.length - 1 - GCM_IV_LENGTH];
+                System.arraycopy(mesg, 1 + GCM_IV_LENGTH, ciphertext, 0, ciphertext.length);
 
-            Cipher ci = createCipher(Cipher.DECRYPT_MODE, key, cipher, sKey);
+                Cipher ci = Cipher.getInstance(CryptoUtils.AES_GCM_CIPHER);
+                ci.init(Cipher.DECRYPT_MODE, sKey, new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv));
+                plaintext = ci.doFinal(ciphertext);
+            } else {
+                // --- Legacy CBC path (backward compatibility) ---
+                if (tc.isDebugEnabled())
+                    Tr.debug(tc, "decrypt() using legacy AES/CBC path");
+                byte[] iv16 = new byte[CBC_IV_LENGTH];
+                System.arraycopy(key, 0, iv16, 0, CBC_IV_LENGTH);
 
-            tmpMesg = ci.doFinal(mesg);
+                Cipher ci = Cipher.getInstance(CryptoUtils.AES_CBC_CIPHER);
+                ci.init(Cipher.DECRYPT_MODE, sKey, new IvParameterSpec(iv16));
+                plaintext = ci.doFinal(mesg);
+            }
 
             if (tc.isDebugEnabled())
-                Tr.debug(tc, "decrypt() Cipher.doFinal()\n   tmpMesg: " + new String(tmpMesg));
+                Tr.debug(tc, "decrypt() Cipher.doFinal()\n   plaintext: " + new String(plaintext));
 
         } catch (java.security.NoSuchAlgorithmException e) {
             Tr.error(tc, "no such algorithm exception", new Object[] { e });
@@ -152,9 +210,6 @@ final class AuditCrypto {
         } catch (java.security.InvalidAlgorithmParameterException e) {
             Tr.error(tc, "security.ltpa.noalgorithm", new Object[] { e });
             com.ibm.ws.ffdc.FFDCFilter.processException(e, "com.ibm.ws.security.auditAuditCrypto", "2408");
-        } catch (NoSuchProviderException e) {
-            Tr.error(tc, "security.ltpa.noprovider", new Object[] { e });
-            com.ibm.ws.ffdc.FFDCFilter.processException(e, "com.ibm.ws.security.auditAuditCrypto", "2412");
         }
 
         if (tc.isDebugEnabled()) {
@@ -162,67 +217,10 @@ final class AuditCrypto {
             Tr.debug(tc, "Total decryption time: " + (end_time - start_time));
         }
 
-        return tmpMesg;
+        return plaintext;
     }
 
-    /**
-     * @param key
-     * @param cipher
-     * @return
-     * @throws InvalidKeyException
-     * @throws NoSuchAlgorithmException
-     * @throws InvalidKeySpecException
-     */
-    private static SecretKey constructSecretKey(byte[] key, String cipher) throws InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchProviderException {
+    private static SecretKey constructSecretKey(byte[] key) throws InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException {
         return new SecretKeySpec(key, 0, CryptoUtils.AES_256_KEY_LENGTH_BYTES, CryptoUtils.ENCRYPT_ALGORITHM_AES);
-    }
-
-    /**
-     * @param key
-     * @param cipher
-     * @param sKey
-     * @return
-     * @throws NoSuchAlgorithmException
-     * @throws NoSuchPaddingException
-     * @throws InvalidKeyException
-     * @throws InvalidAlgorithmParameterException
-     */
-    private static Cipher createCipher(int cipherMode, byte[] key, String cipher,
-                                       SecretKey sKey) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, NoSuchProviderException {
-        Cipher ci = Cipher.getInstance(cipher);
-
-        setIVS16(key);
-        ci.init(cipherMode, sKey, ivs16);
-
-        return ci;
-    }
-
-    /**
-     * Get 16 byte initialization vector
-     **/
-    public static IvParameterSpec getIVS16() {
-        return ivs16;
-    }
-
-    /**
-     * Set 16 byte initialization vector
-     **/
-    public static synchronized void setIVS16(byte[] key) {
-        if (tc.isEntryEnabled())
-            Tr.entry(tc, "setIVS16");
-
-        try {
-            byte[] iv16 = new byte[16];
-            for (int i = 0; i < 16; i++) {
-                iv16[i] = key[i];
-            }
-            ivs16 = new IvParameterSpec(iv16);
-            if (tc.isDebugEnabled())
-                Tr.debug(tc, "setIVS16: ivs16 successfully set");
-        } catch (Exception e) {
-            if (tc.isDebugEnabled())
-                Tr.debug(tc, "setIVS16 unxepected exception setting initialization vector", new Object[] { e });
-            com.ibm.ws.ffdc.FFDCFilter.processException(e, "com.ibm.ws.security.ltpa.LTPAToken2Factory.initialize", "2568");
-        }
     }
 }

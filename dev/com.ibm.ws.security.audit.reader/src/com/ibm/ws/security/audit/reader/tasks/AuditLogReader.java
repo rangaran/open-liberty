@@ -572,6 +572,9 @@ public class AuditLogReader {
     }
 
     private static byte[] verifyRecord(AuditSigningImpl as, byte[] record, byte[] signature, byte[] signingSharedKey) throws Exception {
+        // "AES" is the raw key algorithm and is correct for both AES/GCM and AES/CBC.
+        // The actual cipher mode (GCM for new logs, CBC for legacy logs) is auto-detected
+        // inside AuditCrypto.decrypt via the version-marker byte prepended during encryption.
         String algorithm = CryptoUtils.ENCRYPT_ALGORITHM;
         if (debugEnabled) {
             theLogger.fine("processRecord: recreate signing shared key with algorithm: " + algorithm);
@@ -590,6 +593,9 @@ public class AuditLogReader {
     }
 
     private static byte[] decryptRecord(AuditEncryptionImpl ae, byte[] encryptedRecord, byte[] encryptionSharedKey) throws Exception {
+        // "AES" is the raw key algorithm and is correct for both AES/GCM and AES/CBC.
+        // The actual cipher mode (GCM for new logs, CBC for legacy logs) is auto-detected
+        // inside AuditCrypto.decrypt via the version-marker byte prepended during encryption.
         String algorithm = CryptoUtils.ENCRYPT_ALGORITHM;
         if (debugEnabled) {
             theLogger.fine("processRecord: recreate encryption shared key with algorithm: " + algorithm);
