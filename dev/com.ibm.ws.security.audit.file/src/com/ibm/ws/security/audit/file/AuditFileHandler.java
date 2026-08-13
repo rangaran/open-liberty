@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018, 2025 IBM Corporation and others.
+ * Copyright (c) 2018, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -148,6 +148,8 @@ public class AuditFileHandler implements SynchronousHandler {
     private final static String encryptionCloseTag = "</EncryptionInformation>\n";
     private final static String encryptedSharedKeyOpenTag = "   <encryptedSharedKey>";
     private final static String encryptedSharedKeyCloseTag = "</encryptedSharedKey>\n";
+    private final static String keyWrapAlgorithmOpenTag = "   <keyWrapAlgorithm>";
+    private final static String keyWrapAlgorithmCloseTag = "</keyWrapAlgorithm>\n";
 
     private final static String encryptionCertAliasOpenTag = "   <encryptionCertAlias>";
     private final static String encryptionCertAliasCloseTag = "</encryptionCertAlias>\n";
@@ -181,6 +183,8 @@ public class AuditFileHandler implements SynchronousHandler {
 
     private final static String signingSharedKeyOpenTag = "   <signingSharedKey>";
     private final static String signingSharedKeyCloseTag = "</signingSharedKey>\n";
+    private final static String signingKeyWrapAlgorithmOpenTag = "   <signingKeyWrapAlgorithm>";
+    private final static String signingKeyWrapAlgorithmCloseTag = "</signingKeyWrapAlgorithm>\n";
 
     private final String signerKeyStoreName = null;
     private final String signerKeyStoreScope = null;
@@ -858,6 +862,10 @@ public class AuditFileHandler implements SynchronousHandler {
 
         header = header.concat(encryptedSharedKeyCloseTag);
 
+        header = header.concat(keyWrapAlgorithmOpenTag);
+        header = header.concat("RSA-OAEP");
+        header = header.concat(keyWrapAlgorithmCloseTag);
+
         header = header.concat(encryptionCertAliasOpenTag);
         header = header.concat(encryptAlias);
         header = header.concat(encryptionCertAliasCloseTag);
@@ -893,6 +901,10 @@ public class AuditFileHandler implements SynchronousHandler {
 
         header = header.concat(new String(x));
         header = header.concat(signingSharedKeyCloseTag);
+
+        header = header.concat(signingKeyWrapAlgorithmOpenTag);
+        header = header.concat("RSA-OAEP");
+        header = header.concat(signingKeyWrapAlgorithmCloseTag);
 
         header = header.concat(signingCertAliasOpenTag);
         header = header.concat(signerAlias);

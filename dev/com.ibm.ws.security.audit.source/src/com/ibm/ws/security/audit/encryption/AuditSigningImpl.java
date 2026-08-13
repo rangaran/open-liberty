@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018, 2025 IBM Corporation and others.
+ * Copyright (c) 2018, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -173,10 +173,16 @@ public class AuditSigningImpl implements AuditSigning {
             }
             return null;
         }
-        byte[] encodedPublicKey = publicKey.getEncoded();
-        encryptor = new AuditKeyEncryptor(encodedPublicKey);
         byte[] encodedSharedKey = sharedKey.getEncoded();
-        encryptedSharedKey = encryptor.encrypt(encodedSharedKey);
+        try {
+            javax.crypto.Cipher c = javax.crypto.Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
+            c.init(javax.crypto.Cipher.ENCRYPT_MODE, publicKey);
+            encryptedSharedKey = c.doFinal(encodedSharedKey);
+        } catch (Exception e) {
+            if (tc.isDebugEnabled())
+                Tr.debug(tc, "encryptSharedKey RSA-OAEP failed", e);
+            throw new java.io.IOException(e.getMessage());
+        }
         return encryptedSharedKey;
     }
 
@@ -195,16 +201,15 @@ public class AuditSigningImpl implements AuditSigning {
             }
             return null;
         }
-
-        if (encryptor == null) {
-            byte[] encodedPublicKey = pKey.getEncoded();
-            encryptor = new AuditKeyEncryptor(encodedPublicKey);
+        try {
+            javax.crypto.Cipher c = javax.crypto.Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
+            c.init(javax.crypto.Cipher.DECRYPT_MODE, pKey);
+            decryptedSharedKey = c.doFinal(sharedKey);
+        } catch (Exception e) {
+            if (tc.isDebugEnabled())
+                Tr.debug(tc, "decryptSharedKey RSA-OAEP failed", e);
+            throw new java.io.IOException(e.getMessage());
         }
-
-        byte[] encodedPublicKey = pKey.getEncoded();
-
-        decryptedSharedKey = encryptor.decrypt(sharedKey);
-
         return decryptedSharedKey;
     }
 

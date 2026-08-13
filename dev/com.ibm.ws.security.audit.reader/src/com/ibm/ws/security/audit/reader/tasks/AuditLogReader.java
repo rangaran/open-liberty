@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018, 2025 IBM Corporation and others.
+ * Copyright (c) 2018, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -23,6 +23,8 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.security.KeyStore;
+import java.security.PrivateKey;
+import java.security.UnrecoverableKeyException;
 import java.security.cert.X509Certificate;
 import java.util.logging.Handler;
 import java.util.logging.Level;
@@ -58,6 +60,8 @@ public class AuditLogReader {
     private static String encKeyStoreLocation = new String();
     private static String encKeyStoreName = new String();
     private static String encSharedKey = new String();
+    private static String keyWrapAlgorithm = null;
+    private static String signingKeyWrapAlgorithm = null;
     private static boolean debugEnabled = false;
 
     private static int num_captured_records = 0;
@@ -223,10 +227,14 @@ public class AuditLogReader {
 
             if (signedLog && !encryptedLog) {
 
-                // And then let's get our public key
-                Key publicKey = null;
+                // Get the appropriate key based on the key wrap algorithm
+                Key signingDecryptionKey = null;
                 try {
-                    publicKey = getPublicKey(signingKeyStoreType, signingKeyStoreLocation, signingKeyStorePassword, signingCertAlias);
+                    if ("RSA-OAEP".equals(signingKeyWrapAlgorithm)) {
+                        signingDecryptionKey = getPrivateKey(signingKeyStoreType, signingKeyStoreLocation, signingKeyStorePassword, signingCertAlias);
+                    } else {
+                        signingDecryptionKey = getPublicKey(signingKeyStoreType, signingKeyStoreLocation, signingKeyStorePassword, signingCertAlias);
+                    }
                 } catch (Exception e) {
                     throw e;
                 }
@@ -235,7 +243,6 @@ public class AuditLogReader {
 
                 AuditSigningImpl as = null;
                 try {
-
                     as = new AuditSigningImpl(signingKeyStoreName, signingKeyStoreLocation, signingKeyStoreType, null, signingKeyStorePassword, signingCertAlias);
                 } catch (Exception ase) {
                     throw new Exception(ase);
@@ -243,10 +250,7 @@ public class AuditLogReader {
 
                 byte[] yy = Base64Coder.base64Decode(encryptedSignerSharedKey.getBytes(StandardCharsets.UTF_8));
 
-                byte[] sk = encryptedSignerSharedKey.getBytes();
-                String x = new String(sk);
-                byte[] decryptedSigningSharedKey = as.decryptSharedKey(yy, publicKey);
-                String z = new String(decryptedSigningSharedKey);
+                byte[] decryptedSigningSharedKey = as.decryptSharedKey(yy, signingDecryptionKey);
 
                 // Read our signed audit records
                 try {
@@ -266,10 +270,14 @@ public class AuditLogReader {
                     throw new Exception(msg);
                 }
 
-                // Let's get our public key
-                Key publicKey = null;
+                // Get the appropriate key based on the key wrap algorithm
+                Key decryptionKey = null;
                 try {
-                    publicKey = getPublicKey(encKeyStoreType, encKeyStoreLocation, encKeyStorePassword, encCertAlias);
+                    if ("RSA-OAEP".equals(keyWrapAlgorithm)) {
+                        decryptionKey = getPrivateKey(encKeyStoreType, encKeyStoreLocation, encKeyStorePassword, encCertAlias);
+                    } else {
+                        decryptionKey = getPublicKey(encKeyStoreType, encKeyStoreLocation, encKeyStorePassword, encCertAlias);
+                    }
                 } catch (Exception e) {
                     throw e;
                 }
@@ -284,10 +292,7 @@ public class AuditLogReader {
                 }
 
                 byte[] yy = Base64Coder.base64Decode(encSharedKey.getBytes(StandardCharsets.UTF_8));
-                byte[] sk = encSharedKey.getBytes();
-                String x = new String(sk);
-                byte[] decryptedSharedKey = ae.decryptSharedKey(yy, publicKey);
-                String z = new String(decryptedSharedKey);
+                byte[] decryptedSharedKey = ae.decryptSharedKey(yy, decryptionKey);
 
                 // Read our encrypted audit records
                 try {
@@ -310,14 +315,17 @@ public class AuditLogReader {
                     throw new Exception(msg);
                 }
 
-                // And then let's get our public key for our signed records
-
-                Key publicKey = null;
+                // Get the appropriate key for signing based on the key wrap algorithm
+                Key signingDecryptionKey = null;
                 try {
-                    publicKey = getPublicKey(signingKeyStoreType, signingKeyStoreLocation, signingKeyStorePassword, signingCertAlias);
+                    if ("RSA-OAEP".equals(signingKeyWrapAlgorithm)) {
+                        signingDecryptionKey = getPrivateKey(signingKeyStoreType, signingKeyStoreLocation, signingKeyStorePassword, signingCertAlias);
+                    } else {
+                        signingDecryptionKey = getPublicKey(signingKeyStoreType, signingKeyStoreLocation, signingKeyStorePassword, signingCertAlias);
+                    }
                 } catch (Exception e) {
                     if (debugEnabled)
-                        theLogger.fine("exception getting public key for our signed records" + e.getMessage());
+                        theLogger.fine("exception getting key for our signed records" + e.getMessage());
                     throw e;
                 }
 
@@ -325,24 +333,25 @@ public class AuditLogReader {
 
                 AuditSigningImpl as = null;
                 try {
-
                     as = new AuditSigningImpl(signingKeyStoreName, signingKeyStoreLocation, signingKeyStoreType, null, signingKeyStorePassword, signingCertAlias);
                 } catch (Exception ase) {
                     throw new Exception(ase);
                 }
 
                 byte[] yy = Base64Coder.base64Decode(encryptedSignerSharedKey.getBytes(StandardCharsets.UTF_8));
+                byte[] decryptedSigningSharedKey = as.decryptSharedKey(yy, signingDecryptionKey);
 
-                byte[] sk = encryptedSignerSharedKey.getBytes();
-                byte[] decryptedSigningSharedKey = as.decryptSharedKey(yy, publicKey);
-
-                // Let's get our public key for our encrypted records
+                // Get the appropriate key for encryption based on the key wrap algorithm
+                Key encryptionDecryptionKey = null;
                 try {
-                    publicKey = getPublicKey(encKeyStoreType, encKeyStoreLocation, encKeyStorePassword, encCertAlias);
+                    if ("RSA-OAEP".equals(keyWrapAlgorithm)) {
+                        encryptionDecryptionKey = getPrivateKey(encKeyStoreType, encKeyStoreLocation, encKeyStorePassword, encCertAlias);
+                    } else {
+                        encryptionDecryptionKey = getPublicKey(encKeyStoreType, encKeyStoreLocation, encKeyStorePassword, encCertAlias);
+                    }
                 } catch (Exception e) {
                     if (debugEnabled)
-                        theLogger.fine("exception getting public key for our encrypted records" + e.getMessage());
-
+                        theLogger.fine("exception getting key for our encrypted records" + e.getMessage());
                     throw e;
                 }
 
@@ -357,17 +366,15 @@ public class AuditLogReader {
                 } catch (Exception aee) {
                     if (debugEnabled)
                         theLogger.fine("exception getting newing up an AuditEncryptionImpl" + aee.getMessage());
-
                     throw new Exception(aee);
                 }
-                // Now that I have my key, decrypt the encrypted shared key
 
                 yy = Base64Coder.base64Decode(encSharedKey.getBytes(StandardCharsets.UTF_8));
 
                 if (debugEnabled)
                     theLogger.fine("Was able to base64Decode the encrypted shared key");
 
-                byte[] decryptedSharedKey = ae.decryptSharedKey(yy, publicKey);
+                byte[] decryptedSharedKey = ae.decryptSharedKey(yy, encryptionDecryptionKey);
 
                 if (debugEnabled)
                     theLogger.fine("Was able to decrypt shared key");
@@ -555,7 +562,7 @@ public class AuditLogReader {
         }
         String recordWithSignature = sb.toString();
         int signatureOpenIdx = recordWithSignature.indexOf(signatureOpenTag);
-        int signatureCloseIdx = recordWithSignature.indexOf(signatureCloseTag);
+        int signatureCloseIdx = recordWithSignature.lastIndexOf(signatureCloseTag);
         if (signatureOpenIdx == -1 || signatureCloseIdx == -1 || signatureOpenIdx > signatureCloseIdx) {
             int auditRecordIdx = num_captured_records - 1;
             String msg = CommandUtils.getMessage("security.audit.FailedToValidateSignature", auditRecordIdx);
@@ -703,7 +710,117 @@ public class AuditLogReader {
 
     }
 
+    public static PrivateKey getPrivateKey(String keyStoreType, String keyStoreLocation,
+                                           String keyStorePassword,
+                                           String certAlias) throws java.security.KeyStoreException, java.net.MalformedURLException, java.io.IOException, java.security.cert.CertificateException, java.security.NoSuchAlgorithmException, UnrecoverableKeyException, Exception {
+
+        KeyStore ks = null;
+        PrivateKey privateKey = null;
+        InputStream is = null;
+
+        try {
+            ks = KeyStore.getInstance(keyStoreType);
+        } catch (java.security.KeyStoreException ke) {
+            if (tc.isDebugEnabled())
+                Tr.debug(tc, "Exception opening keystore.", ke.getMessage());
+            if (debugEnabled)
+                theLogger.fine("Exception opening keystore: " + ke.getMessage());
+            throw ke;
+        }
+
+        try {
+            is = openKeyStore(keyStoreLocation);
+        } catch (java.net.MalformedURLException me) {
+            if (tc.isDebugEnabled())
+                Tr.debug(tc, "Exception opening keystore: malformed URL.", me.getMessage());
+            if (debugEnabled)
+                theLogger.fine("Exception opening keystore: malformed URL: " + me.getMessage());
+            throw me;
+        } catch (java.io.IOException ioe) {
+            if (tc.isDebugEnabled())
+                Tr.debug(tc, "Exception opening keystore.", ioe.getMessage());
+            if (debugEnabled)
+                theLogger.fine("Exception opening keystore: " + ioe.getMessage());
+            throw ioe;
+        }
+
+        if (tc.isDebugEnabled())
+            Tr.debug(tc, "Successfully opened the keystore at " + keyStoreLocation);
+        if (debugEnabled)
+            theLogger.fine("Successfully opened the keystore at: " + keyStoreLocation);
+
+        try {
+            ks.load(is, keyStorePassword.toCharArray());
+        } catch (java.security.cert.CertificateException ce) {
+            if (tc.isDebugEnabled())
+                Tr.debug(tc, "CertificateException while loading keystore.", ce.getMessage());
+            if (debugEnabled)
+                theLogger.fine("CertificateException while loading keystore: " + ce.getMessage());
+            throw ce;
+        } catch (java.io.IOException ioe) {
+            String msg = CommandUtils.getMessage("security.audit.ErrorLoadingKeystore", keyStoreLocation);
+            msg = msg.concat(" ").concat(ioe.getMessage());
+            if (tc.isDebugEnabled())
+                Tr.debug(tc, "IOException while loading keystore.", ioe.getMessage());
+            if (debugEnabled)
+                theLogger.fine("IOException while loading keystore: " + msg);
+            throw new IOException(msg);
+        } catch (java.security.NoSuchAlgorithmException ae) {
+            if (tc.isDebugEnabled())
+                Tr.debug(tc, "NoSuchAlgorithmException while loading keystore: no such algorithm", ae.getMessage());
+            if (debugEnabled)
+                theLogger.fine("NoSuchAlgorithmException while loading keystore:  no such algorithm: " + ae.getMessage());
+            throw ae;
+        }
+
+        if (tc.isDebugEnabled())
+            Tr.debug(tc, "Successfully loaded the keystore at " + keyStoreLocation);
+        if (debugEnabled)
+            theLogger.fine("Successfully loaded the keystore at: " + keyStoreLocation);
+
+        try {
+            privateKey = (PrivateKey) ks.getKey(certAlias, keyStorePassword.toCharArray());
+        } catch (java.security.KeyStoreException ke) {
+            if (tc.isDebugEnabled())
+                Tr.debug(tc, "Exception getting private key from keystore.", ke.getMessage());
+            if (debugEnabled)
+                theLogger.fine("Exception getting private key from keystore: " + ke.getMessage());
+            throw ke;
+        } catch (UnrecoverableKeyException uke) {
+            if (tc.isDebugEnabled())
+                Tr.debug(tc, "UnrecoverableKeyException getting private key from keystore.", uke.getMessage());
+            if (debugEnabled)
+                theLogger.fine("UnrecoverableKeyException getting private key from keystore: " + uke.getMessage());
+            throw uke;
+        }
+
+        if (privateKey == null) {
+            if (debugEnabled)
+                theLogger.fine("Failed to get private key for " + certAlias + " from the keystore " + keyStoreLocation);
+            String msg = CommandUtils.getMessage("security.audit.CannotFindCertificate", certAlias, keyStoreLocation);
+            throw new Exception(msg);
+        } else {
+            if (debugEnabled)
+                theLogger.fine("Succeeded getting the private key for " + certAlias + " from the keystore " + keyStoreLocation);
+        }
+        if (debugEnabled)
+            theLogger.fine("returning private key");
+        return privateKey;
+    }
+
     public static void getEncryptionAndSigningData(String filename, boolean signedLog, boolean encryptedLog) throws Exception {
+        // Reset all per-log statics before scanning
+        signingCertAlias = new String();
+        signingKeyStoreLocation = new String();
+        signingKeyStoreName = new String();
+        encryptedSignerSharedKey = new String();
+        encCertAlias = new String();
+        encKeyStoreLocation = new String();
+        encKeyStoreName = new String();
+        encSharedKey = new String();
+        keyWrapAlgorithm = null;
+        signingKeyWrapAlgorithm = null;
+
         boolean foundSignerCertAlias = false;
         boolean foundSignerKeyStore = false;
         boolean foundSignerKeyStoreName = false;
@@ -736,6 +853,10 @@ public class AuditLogReader {
                     int index1 = s.indexOf(">");
                     int index2 = s.indexOf("</signingSharedKey");
                     encryptedSignerSharedKey = s.substring(index1 + 1, index2);
+                } else if (s.contains("signingKeyWrapAlgorithm")) {
+                    int index1 = s.indexOf(">");
+                    int index2 = s.indexOf("</signingKeyWrapAlgorithm>");
+                    signingKeyWrapAlgorithm = s.substring(index1 + 1, index2);
                 }
                 if (s.contains("encryptionCertAlias")) {
                     foundEncryptionCertAlias = true;
@@ -752,6 +873,10 @@ public class AuditLogReader {
                     int index1 = s.indexOf(">");
                     int index2 = s.indexOf("</encryptedSharedKey");
                     encSharedKey = s.substring(index1 + 1, index2);
+                } else if (s.contains("keyWrapAlgorithm") && !s.contains("signing")) {
+                    int index1 = s.indexOf(">");
+                    int index2 = s.indexOf("</keyWrapAlgorithm>");
+                    keyWrapAlgorithm = s.substring(index1 + 1, index2);
                 }
 
                 if (signedLog && !encryptedLog) {

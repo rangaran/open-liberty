@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018, 2025 IBM Corporation and others.
+ * Copyright (c) 2018, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -22,6 +22,8 @@ import java.security.KeyException;
 import java.security.KeyStore;
 import java.security.PublicKey;
 import java.security.cert.X509Certificate;
+
+import javax.crypto.Cipher;
 
 import javax.management.ObjectName;
 
@@ -302,13 +304,16 @@ public class AuditEncryptionImpl implements AuditEncrypting {
             }
             return null;
         }
-        byte[] encodedPublicKey = pKey.getEncoded();
         byte[] encodedSharedKey = sharedKey.getEncoded();
-
-        encryptor = new AuditKeyEncryptor(encodedPublicKey);
-
-        encryptedSharedKey = encryptor.encrypt(encodedSharedKey);
-
+        try {
+            Cipher c = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
+            c.init(Cipher.ENCRYPT_MODE, pKey);
+            encryptedSharedKey = c.doFinal(encodedSharedKey);
+        } catch (Exception e) {
+            if (tc.isDebugEnabled())
+                Tr.debug(tc, "encryptSharedKey RSA-OAEP failed", e);
+            throw new java.io.IOException(e.getMessage());
+        }
         return encryptedSharedKey;
     }
 
@@ -327,16 +332,15 @@ public class AuditEncryptionImpl implements AuditEncrypting {
             }
             return null;
         }
-
-        if (encryptor == null) {
-            byte[] encodedPublicKey = pKey.getEncoded();
-            encryptor = new AuditKeyEncryptor(encodedPublicKey);
+        try {
+            Cipher c = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
+            c.init(Cipher.DECRYPT_MODE, pKey);
+            decryptedSharedKey = c.doFinal(sharedKey);
+        } catch (Exception e) {
+            if (tc.isDebugEnabled())
+                Tr.debug(tc, "decryptSharedKey RSA-OAEP failed", e);
+            throw new java.io.IOException(e.getMessage());
         }
-
-        byte[] encodedPublicKey = pKey.getEncoded();
-
-        decryptedSharedKey = encryptor.decrypt(sharedKey);
-
         return decryptedSharedKey;
     }
 
