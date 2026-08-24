@@ -230,7 +230,7 @@ public class AuditLogReader {
                 // Get the appropriate key based on the key wrap algorithm
                 Key signingDecryptionKey = null;
                 try {
-                    if ("RSA-OAEP".equals(signingKeyWrapAlgorithm)) {
+                    if (isOaepWrapped(signingKeyWrapAlgorithm, encryptedSignerSharedKey)) {
                         signingDecryptionKey = getPrivateKey(signingKeyStoreType, signingKeyStoreLocation, signingKeyStorePassword, signingCertAlias);
                     } else {
                         signingDecryptionKey = getPublicKey(signingKeyStoreType, signingKeyStoreLocation, signingKeyStorePassword, signingCertAlias);
@@ -273,7 +273,7 @@ public class AuditLogReader {
                 // Get the appropriate key based on the key wrap algorithm
                 Key decryptionKey = null;
                 try {
-                    if ("RSA-OAEP".equals(keyWrapAlgorithm)) {
+                    if (isOaepWrapped(keyWrapAlgorithm, encSharedKey)) {
                         decryptionKey = getPrivateKey(encKeyStoreType, encKeyStoreLocation, encKeyStorePassword, encCertAlias);
                     } else {
                         decryptionKey = getPublicKey(encKeyStoreType, encKeyStoreLocation, encKeyStorePassword, encCertAlias);
@@ -318,7 +318,7 @@ public class AuditLogReader {
                 // Get the appropriate key for signing based on the key wrap algorithm
                 Key signingDecryptionKey = null;
                 try {
-                    if ("RSA-OAEP".equals(signingKeyWrapAlgorithm)) {
+                    if (isOaepWrapped(signingKeyWrapAlgorithm, encryptedSignerSharedKey)) {
                         signingDecryptionKey = getPrivateKey(signingKeyStoreType, signingKeyStoreLocation, signingKeyStorePassword, signingCertAlias);
                     } else {
                         signingDecryptionKey = getPublicKey(signingKeyStoreType, signingKeyStoreLocation, signingKeyStorePassword, signingCertAlias);
@@ -344,7 +344,7 @@ public class AuditLogReader {
                 // Get the appropriate key for encryption based on the key wrap algorithm
                 Key encryptionDecryptionKey = null;
                 try {
-                    if ("RSA-OAEP".equals(keyWrapAlgorithm)) {
+                    if (isOaepWrapped(keyWrapAlgorithm, encSharedKey)) {
                         encryptionDecryptionKey = getPrivateKey(encKeyStoreType, encKeyStoreLocation, encKeyStorePassword, encCertAlias);
                     } else {
                         encryptionDecryptionKey = getPublicKey(encKeyStoreType, encKeyStoreLocation, encKeyStorePassword, encCertAlias);
@@ -873,7 +873,7 @@ public class AuditLogReader {
                     int index1 = s.indexOf(">");
                     int index2 = s.indexOf("</encryptedSharedKey");
                     encSharedKey = s.substring(index1 + 1, index2);
-                } else if (s.contains("keyWrapAlgorithm") && !s.contains("signing")) {
+                } else if (s.contains("<keyWrapAlgorithm>")) {
                     int index1 = s.indexOf(">");
                     int index2 = s.indexOf("</keyWrapAlgorithm>");
                     keyWrapAlgorithm = s.substring(index1 + 1, index2);
@@ -936,6 +936,29 @@ public class AuditLogReader {
             throw e;
         }
 
+    }
+
+    /**
+     * Returns true when the wrapped key should be decrypted with a private key (RSA-OAEP path).
+     *
+     * Two signals are checked so that logs written before the {@code <keyWrapAlgorithm>} tag was
+     * introduced are still handled correctly:
+     * <ol>
+     *   <li>The explicit algorithm tag value is {@code "RSA-OAEP"}.</li>
+     *   <li>Fallback: RSA-2048 OAEP output is 256 bytes; the legacy AES-wrapped key is ~48 bytes.
+     *       Anything &ge; 128 decoded bytes cannot be the legacy AES path.</li>
+     * </ol>
+     */
+    private static boolean isOaepWrapped(String tagValue, String base64CipherText) {
+        if ("RSA-OAEP".equals(tagValue)) {
+            return true;
+        }
+        // Fallback: inspect the wrapped-key length to distinguish OAEP from legacy AES.
+        if (base64CipherText != null && !base64CipherText.isEmpty()) {
+            byte[] decoded = Base64Coder.base64Decode(base64CipherText.getBytes(StandardCharsets.UTF_8));
+            return decoded.length >= 128;
+        }
+        return false;
     }
 
     /*** openKeyStore method to open keystore in the form of a file or a url ***/

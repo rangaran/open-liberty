@@ -16,8 +16,13 @@ import com.ibm.ws.common.crypto.CryptoUtils;
 import com.ibm.ws.security.audit.source.utils.ByteArray;
 
 /**
- * A package local class for performing encryption and decryption of keys based on a key
+ * A package local class for performing encryption and decryption of keys based on a key.
+ *
+ * @deprecated No longer used. Key wrapping is now performed directly via RSA-OAEP in
+ *             {@link AuditEncryptionImpl} and {@link AuditSigningImpl}. This class will
+ *             be removed in a future release.
  */
+@Deprecated
 public class AuditKeyEncryptor {
     private final String algorithm = CryptoUtils.MESSAGE_DIGEST_ALGORITHM_SHA_256; // Semerun 1.8 does not support string SHA256
     byte[] password;
