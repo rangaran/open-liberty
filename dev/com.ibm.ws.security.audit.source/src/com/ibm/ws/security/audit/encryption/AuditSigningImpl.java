@@ -189,28 +189,49 @@ public class AuditSigningImpl implements AuditSigning {
     /**
      * <p>
      * The <code>decryptSharedKey</code> method decrypts the encrypted shared key.
+     * Attempts RSA-OAEP (RSA/ECB/OAEPWithSHA-256AndMGF1Padding) first; if that fails,
+     * falls back to the legacy AES-based key unwrapping via {@link #decryptSharedKeyLegacy}.
      * </p>
      *
-     * @return an encoded array of bytes representing the encrypted key
+     * @return an encoded array of bytes representing the decrypted key
      **/
     public byte[] decryptSharedKey(byte[] sharedKey, Key pKey) throws java.io.IOException {
-        byte[] decryptedSharedKey = null;
         if (sharedKey == null) {
             if (tc.isDebugEnabled()) {
-                Tr.debug(tc, "ERROR!!! shared key is null!");
+                Tr.debug(tc, "ERROR: shared key is null!");
             }
             return null;
         }
         try {
             javax.crypto.Cipher c = javax.crypto.Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
             c.init(javax.crypto.Cipher.DECRYPT_MODE, pKey);
-            decryptedSharedKey = c.doFinal(sharedKey);
+            return c.doFinal(sharedKey);
         } catch (Exception e) {
             if (tc.isDebugEnabled())
-                Tr.debug(tc, "decryptSharedKey RSA-OAEP failed", e);
-            throw new java.io.IOException(e.getMessage());
+                Tr.debug(tc, "decryptSharedKey RSA-OAEP failed, falling back to legacy decryption", e);
         }
-        return decryptedSharedKey;
+        return decryptSharedKeyLegacy(sharedKey, pKey);
+    }
+
+    /**
+     * <p>
+     * The <code>decryptSharedKeyLegacy</code> method decrypts the encrypted shared key
+     * using the original AES-based key unwrapping (pre-RSA-OAEP).
+     * </p>
+     *
+     * @return an encoded array of bytes representing the decrypted key
+     **/
+    public byte[] decryptSharedKeyLegacy(byte[] sharedKey, Key pKey) throws java.io.IOException {
+        if (sharedKey == null) {
+            if (tc.isDebugEnabled()) {
+                Tr.debug(tc, "ERROR: shared key is null!");
+            }
+            return null;
+        }
+        if (encryptor == null) {
+            encryptor = new AuditKeyEncryptor(pKey.getEncoded());
+        }
+        return encryptor.decrypt(sharedKey);
     }
 
     /**
