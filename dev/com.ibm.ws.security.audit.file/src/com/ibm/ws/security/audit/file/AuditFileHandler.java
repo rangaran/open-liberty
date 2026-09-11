@@ -64,7 +64,7 @@ import com.ibm.ws.security.audit.crypto.AuditPQCKeyLoader;
 import com.ibm.ws.security.audit.encryption.AuditSigningImpl;
 import com.ibm.ws.security.audit.event.AuditMgmtEvent;
 import com.ibm.ws.security.audit.logutils.FileLog;
-import com.ibm.ws.security.token.ltpa.pqc.PQCRuntimeSupport;
+import com.ibm.ws.security.audit.pqc.AuditPQCRuntimeSupport;
 import com.ibm.ws.ssl.KeyStoreService;
 import com.ibm.wsspi.collector.manager.BufferManager;
 import com.ibm.wsspi.collector.manager.CollectorManager;
@@ -717,7 +717,7 @@ public class AuditFileHandler implements SynchronousHandler {
         }
 
         // Check if PQC mode is enabled and PQC support is available
-if (PQCRuntimeSupport.isPQCSupported()) {
+if (AuditPQCRuntimeSupport.isPQCSupported()) {
     if (tc.isDebugEnabled()) {
         Tr.debug(tc, "PQC mode enabled, using ML-KEM for key encapsulation and ML-DSA for signing");
     }
@@ -744,16 +744,16 @@ if (PQCRuntimeSupport.isPQCSupported()) {
         // 3. ML-KEM ENCAPSULATION FOR SIGNING
         // =========================
         Object encap =
-            PQCRuntimeSupport.encapsulate(mlkemPublicKey);
+            AuditPQCRuntimeSupport.encapsulate(mlkemPublicKey);
 
         SecretKey mlkemSharedSecret =
-            PQCRuntimeSupport.extractSharedSecret(encap);
+            AuditPQCRuntimeSupport.extractSharedSecret(encap);
 
         // Initialize signedSharedKey for signing operations
         signedSharedKey = mlkemSharedSecret;
 
         encryptedSignerSharedKey =
-            PQCRuntimeSupport.extractEncapsulation(encap);
+            AuditPQCRuntimeSupport.extractEncapsulation(encap);
 
         // =========================
         // 4. ASSIGN SIGNING KEYS
@@ -833,7 +833,7 @@ if (PQCRuntimeSupport.isPQCSupported()) {
         
         // Check if PQC mode is enabled and PQC support is available FIRST
         // to avoid accessing the keystore when using PEM files
-        if (PQCRuntimeSupport.isPQCSupported()) {
+        if (AuditPQCRuntimeSupport.isPQCSupported()) {
             if (tc.isDebugEnabled()) {
                 Tr.debug(tc, "PQC mode enabled, using ML-KEM for shared key generation and encryption");
             }
@@ -864,14 +864,14 @@ if (PQCRuntimeSupport.isPQCSupported()) {
                 }
                 
                 // Use ML-KEM encapsulation to generate shared secret and encapsulation
-                Object secretKeyWithEncap = PQCRuntimeSupport.encapsulate(mlkemPublicKey);
+                Object secretKeyWithEncap = AuditPQCRuntimeSupport.encapsulate(mlkemPublicKey);
                 
                 // Extract the shared secret (this will be used as the AES key)
-                SecretKey mlkemSharedSecret = PQCRuntimeSupport.extractSharedSecret(secretKeyWithEncap);
+                SecretKey mlkemSharedSecret = AuditPQCRuntimeSupport.extractSharedSecret(secretKeyWithEncap);
                 sharedKey = mlkemSharedSecret;
                 
                 // Extract the encapsulation (this is what gets stored/transmitted)
-                encryptedSharedKey = PQCRuntimeSupport.extractEncapsulation(secretKeyWithEncap);
+                encryptedSharedKey = AuditPQCRuntimeSupport.extractEncapsulation(secretKeyWithEncap);
                 
                 publicKey = mlkemPublicKey;
                 sharedKeyAlias = ae.generateAliasForSharedKey();
