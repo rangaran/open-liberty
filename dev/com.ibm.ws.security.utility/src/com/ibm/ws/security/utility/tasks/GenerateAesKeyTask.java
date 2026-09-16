@@ -38,8 +38,9 @@ import com.ibm.ws.security.utility.utils.ConsoleWrapper;
 public class GenerateAesKeyTask extends BaseCommandTask {
 
     private static final String ARG_FILE = "--createConfigFile";
+    private static final String ARG_KEYSIZE = "--keySize";
     private static final List<String> VALID_ARGUMENTS = Collections.unmodifiableList(
-                                                                                     Arrays.asList(BaseCommandTask.ARG_KEY, ARG_FILE));
+                                                                                     Arrays.asList(BaseCommandTask.ARG_KEY, ARG_FILE, ARG_KEYSIZE));
 
     protected static final String TASK_NAME = "generateAESKey";
     private final IFileUtility fileUtil;
@@ -85,7 +86,7 @@ public class GenerateAesKeyTask extends BaseCommandTask {
 
         CommandArguments parsedArgs = parseArgs(args, this.fileUtil);
 
-        PasswordEncryptionConfigBuilder builder = new PasswordEncryptionConfigBuilder(parsedArgs.keyPhrase, parsedArgs.filePath, fileUtil, stderr);
+        PasswordEncryptionConfigBuilder builder = new PasswordEncryptionConfigBuilder(parsedArgs.keyPhrase, parsedArgs.filePath, parsedArgs.keySize, fileUtil, stderr);
         if (builder.getFilePath() == null) {
             stdout.println(builder.getKey());
         } else {
@@ -111,10 +112,12 @@ public class GenerateAesKeyTask extends BaseCommandTask {
     private static class CommandArguments {
         final String keyPhrase;
         final String filePath;
+        final int keySize;
 
-        CommandArguments(String keyPhrase, String filePath) {
+        CommandArguments(String keyPhrase, String filePath, int keySize) {
             this.keyPhrase = keyPhrase;
             this.filePath = filePath;
+            this.keySize = keySize;
         }
     }
 
@@ -128,6 +131,7 @@ public class GenerateAesKeyTask extends BaseCommandTask {
     private CommandArguments parseArgs(String[] args, IFileUtility fileUtil) {
         String keyPhrase = null;
         String filePath = null;
+        int keySize = 256;
 
         for (int i = 1; i < args.length; i++) {
             String arg = args[i];
@@ -165,10 +169,22 @@ public class GenerateAesKeyTask extends BaseCommandTask {
                 }
                 filePath = value;
 
+            } else if (ARG_KEYSIZE.equals(option)) {
+                if (value == null) {
+                    throw new IllegalArgumentException(getMessage("missingValue", option));
+                }
+                try {
+                    keySize = Integer.parseInt(value);
+                    if (keySize != 128 && keySize != 192 && keySize != 256 && keySize != 512) {
+                        throw new IllegalArgumentException("Unsupported keySize: " + value + ". Valid sizes are 128, 192, 256, 512.");
+                    }
+                } catch (NumberFormatException e) {
+                    throw new IllegalArgumentException(getMessage("invalidArg", arg));
+                }
             }
         }
 
-        return new CommandArguments(keyPhrase, filePath);
+        return new CommandArguments(keyPhrase, filePath, keySize);
     }
 
     /**
@@ -179,22 +195,29 @@ public class GenerateAesKeyTask extends BaseCommandTask {
     public static class PasswordEncryptionConfigBuilder {
         private final String filePath;
         private final String passphrase;
+        private final int keySize;
         private final IFileUtility fileUtil;
         private final PrintStream stderr;
 
         /**
-         * Creates a new builder with the specified passphrase and file path.
+         * Creates a new builder with the specified passphrase, file path and key size.
          *
          * @param keyPhrase The passphrase to use for encryption, or null to generate a random key
          * @param filePath  The path where the XML file should be written, or null to use the default
+         * @param keySize   The key size in bits (128, 192, 256, 512)
          * @param fileUtil
          * @param stderr
          */
-        public PasswordEncryptionConfigBuilder(String keyPhrase, String filePath, IFileUtility fileUtil, PrintStream stderr) {
+        public PasswordEncryptionConfigBuilder(String keyPhrase, String filePath, int keySize, IFileUtility fileUtil, PrintStream stderr) {
             this.passphrase = keyPhrase;
             this.filePath = filePath;
+            this.keySize = keySize;
             this.fileUtil = fileUtil;
             this.stderr = stderr;
+        }
+
+        public PasswordEncryptionConfigBuilder(String keyPhrase, String filePath, IFileUtility fileUtil, PrintStream stderr) {
+            this(keyPhrase, filePath, 256, fileUtil, stderr);
         }
 
         /**
@@ -220,26 +243,31 @@ public class GenerateAesKeyTask extends BaseCommandTask {
         }
 
         /**
-         * Generates a cryptographically secure random AES-256 key.
+         * Generates a cryptographically secure random AES key of specified bit length.
          *
-         * @return Base64-encoded random AES-256 key
+         * @param keyBits key size in bits
+         * @return Base64-encoded random AES key
          */
-        protected static String generateRandomAes256Key() {
+        protected static String generateRandomAesKey(int keyBits) {
             byte[] keyBytes;
             SecureRandom secureRandom = new SecureRandom();
 
             try {
                 KeyGenerator keyGenerator = KeyGenerator.getInstance(CryptoUtils.ENCRYPT_ALGORITHM_AES);
-                keyGenerator.init(CryptoUtils.AES_256_KEY_LENGTH_BITS, secureRandom);
+                keyGenerator.init(keyBits, secureRandom);
                 SecretKey secretKey = keyGenerator.generateKey();
                 keyBytes = secretKey.getEncoded();
             } catch (NoSuchAlgorithmException e) {
                 // Fallback to SecureRandom if KeyGenerator is not available
-                keyBytes = new byte[CryptoUtils.AES_256_KEY_LENGTH_BYTES];
+                keyBytes = new byte[keyBits / 8];
                 secureRandom.nextBytes(keyBytes);
             }
 
             return Base64.getEncoder().encodeToString(keyBytes);
+        }
+
+        protected static String generateRandomAes256Key() {
+            return generateRandomAesKey(256);
         }
 
         protected static String generateAes256KeyWithPBKDF2(String phrase) throws NoSuchAlgorithmException, InvalidKeySpecException {
@@ -289,7 +317,7 @@ public class GenerateAesKeyTask extends BaseCommandTask {
         private String getKey() throws NoSuchAlgorithmException, InvalidKeySpecException {
             String keyValue;
             if (this.passphrase == null) {
-                keyValue = PasswordEncryptionConfigBuilder.generateRandomAes256Key();
+                keyValue = PasswordEncryptionConfigBuilder.generateRandomAesKey(this.keySize);
             } else {
                 keyValue = PasswordEncryptionConfigBuilder.generateAes256KeyWithPBKDF2(this.passphrase);
             }

@@ -29,6 +29,10 @@
 	<AD id="encryptKeyStoreRef" name="%encryptKeyStoreRef.name" description="%encryptKeyStoreRef.desc" type="String" required="false" ibm:type="pid" ibm:reference="com.ibm.ws.ssl.keystore"/>
 	<AD id="signingAlias" name="%signingAlias.name" description="%signingAlias.desc" required="false" type="String"/>
 	<AD id="signingKeyStoreRef" name="%signingKeyStoreRef.name" description="%signingKeyStoreRef.desc" type="String" required="false" ibm:type="pid" ibm:reference="com.ibm.ws.ssl.keystore"/>
+	<AD id="encryptAlgorithm" name="%encryptAlgorithm.name" description="%encryptAlgorithm.desc" required="false" type="String" default="AES-256"/>
+	<AD id="hashAlgorithm" name="%hashAlgorithm.name" description="%hashAlgorithm.desc" required="false" type="String" default="SHA-256"/>
+	<AD id="kemAlgorithm" name="%kemAlgorithm.name" description="%kemAlgorithm.desc" required="false" type="String" default="ML-KEM-768"/>
+	<AD id="signingAlgorithm" name="%signingAlgorithm.name" description="%signingAlgorithm.desc" required="false" type="String" default="ML-DSA-65"/>
 	<AD id="compact" name="%compact.name" description="%compact.desc" required="false" type="Boolean" default="false"/>
 </OCD>
 

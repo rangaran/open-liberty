@@ -27,6 +27,7 @@ import com.ibm.ws.security.utility.tasks.CreateLTPAKeysTask;
 import com.ibm.ws.security.utility.tasks.CreateSSLCertificateTask;
 import com.ibm.ws.security.utility.tasks.EncodeTask;
 import com.ibm.ws.security.utility.tasks.GenerateAesKeyTask;
+import com.ibm.ws.security.utility.tasks.GeneratePQCKeyTask;
 import com.ibm.ws.security.utility.tasks.HelpTask;
 import com.ibm.ws.security.utility.tasks.TLSProfilerTask;
 import com.ibm.ws.security.utility.utils.CommandUtils;
@@ -172,6 +173,7 @@ public class SecurityUtility extends UtilityTemplate {
         util.registerTask(new TLSProfilerTask(fileUtil, SCRIPT_NAME));
         util.registerTask(new ConfigureFIPSTask(fileUtil, SCRIPT_NAME));
         util.registerTask(new GenerateAesKeyTask(fileUtil, SCRIPT_NAME));
+        util.registerTask(new GeneratePQCKeyTask(fileUtil, SCRIPT_NAME));
 
         // Kick everything off
         int rc = util.runProgram(args).getReturnCode();

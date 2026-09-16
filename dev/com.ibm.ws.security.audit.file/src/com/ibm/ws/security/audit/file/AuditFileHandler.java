@@ -127,6 +127,10 @@ public class AuditFileHandler implements SynchronousHandler {
     private String encryptKeyStoreId = null;
     private final String signerKeyStoreRef = null;
     private String signerKeyStoreId = null;
+    private String encryptAlgorithm = "AES-256";
+    private String hashAlgorithm = "SHA-256";
+    private String kemAlgorithm = "ML-KEM-768";
+    private String signingAlgorithm = "ML-DSA-65";
     private String wrapBehavior = null;
     private String logDirectory = null;
     private Integer maxFiles = -1;
@@ -663,6 +667,46 @@ public class AuditFileHandler implements SynchronousHandler {
     /** {@inheritDoc} */
     public String getSignerKeyStoreRef() {
         return this.signerKeyStoreId;
+    }
+
+    public void setEncryptAlgorithm(Object value) {
+        if (value != null) {
+            this.encryptAlgorithm = (String) value;
+        }
+    }
+
+    public String getEncryptAlgorithm() {
+        return this.encryptAlgorithm;
+    }
+
+    public void setHashAlgorithm(Object value) {
+        if (value != null) {
+            this.hashAlgorithm = (String) value;
+        }
+    }
+
+    public String getHashAlgorithm() {
+        return this.hashAlgorithm;
+    }
+
+    public void setKemAlgorithm(Object value) {
+        if (value != null) {
+            this.kemAlgorithm = (String) value;
+        }
+    }
+
+    public String getKemAlgorithm() {
+        return this.kemAlgorithm;
+    }
+
+    public void setSigningAlgorithm(Object value) {
+        if (value != null) {
+            this.signingAlgorithm = (String) value;
+        }
+    }
+
+    public String getSigningAlgorithm() {
+        return this.signingAlgorithm;
     }
 
     /** {@inheritDoc} */

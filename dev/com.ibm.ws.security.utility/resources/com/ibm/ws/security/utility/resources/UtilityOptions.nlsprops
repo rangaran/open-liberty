@@ -430,9 +430,38 @@ generateaeskey.option-desc.key=\
 \tThis string is hashed to produce an encryption\n\
 \tkey that is used to encrypt and decrypt passwords. If this option is\n\
 \tomitted, a random key is generated.
+generateaeskey.option-key.keySize=\
+\ \ \ \ --keySize=[128|192|256|512]
+generateaeskey.option-desc.keySize=\
+\tSize of the AES key in bits. Valid values are 128, 192, 256, 512.\n\
+\tDefault is 256.
 generateaeskey.option-key.createConfigFile=\
 \ \ \ \ --createConfigFile=name
 generateaeskey.option-desc.createConfigFile=\
 \tCreates an XML file with the generated value saved in a variable\n\
 \tnamed wlp.aes.encryption.key. If not provided, the generated value\n\
 \twill be written to the console screen.
+
+# -------- Generate PQC KEY OPTIONS -----------------------------------------#
+#------------------------------\n at 72 chars Leading "\ \ \ \ "-------\n\#
+#------------------------------\n at 72 chars Leading "\t"-------------\n\#
+generatepqckey.desc=\
+\tGenerates a Post-Quantum Cryptography (PQC) key pair (ML-KEM or ML-DSA)\n\
+\tstored in PEM format for quantum-safe encryption or signing.
+generatepqckey.usage.options=\
+\t{0} generatePQCKey [options]
+generatepqckey.option-key.type=\
+\ \ \ \ --type=[ML-KEM|ML-DSA]
+generatepqckey.option-desc.type=\
+\tSpecifies the quantum-safe key type. Supported types are ML-KEM\n\
+\t(default: ML-KEM-768) and ML-DSA (default: ML-DSA-65).
+generatepqckey.option-key.out=\
+\ \ \ \ --out=filePath
+generatepqckey.option-desc.out=\
+\tThe file path where the generated PEM key pair will be saved.\n\
+\tDefaults to mlkem_key.pem for ML-KEM and mldsa_key.pem for ML-DSA.
+generatepqckey.option-key.createConfigFile=\
+\ \ \ \ --createConfigFile=name
+generatepqckey.option-desc.createConfigFile=\
+\tCreates an XML file containing the Liberty server configuration snippet\n\
+\treferencing the generated PQC key.
