@@ -5,6 +5,7 @@ Subsystem-Content: com.ibm.websphere.appserver.ltpa-1.0; type="osgi.subsystem.fe
  com.ibm.websphere.appserver.security-1.0; ibm.tolerates:="2.0"; type="osgi.subsystem.feature"
 Subsystem-Type: osgi.subsystem.feature
 IBM-API-Package: com.ibm.ws.security.token;  type="internal",
+ com.ibm.wsspi.security.ltpa;  type="internal",
  org.osgi.framework;  type="internal"
 IBM-Feature-Version: 2
 
