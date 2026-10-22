@@ -152,12 +152,10 @@ public class AuditCommonTest {
     protected static String HEADER_ENCRYPTED_SHARED_KEY = "encryptedSharedKey";
     protected static String HEADER_ENCRYPTION_CERT_ALIAS = "encryptionCertAlias";
     protected static String HEADER_ENCRYPTION_KEYSTORE = "encryptionKeyStore";
-    protected static String HEADER_ENCRYPTION_CERTIFICATE = "encryptionCertificate";
-    
+
     protected static String HEADER_SIGNING_SHARED_KEY = "signingSharedKey";
     protected static String HEADER_SIGNING_CERT_ALIAS = "signingCertAlias";
     protected static String HEADER_SIGNING_KEYSTORE = "signingKeyStore";
-    protected static String HEADER_SIGNING_CERTIFICATE = "signingCertificate";
     
     protected static String AUDIT_RECORD = "auditRecord";
     

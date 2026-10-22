@@ -142,7 +142,6 @@ public class AuditFileHandler implements SynchronousHandler {
     private java.security.Key privateSignerKey = null;
     private byte[] encryptedSignerSharedKey = null;
     private java.security.cert.X509Certificate signerCert = null;
-    private byte[] signerCertBytes = null;
 
     private final static String encryptionOpenTag = "<EncryptionInformation>\n";
     private final static String encryptionCloseTag = "</EncryptionInformation>\n";
@@ -165,12 +164,6 @@ public class AuditFileHandler implements SynchronousHandler {
 
     private final static String keyStoreNameOpenTag = "   <keyStoreName>";
     private final static String keyStoreNameCloseTag = "</keyStoreName>\n";
-
-    private final static String encryptionCertificateOpenTag = "   <encryptionCertificate>";
-    private final static String encryptionCertificateCloseTag = "</encryptionCertificate>\n";
-
-    private final static String signingCertificateOpenTag = "   <signingCertificate>";
-    private final static String signingCertificateCloseTag = "</signingCertificate>\n";
 
     private final static String scopeOpenTag = "   <scope>";
     private final static String scopeCloseTag = "</scope>\n";
@@ -851,8 +844,6 @@ public class AuditFileHandler implements SynchronousHandler {
     public String buildEncryptionHeader() {
         String header = null;
 
-        byte[] certBytes = publicKey.toString().getBytes();
-
         header = encryptionOpenTag;
 
         header = header.concat(encryptedSharedKeyOpenTag);
@@ -874,11 +865,6 @@ public class AuditFileHandler implements SynchronousHandler {
         header = header.concat(encryptKeyStoreLocation);
         header = header.concat(encryptionKeyStoreCloseTag);
 
-        header = header.concat(encryptionCertificateOpenTag);
-        header = header.concat(new String(certBytes));
-        header = header.concat(newLine);
-        header = header.concat(encryptionCertificateCloseTag);
-
         header = header.concat(encryptionCloseTag);
 
         return header;
@@ -887,7 +873,6 @@ public class AuditFileHandler implements SynchronousHandler {
 
     public String buildSignerHeader() {
         String header = null;
-        signerCertBytes = publicSignerKey.toString().getBytes();
 
         if (header == null) {
             header = signingOpenTag;
@@ -913,12 +898,6 @@ public class AuditFileHandler implements SynchronousHandler {
         header = header.concat(signingKeyStoreOpenTag);
         header = header.concat(signerKeyStoreLocation);
         header = header.concat(signingKeyStoreCloseTag);
-
-        header = header.concat(signingCertificateOpenTag);
-        header = header.concat(new String(signerCertBytes));
-
-        header = header.concat(newLine);
-        header = header.concat(signingCertificateCloseTag);
 
         header = header.concat(signingCloseTag);
 
